@@ -8,7 +8,6 @@ export default function Footer() {
           <Avatar>
             <AvatarImage src="/placeholder.svg" alt="Leaf" />
             <AvatarFallback>
-                {/* <Leaf /> */}
                 </AvatarFallback>
           </Avatar>
           <Avatar>
@@ -25,7 +24,6 @@ export default function Footer() {
             </AvatarFallback>
           </Avatar>
         </div>
-        {/* <Separator className="my-4" /> */}
         <p className="text-sm text-primary-foreground/60">© 2024 ネコと植物の相性チェッカー</p>
       </div>
     </footer>

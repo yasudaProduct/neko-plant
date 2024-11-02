@@ -1,0 +1,38 @@
+export const plantData = [
+  {
+    id: 1,
+    name: "モンステラ",
+    imageSrc: "/placeholder.svg?height=256&width=384",
+    isSafe: false,
+    likes: 2,
+    dislikes: 22,
+    reviewCount: 24,
+  },
+  {
+    id: 2,
+    name: "エアプランツ",
+    imageSrc: "/placeholder.svg?height=256&width=384",
+    isSafe: true,
+    likes: 16,
+    dislikes: 2,
+    reviewCount: 18,
+  },
+  {
+    id: 3,
+    name: "アロエベラ",
+    imageSrc: "/placeholder.svg?height=256&width=384",
+    isSafe: false,
+    likes: 8,
+    dislikes: 12,
+    reviewCount: 20,
+  },
+  {
+    id: 4,
+    name: "キャットグラス",
+    imageSrc: "/placeholder.svg?height=256&width=384",
+    isSafe: true,
+    likes: 30,
+    dislikes: 1,
+    reviewCount: 31,
+  },
+];

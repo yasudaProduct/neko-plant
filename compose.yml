@@ -2,5 +2,11 @@ services:
   app:
     build:
       context: .
+    ports:
+      - "12000:3000"
     volumes:
-      - .:/app
+      - .:/app/
+      - node-modules:/app/node_modules
+    command: npm run dev
+volumes:
+    node-modules:

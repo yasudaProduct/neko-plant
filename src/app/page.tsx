@@ -1,7 +1,5 @@
 "use client";
 
-import Footer from "@/components/Footer";
-import Header from "@/components/Header";
 import PlantCard from "@/components/PlantCard";
 import { Input } from "@/components/ui/input";
 import { plantData } from "@/lib/mock-data";
@@ -9,7 +7,6 @@ import { plantData } from "@/lib/mock-data";
 export default function Home() {
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
 
       <main className="flex-1 py-12 px-4 bg-gradient-to-b from-background to-secondary/30">
         <div className="max-w-4xl mx-auto text-center">
@@ -43,7 +40,6 @@ export default function Home() {
           ))}
         </div>
       </main>
-      <Footer />
     </div>
   );
 }

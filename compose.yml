@@ -6,7 +6,4 @@ services:
       - "12000:3000"
     volumes:
       - .:/app/
-      - node-modules:/app/node_modules
     command: npm run dev
-volumes:
-    node-modules:

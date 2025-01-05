@@ -1,0 +1,102 @@
+{
+  //gitemoji https://gitmoji.dev/
+  "gitmoji.outputType": "code", // 文字列形式で絵文字を出力する
+  "gitmoji.onlyUseCustomEmoji": true, // カスタマイズした絵文字のみ表示する
+  "gitmoji.addCustomEmoji": [
+    {
+      "emoji": "✨",
+      "code": ":sparkles:",
+      "description": "新機能"
+    },
+    {
+      "emoji": "🐛",
+      "code": ":bug:",
+      "description": "バグ修正"
+    },
+    {
+      "emoji": "♻️",
+      "code": ":recycle:",
+      "description": "リファクタリング"
+    },
+    {
+      "emoji": "💄",
+      "code": ":lipstick:",
+      "description": "UI/UX デザインの変更"
+    },
+    {
+      "emoji": "🩹",
+      "code": ":adhesive_bandage:",
+      "description": "機能改善"
+    },
+    {
+      "emoji": "✅",
+      "code": ":white_check_mark:",
+      "description": "テストを追加、更新、または合格します。"
+    },
+    {
+      "emoji": "🔥",
+      "code": ":fire:",
+      "description": "コードまたはファイルを削除します。"
+    },
+    {
+      "emoji": "⚰️",
+      "code": ":coffin:",
+      "description": "デッドコードを削除します。"
+    },
+    {
+      "emoji": "📝",
+      "code": ":memo:",
+      "description": "ドキュメントを追加または更新します。"
+    },
+    {
+      "emoji": "🔍️",
+      "code": ":mag:",
+      "description": "SEO改善"
+    },
+    {
+      "emoji": "⚡️",
+      "code": ":zap:",
+      "description": "パフォーマンス改善"
+    },
+    {
+      "emoji": "💚",
+      "code": ":green_heart:",
+      "description": "CI ビルドを修正します。"
+    },
+    {
+      "emoji": "📦️",
+      "code": ":package:",
+      "description": "コンパイルされたファイルまたはパッケージを追加または更新します。"
+    },
+    {
+      "emoji": "⏪️",
+      "code": ":rewind:",
+      "description": "変更を元に戻します。"
+    },
+    {
+      "emoji": "🔀",
+      "code": ":twisted_rightwards_arrows:",
+      "description": "ブランチをマージします。"
+    },
+    {
+      "emoji": "🚧",
+      "code": ":construction:",
+      "description": "作業進行中です。"
+    },
+    {
+      "emoji": "🧑‍💻",
+      "code": ":technologist:",
+      "description": "開発環境 開発者エクスペリエンスを向上します。"
+    },
+    {
+      "emoji": "🚀",
+      "code": ":rocket:",
+      "description": "本番リリース"
+    },
+    {
+      "emoji": "🎉",
+      "code": ":tada:",
+      "description": "プロジェクトを開始します。"
+    }
+  ]
+}

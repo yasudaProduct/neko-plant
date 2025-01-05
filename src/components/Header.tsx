@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { House, Leaf, LogOut, Wrench } from "lucide-react";
+import { Leaf, LogOut, Settings } from "lucide-react";
 import useUser from "@/hooks/useUser";
 import { useEffect, useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
@@ -41,11 +41,7 @@ interface DropdownMenuProps {
   userName: string;
 }
 
-const DropdownMenu: React.FC<DropdownMenuProps> = ({
-  userImage,
-  aliasId,
-  userName,
-}) => {
+const DropdownMenu: React.FC<DropdownMenuProps> = ({ userImage, userName }) => {
   const { signOut } = useUser();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -95,47 +91,25 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
         <span className="text-sm">{userName}</span>
       </button>
       {isOpen && (
-        <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-60 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">
-          <div
-            className="py-1"
-            role="menu"
-            aria-orientation="vertical"
-            aria-labelledby="options-menu"
+        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 text-gray-700">
+          <Link
+            href="/profile"
+            className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-100"
+            onClick={handleMenuItemClick}
           >
-            <Link legacyBehavior href={"/" + aliasId}>
-              <a
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 flex items-center"
-                role="menuitem"
-                onClick={handleMenuItemClick}
-              >
-                <House className="w-6 h-6 mr-2" />
-                マイページ確認
-              </a>
-            </Link>
-            <Link legacyBehavior href={"/settings"}>
-              <a
-                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900 flex items-center"
-                role="menuitem"
-                onClick={handleMenuItemClick}
-              >
-                <Wrench className="w-6 h-6 mr-2" />
-                設定
-              </a>
-            </Link>
-            <button
-              onClick={() => {
-                signOut();
-                handleMenuItemClick();
-              }}
-              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-gray-900"
-              role="menuitem"
-            >
-              <span className=" flex items-center">
-                <LogOut className="w-6 h-6 mr-2" />
-                ログアウト
-              </span>
-            </button>
-          </div>
+            <Settings className="w-4 h-4" />
+            <span>設定</span>
+          </Link>
+          <button
+            onClick={() => {
+              signOut();
+              handleMenuItemClick();
+            }}
+            className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-100 w-full text-left text-red-600"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>ログアウト</span>
+          </button>
         </div>
       )}
     </div>

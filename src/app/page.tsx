@@ -3,8 +3,25 @@
 import PlantCard from "@/components/PlantCard";
 import { Input } from "@/components/ui/input";
 import { plantData } from "@/lib/mock-data";
+import { supabase } from "@/lib/supabase/client";
+import { useEffect, useState } from "react";
 
 export default function Home() {
+  const [plants, setPlants] = useState(plantData);
+
+  useEffect(() => {
+    console.log("fetching plants");
+    const fetchPlants = async () => {
+      const { data, error } = await supabase.from("plants").select("*");
+      if (error) {
+        console.error("Error fetching plants:", error);
+      } else {
+        setPlants(data);
+      }
+    };
+    fetchPlants();
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col">
       <main className="flex-1 py-12 px-4 bg-gradient-to-b from-background to-secondary/30">
@@ -25,19 +42,25 @@ export default function Home() {
           />
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          {plantData.map((plant) => (
-            <PlantCard
-              key={plant.id}
-              name={plant.name}
-              imageSrc={plant.imageSrc}
-              isSafe={plant.isSafe}
-              likes={plant.likes}
-              dislikes={plant.dislikes}
-              reviewCount={plant.reviewCount}
-            />
-          ))}
-        </div>
+        {plants.length === 0 ? (
+          <p className="text-center text-muted-foreground">
+            植物が見つかりませんでした
+          </p>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-6">
+            {plants.map((plant) => (
+              <PlantCard
+                key={plant.id}
+                name={plant.name}
+                imageSrc={plant.imageSrc}
+                isSafe={plant.isSafe}
+                likes={plant.likes}
+                dislikes={plant.dislikes}
+                reviewCount={plant.reviewCount}
+              />
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );

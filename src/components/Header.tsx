@@ -5,16 +5,10 @@ import { Button } from "./ui/button";
 import { House, Leaf, LogOut, Wrench } from "lucide-react";
 import useUser from "@/hooks/useUser";
 import { useEffect, useRef, useState } from "react";
-import { User } from "@supabase/supabase-js";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 
 export default function Header() {
-  const { session } = useUser();
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    setUser(session?.user || null);
-  }, [session]);
+  const { user } = useUser();
 
   return (
     <header className="bg-[#2d5a27] text-primary-foreground p-4">
@@ -31,9 +25,9 @@ export default function Header() {
           </Button>
         ) : (
           <DropdownMenu
-            userImage={user.user_metadata.avatar_url || ""}
-            aliasId={user.user_metadata.default_alias_id || ""}
-            userName={user.user_metadata.name || ""}
+            userImage={user.image || ""}
+            aliasId={user.alias_id || ""}
+            userName={user.name || ""}
           />
         )}
       </div>
@@ -52,7 +46,6 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
   aliasId,
   userName,
 }) => {
-  // const router = useRouter();
   const { signOut } = useUser();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -91,7 +84,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
       <button
         onClick={toggleDropdown}
         onKeyDown={handleKeyDown}
-        className="focus:outline-none"
+        className="focus:outline-none flex items-center gap-2"
         aria-haspopup="true"
         aria-expanded={isOpen}
       >
@@ -99,6 +92,7 @@ const DropdownMenu: React.FC<DropdownMenuProps> = ({
           <AvatarImage src={userImage || undefined} alt={userName || "User"} />
           <AvatarFallback>{userName.charAt(0) || "U"}</AvatarFallback>
         </Avatar>
+        <span className="text-sm">{userName}</span>
       </button>
       {isOpen && (
         <div className="absolute left-1/2 transform -translate-x-1/2 mt-2 w-60 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5">

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import useUser from "@/hooks/useUser";
 import { AuthApiError } from "@supabase/supabase-js";
+import Link from "next/link";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -63,6 +64,7 @@ export default function LoginPage() {
               </label>
               <input
                 type="email"
+                name="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -76,6 +78,7 @@ export default function LoginPage() {
               </label>
               <input
                 type="password"
+                name="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -93,6 +96,10 @@ export default function LoginPage() {
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               ログイン
             </button>
+
+            <div className="text-center text-sm text-gray-600">
+              <Link href="/signup">アカウントを作成する</Link>
+            </div>
           </form>
         </div>
       </div>

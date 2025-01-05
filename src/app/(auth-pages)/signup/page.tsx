@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Leaf, Loader2 } from "lucide-react";
 import useUser from "@/hooks/useUser";
+import { AuthApiError } from "@supabase/supabase-js";
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -35,10 +36,27 @@ export default function SignupPage() {
     setIsLoading(true);
 
     try {
-      await signUp(formData.email, formData.password);
+      await signUp(formData.email, formData.password, formData.username);
       router.push("/");
-    } catch {
-      setError("アカウントの作成に失敗しました");
+    } catch (error) {
+      const code = (error as AuthApiError).code;
+      // https://supabase.com/docs/guides/auth/debugging/error-codes
+      switch (code) {
+        case "email_address_invalid":
+          setError("メールアドレスが無効です");
+          break;
+        case "email_exists":
+          setError("すでに登録されているメールアドレスです");
+          break;
+        case "over_email_send_rate_limit":
+          setError(
+            "このメール アドレスに送信されたメールが多すぎます。しばらく待ってから再試行するようユーザーに依頼してください。"
+          );
+          break;
+        default:
+          setError("アカウントの作成に失敗しました");
+          break;
+      }
     } finally {
       setIsLoading(false);
     }

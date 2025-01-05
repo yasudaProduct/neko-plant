@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase/client";
 import { AuthApiError, Session } from "@supabase/supabase-js";
+import { generateAliasId } from "@/lib/utils";
 
 export default function useUser() {
     const [session, setSession] = useState<Session | null>(null);
@@ -22,13 +23,22 @@ export default function useUser() {
         };
     }, []);
 
-    const signUp = async (email: string, password: string) => {
+    const signUp = async (email: string, password: string, username: string) => {
+        console.log("signUp: start");
 
         try {
             const { error } = await supabase.auth.signUp({
                 email,
                 password,
+                options: {
+                    data: {
+                        name: username,
+                        default_alias_id: generateAliasId(),
+                    },
+                },
             });
+            console.log("signUp: username", username);
+            console.log("signUp: error", error);
 
             if (error) {
                 throw error;
@@ -36,6 +46,8 @@ export default function useUser() {
 
         } catch (error) {
             console.log("signUp error", error);
+            console.log("signUp error.message", (error as AuthApiError).message);
+            console.log("signUp error.code", (error as AuthApiError).code);
             throw error;
         }
     };
@@ -59,7 +71,7 @@ export default function useUser() {
         } catch (error) {
             console.log("signIn error", error);
             console.log("signIn error.message", (error as AuthApiError).message);
-            console.log("signIn error.status", (error as AuthApiError).code);
+            console.log("signIn error.code", (error as AuthApiError).code);
             throw error;
         }
     }

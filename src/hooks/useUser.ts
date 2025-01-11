@@ -10,7 +10,7 @@ interface ExtendedUser extends User {
 }
 
 export default function useUser() {
-    console.log('userUser')
+    console.log('useUser')
     const supabase = createClient();
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<ExtendedUser | null>(null);
@@ -36,11 +36,6 @@ export default function useUser() {
                             ...user_profiles!,
                         });
                     }
-
-                    setUser({
-                        ...session!.user,
-                        ...user_profiles!,
-                    });
 
                 } else {
                     setUser(null);
@@ -80,16 +75,13 @@ export default function useUser() {
     // }
 
     const signIn = async (email: string, password: string) => {
-        console.log('signIn: userUser')
         try {
-            const { error } = await supabase.auth.signInWithPassword({
-                email,
-                password,
-            });
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
 
             if (error) {
                 throw error;
             }
+
         } catch (error) {
             throw error;
         }

@@ -3,25 +3,16 @@
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { Leaf } from "lucide-react";
-// import { UserResponse } from "@supabase/supabase-js";
 import { DropdownMenu } from "./HeaderDropMenu";
 import useUser from "@/hooks/useUser";
+import { useEffect } from "react";
 
 export default function Header() {
   const { user } = useUser();
-  // const supabase = await createClient();
-  // const {
-  //   data: { user },
-  //   error,
-  // }: UserResponse = await supabase.auth.getUser();
 
-  // if (error) {
-  //   console.log("Header: error⇩");
-  //   console.log(error);
-  //   console.log("Header: error↑");
-  // }
-
-  // console.log("Header: user", user);
+  useEffect(() => {
+    console.log("Header: useEffect user", user);
+  }, [user]);
 
   return (
     <header className="bg-[#2d5a27] text-primary-foreground p-4">

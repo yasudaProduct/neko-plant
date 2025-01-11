@@ -3,10 +3,11 @@
 import PlantCard from "@/components/PlantCard";
 import { Input } from "@/components/ui/input";
 import { plantData } from "@/lib/mock-data";
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 
 export default function Home() {
+  const supabase = createClient();
   const [plants, setPlants] = useState(plantData);
 
   useEffect(() => {

@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
-    console.log('updateSession')
+  console.log("middleware: updateSession");
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -30,7 +30,14 @@ export async function updateSession(request: NextRequest) {
 
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser()
+
+  if (error) {
+    console.error('middleware: updateSession: error⇩')
+    console.error(error)
+    console.error('middleware: updateSession: error↑')
+  }
 
   if (
     !user &&
@@ -45,6 +52,6 @@ export async function updateSession(request: NextRequest) {
 }
 
 const protectedPaths = [
-    '/private',
-    '/settings',
-  ]
+  '/private',
+  '/settings',
+]

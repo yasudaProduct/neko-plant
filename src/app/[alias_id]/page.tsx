@@ -1,9 +1,27 @@
-"use client";
-
-import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 import { Pencil } from "lucide-react";
+import Link from "next/link";
 
-export default function ProfileForm() {
+export default async function ProfilePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  console.log("ProfilePage:user", user);
+
+  if (!user) {
+    return <div>ユーザーが見つかりません</div>;
+  }
+
+  console.log("ProfilePage: user", user);
+
+  const { data: user_profiles } = await supabase
+    .from("users")
+    .select("alias_id, name, image")
+    .eq("auth_id", user.id)
+    .single();
+
   return (
     <div className="max-w-4xl mx-auto space-y-8">
       <div className="bg-white rounded-xl shadow-lg p-6">
@@ -21,13 +39,18 @@ export default function ProfileForm() {
         <div className="space-y-6">
           <div className="flex items-center space-x-4">
             <img
-              src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150"
+              src={
+                user_profiles?.image ||
+                "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150"
+              }
               alt="プロフィール画像"
               className="w-24 h-24 rounded-full object-cover"
             />
             <div>
-              <h2 className="text-xl font-semibold">ねこ好き太郎</h2>
-              <p className="text-gray-500">@neko_taro</p>
+              <h2 className="text-xl font-semibold">
+                {user_profiles?.name || "未設定"}
+              </h2>
+              <p className="text-gray-500">@{user_profiles?.alias_id}</p>
             </div>
           </div>
 
@@ -54,10 +77,5 @@ export default function ProfileForm() {
         </div>
       </div>
     </div>
-    /* {editMode && (
-            <button className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-green-500 transition-colors flex items-center justify-center">
-              <span className="text-gray-500">+ 新しい猫を追加</span>
-            </button>
-          )} */
   );
 }

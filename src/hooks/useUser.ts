@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
 import { generateAliasId } from "@/lib/utils";
 
@@ -9,28 +9,42 @@ interface ExtendedUser extends User {
     image?: string;
 }
 
-
 export default function useUser() {
+    console.log('userUser')
+    const supabase = createClient();
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<ExtendedUser | null>(null);
 
     useEffect(() => {
+        console.log('useUser: useEffect')
         const { data: authListener } = supabase.auth.onAuthStateChange(
             async (event, session) => {
+                console.log('useUser: onAuthStateChange')
                 setSession(session);
 
-                const { data: user_profiles } = await supabase
-                    .from('users')
-                    .select('alias_id, name, image')
-                    .eq('auth_id', session!.user.id)
-                    .single();
+                if (session) {
 
-                console.log("user_profiles", user_profiles);
+                    const { data: user_profiles } = await supabase
+                        .from('users')
+                        .select('alias_id, name, image')
+                        .eq('auth_id', session!.user.id)
+                        .single();
 
-                setUser({
-                    ...session!.user,
-                    ...user_profiles!,
-                });
+                    if (user_profiles) {
+                        setUser({
+                            ...session!.user,
+                            ...user_profiles!,
+                        });
+                    }
+
+                    setUser({
+                        ...session!.user,
+                        ...user_profiles!,
+                    });
+
+                } else {
+                    setUser(null);
+                }
             }
         );
 
@@ -66,6 +80,7 @@ export default function useUser() {
     // }
 
     const signIn = async (email: string, password: string) => {
+        console.log('signIn: userUser')
         try {
             const { error } = await supabase.auth.signInWithPassword({
                 email,

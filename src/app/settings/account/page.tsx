@@ -16,7 +16,19 @@ export default async function AccountPage() {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/signIn");
+    redirect("/signin");
+  }
+
+  const { data: user_profiles } = await supabase
+    .from("users")
+    .select("alias_id, name, image")
+    .eq("auth_id", user.id)
+    .single();
+
+  console.log(user_profiles);
+
+  if (!user_profiles) {
+    redirect("/signin");
   }
 
   return (
@@ -43,9 +55,7 @@ export default async function AccountPage() {
                     <h2 className="font-medium">メールアドレス</h2>
                     <Info className="h-4 w-4 text-muted-foreground" />
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    yasu.private.ct@gmail.com
-                  </p>
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
                 </div>
                 <Button variant="outline" size="sm">
                   変更する
@@ -78,7 +88,7 @@ export default async function AccountPage() {
                 <AvatarFallback className="bg-muted">
                   <img
                     src={
-                      //   user_profiles?.image ||
+                      user_profiles.image ||
                       "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150"
                     }
                     alt="プロフィール画像"
@@ -102,7 +112,7 @@ export default async function AccountPage() {
                 </Label>
                 <Input
                   id="username"
-                  defaultValue="yasu_private_ct"
+                  defaultValue={user_profiles.name}
                   className="max-w-xl"
                 />
               </div>
@@ -111,14 +121,18 @@ export default async function AccountPage() {
                 <Label htmlFor="displayName">表示名</Label>
                 <Input
                   id="displayName"
-                  defaultValue="yasu_private_ct"
+                  defaultValue={user_profiles.alias_id}
                   className="max-w-xl"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="bio">自己紹介</Label>
-                <Textarea id="bio" className="min-h-[150px] max-w-xl" />
+                <Textarea
+                  id="bio"
+                  //   defaultValue={user_profiles.bio}
+                  className="min-h-[150px] max-w-xl"
+                />
               </div>
             </div>
 

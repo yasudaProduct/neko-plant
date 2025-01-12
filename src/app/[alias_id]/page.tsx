@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
+// import { redirect } from "next/navigation";
 
 export default async function ProfilePage() {
+  // idを取得
   const supabase = await createClient();
   const {
     data: { user },
@@ -21,6 +23,10 @@ export default async function ProfilePage() {
     .select("alias_id, name, image")
     .eq("auth_id", user.id)
     .single();
+
+  if (!user) {
+    return <div>ユーザーが見つかりません</div>;
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 mt-4 mb-4">

@@ -17,29 +17,40 @@ export default function useUser() {
 
     useEffect(() => {
         console.log('useUser: useEffect')
+
+        const getUserProfiles = async () => {
+            console.log('useUser: getUserProfiles')
+            const { data: user_profiles } = await supabase
+                .from('users')
+                .select('alias_id, name, image')
+                .eq('auth_id', session!.user.id)
+                .single();
+
+            if (user_profiles) {
+                setUser({
+                    ...session!.user,
+                    ...user_profiles!,
+                });
+            } else {
+                setUser(null);
+            }
+        }
+
+        if (session) {
+            console.log('useUser: session', session)
+            setSession(session);
+            getUserProfiles();
+        } else {
+            console.log('useUser: session', session)
+            setSession(null);
+            setUser(null);
+        }
+
         const { data: authListener } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 console.log('useUser: onAuthStateChange')
                 setSession(session);
-
-                if (session) {
-
-                    const { data: user_profiles } = await supabase
-                        .from('users')
-                        .select('alias_id, name, image')
-                        .eq('auth_id', session!.user.id)
-                        .single();
-
-                    if (user_profiles) {
-                        setUser({
-                            ...session!.user,
-                            ...user_profiles!,
-                        });
-                    }
-
-                } else {
-                    setUser(null);
-                }
+                getUserProfiles();
             }
         );
 
@@ -76,7 +87,8 @@ export default function useUser() {
 
     const signIn = async (email: string, password: string) => {
         try {
-            const { error } = await supabase.auth.signInWithPassword({ email, password });
+            const { error, data: { session } } = await supabase.auth.signInWithPassword({ email, password });
+            setSession(session);
 
             if (error) {
                 throw error;

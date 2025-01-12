@@ -15,6 +15,7 @@ interface DropdownMenuProps {
 export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   userImage,
   userName,
+  aliasId,
 }) => {
   const { signOut } = useUser();
   const [isOpen, setIsOpen] = useState(false);
@@ -67,7 +68,15 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 text-gray-700">
           <Link
-            href="/profile"
+            href={`/${aliasId}`}
+            className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-100"
+            onClick={handleMenuItemClick}
+          >
+            <Settings className="w-4 h-4" />
+            <span>マイページ</span>
+          </Link>
+          <Link
+            href={`/settings/account`}
             className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-100"
             onClick={handleMenuItemClick}
           >

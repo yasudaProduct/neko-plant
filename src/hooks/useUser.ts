@@ -15,11 +15,9 @@ export default function useUser() {
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<ExtendedUser | null>(null);
 
-    useEffect(() => {
-        console.log('useUser: useEffect')
-
-        const getUserProfiles = async () => {
-            console.log('useUser: getUserProfiles')
+    const getUserProfiles = async () => {
+        console.log('useUser: getUserProfiles')
+        try {
             const { data: user_profiles } = await supabase
                 .from('users')
                 .select('alias_id, name, image')
@@ -34,23 +32,23 @@ export default function useUser() {
             } else {
                 setUser(null);
             }
-        }
 
-        if (session) {
-            console.log('useUser: session', session)
-            setSession(session);
-            getUserProfiles();
-        } else {
-            console.log('useUser: session', session)
-            setSession(null);
-            setUser(null);
+        } catch (error) {
+            console.log('useUser: getUserProfiles: error', error)
         }
+    }
+
+    useEffect(() => {
+        console.log('useUser: useEffect')
 
         const { data: authListener } = supabase.auth.onAuthStateChange(
             async (event, session) => {
                 console.log('useUser: onAuthStateChange')
-                setSession(session);
-                getUserProfiles();
+                if (session) {
+                    // signInWithPasswordの後sessionがnullの状態で呼ばれる
+                    setSession(session);
+                    getUserProfiles();
+                }
             }
         );
 
@@ -58,6 +56,14 @@ export default function useUser() {
             authListener.subscription.unsubscribe();
         };
     }, []);
+
+    useEffect(() => {
+        if (session) {
+            getUserProfiles();
+        } else {
+            setUser(null);
+        }
+    }, [session]);
 
     const signUp = async (email: string, password: string, username: string) => {
         try {
@@ -86,8 +92,10 @@ export default function useUser() {
     // }
 
     const signIn = async (email: string, password: string) => {
+        console.log('useUser: signIn')
         try {
             const { error, data: { session } } = await supabase.auth.signInWithPassword({ email, password });
+            console.log('useUser: signIn: session', session)
             setSession(session);
 
             if (error) {
@@ -95,6 +103,7 @@ export default function useUser() {
             }
 
         } catch (error) {
+            console.log('useUser: signIn: error', error)
             throw error;
         }
     }

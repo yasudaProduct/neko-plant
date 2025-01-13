@@ -4,7 +4,7 @@ import useUser from "@/hooks/useUser";
 import { useEffect, useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import Link from "next/link";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Settings, SquareUserRound } from "lucide-react";
 
 interface DropdownMenuProps {
   userImage: string;
@@ -72,7 +72,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
             className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-100"
             onClick={handleMenuItemClick}
           >
-            <Settings className="w-4 h-4" />
+            <SquareUserRound className="w-4 h-4" />
             <span>マイページ</span>
           </Link>
           <Link

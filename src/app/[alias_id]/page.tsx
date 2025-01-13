@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import AddPetModal from "./AddPetModal";
 
 export default async function ProfilePage({
   params,
@@ -22,7 +24,7 @@ export default async function ProfilePage({
     .single();
 
   if (!user_profiles) {
-    return <div>ユーザーが見つかりません</div>;
+    redirect("/");
   }
 
   return (
@@ -75,9 +77,21 @@ export default async function ProfilePage({
                     <p className="text-sm text-gray-600">
                       アメリカンショートヘア
                     </p>
+                    {user && user_profiles.auth_id === user.id && (
+                      <button
+                        type="button"
+                        className="text-red-500 text-sm mt-2"
+                      >
+                        削除
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
+
+              {user && user_profiles.auth_id === user.id && (
+                <AddPetModal userId={user.id} />
+              )}
             </div>
           </div>
         </div>

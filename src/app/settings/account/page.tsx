@@ -1,9 +1,9 @@
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { Info } from "lucide-react";
 import { redirect } from "next/navigation";
 import EmailChangeModal from "./EmailChangeModal";
+import WithdrawalModal from "./WithdrawalModal";
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -36,7 +36,6 @@ export default async function AccountPage() {
             </div>
             <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
-          {/* モーダルのトリガーボタン */}
           <EmailChangeModal currentEmail={user.email || ""} />
         </div>
       </div>
@@ -46,13 +45,7 @@ export default async function AccountPage() {
           <div>
             <h2 className="font-medium mb-2">アカウントの削除</h2>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-red-500 hover:text-red-600 hover:bg-red-50"
-          >
-            アカウントを削除する
-          </Button>
+          <WithdrawalModal userId={user.id} />
         </div>
       </div>
     </Card>

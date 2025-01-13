@@ -3,6 +3,7 @@
 import { useState } from "react";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogFooter,
   DialogHeader,
@@ -74,9 +75,11 @@ export default function EmailChangeModal({
           )}
         </div>
         <DialogFooter>
-          <Button variant="secondary" onClick={() => setNewEmail("")}>
-            キャンセル
-          </Button>
+          <DialogClose asChild>
+            <Button variant="secondary" onClick={() => setNewEmail("")}>
+              キャンセル
+            </Button>
+          </DialogClose>
           <Button
             variant="default"
             onClick={handleEmailChange}

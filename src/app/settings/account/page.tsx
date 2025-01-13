@@ -4,6 +4,7 @@ import { Info } from "lucide-react";
 import { redirect } from "next/navigation";
 import EmailChangeModal from "./EmailChangeModal";
 import WithdrawalModal from "./WithdrawalModal";
+import PasswordChangeModal from "./PasswordChangeModal";
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -37,6 +38,18 @@ export default async function AccountPage() {
             <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
           <EmailChangeModal currentEmail={user.email || ""} />
+        </div>
+      </div>
+      <div className="p-4 space-y-4">
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <h2 className="font-medium">パスワード</h2>
+              <Info className="h-4 w-4 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">********</p>
+          </div>
+          <PasswordChangeModal />
         </div>
       </div>
 

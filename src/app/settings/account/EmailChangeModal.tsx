@@ -33,6 +33,12 @@ export default function EmailChangeModal({
     setError("");
     setSuccess(false);
 
+    if (newEmail === currentEmail) {
+      setError("新しいメールアドレスと現在のメールアドレスが同じです。");
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ email: newEmail });
 
     if (error) {

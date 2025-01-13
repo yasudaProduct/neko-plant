@@ -1,46 +1,45 @@
 import { createClient } from "@/lib/supabase/server";
 import { Pencil } from "lucide-react";
 import Link from "next/link";
-// import { redirect } from "next/navigation";
 
-export default async function ProfilePage() {
-  // idを取得
+export default async function ProfilePage({
+  params,
+}: {
+  params: { alias_id: string };
+}) {
+  console.log("ProfilePage");
+  const aliasId = params.alias_id;
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  console.log("ProfilePage:user", user);
-
-  if (!user) {
-    return <div>ユーザーが見つかりません</div>;
-  }
-
-  console.log("ProfilePage: user", user);
-
   const { data: user_profiles } = await supabase
     .from("users")
-    .select("alias_id, name, image")
-    .eq("auth_id", user.id)
+    .select("auth_id, alias_id, name, image")
+    .eq("alias_id", aliasId)
     .single();
 
-  if (!user) {
+  if (!user_profiles) {
     return <div>ユーザーが見つかりません</div>;
   }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 mt-4 mb-4">
       <div className="bg-white rounded-xl shadow-lg p-6">
-        <h1 className="text-2xl font-bold text-gray-800">ユーザー設定</h1>
+        {/* <h1 className="text-2xl font-bold text-gray-800">ユーザー設定</h1> */}
         <div className="flex items-center justify-between mb-6 mt-6">
           <h2 className="text-xl font-semibold mb-4">プロフィール</h2>
-          <Link
-            href="/profile/edit"
-            className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition"
-          >
-            <Pencil className="w-4 h-4" />
-            <span>編集</span>
-          </Link>
+          {user && user_profiles.auth_id === user.id && (
+            <Link
+              href="/settings/profile"
+              className="flex items-center space-x-2 px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition"
+            >
+              <Pencil className="w-4 h-4" />
+              <span>編集</span>
+            </Link>
+          )}
         </div>
 
         <div className="space-y-6">

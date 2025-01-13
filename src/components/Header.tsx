@@ -29,9 +29,9 @@ export default function Header() {
           </Button>
         ) : (
           <DropdownMenu
-            userImage={user.user_metadata.avatar_url || ""}
-            aliasId={user.user_metadata.default_alias_id || ""}
-            userName={user.user_metadata.name || ""}
+            userImage={user.image || ""}
+            aliasId={user.alias_id || ""}
+            userName={user.name || ""}
           />
         )}
       </div>

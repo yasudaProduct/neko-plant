@@ -31,10 +31,6 @@ export default function AccountPageContent({
     setErrorMessage("");
     setSuccessMessage("");
 
-    // const name = formData.get("username") as string;
-    // const aliasId = formData.get("displayName") as string;
-    // const bio = formData.get("bio") as string;
-
     if (!username || !displayName) {
       setErrorMessage("ユーザー名と表示名は必須項目です。");
       return;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -33,6 +33,9 @@ export default function EmailChangeModal({
     setError("");
     setSuccess(false);
 
+    console.log("newEmail", newEmail);
+    console.log("currentEmail", currentEmail);
+
     if (newEmail === currentEmail) {
       setError("新しいメールアドレスと現在のメールアドレスが同じです。");
       setLoading(false);
@@ -47,6 +50,13 @@ export default function EmailChangeModal({
       setSuccess(true);
     }
 
+    setLoading(false);
+  };
+
+  const handleClose = () => {
+    setNewEmail("");
+    setError("");
+    setSuccess(false);
     setLoading(false);
   };
 
@@ -82,7 +92,7 @@ export default function EmailChangeModal({
         </div>
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="secondary" onClick={() => setNewEmail("")}>
+            <Button variant="secondary" onClick={handleClose}>
               キャンセル
             </Button>
           </DialogClose>

@@ -19,7 +19,7 @@ export default function Header() {
       <div className="max-w-6xl mx-auto flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2 text-xl font-medium">
           <Leaf className="w-6 h-6" />
-          ネコと植物の相性チェッカー
+          にゃんにゃん
         </Link>
         {!user ? (
           <Button className="bg-accent text-accent-foreground hover:bg-accent/90">

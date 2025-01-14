@@ -21,14 +21,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-interface AddPetModalProps {
+interface EditPetModalProps {
   userId: string;
 }
 
-export default function AddPetModal({ userId }: AddPetModalProps) {
+export default function EditPetModal({ userId }: EditPetModalProps) {
   const [newPetName, setNewPetName] = useState("");
   const [newPetImage, setNewPetImage] = useState("");
-  const [newPetSpeciesId, setNewPetSpeciesId] = useState();
+  const [newPetSpeciesId, setNewPetSpeciesId] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -40,20 +40,43 @@ export default function AddPetModal({ userId }: AddPetModalProps) {
     setError("");
     setSuccess(false);
 
-    if (newPetName) {
+    if (!newPetName) {
       setError("名前は必須です。");
       setLoading(false);
       return;
     }
 
-    // const { error } = await supabase.auth.updateUser({ email: newEmail });
+    if (!newPetSpeciesId) {
+      setError("猫種を選択してください。");
+      setLoading(false);
+      return;
+    }
+    console.log("newPetName", newPetName);
+    console.log("newPetSpeciesId", newPetSpeciesId);
+    console.log("userId", userId);
+
+    const { error } = await supabase.from("pets").insert({
+      name: newPetName,
+      neko_id: newPetSpeciesId,
+      user_id: userId,
+    });
 
     if (error) {
+      console.log("error", error);
       setError("飼い猫の追加に失敗しました。もう一度お試しください。");
     } else {
       setSuccess(true);
     }
 
+    setLoading(false);
+  };
+
+  const handleClose = () => {
+    setNewPetName("");
+    setNewPetImage("");
+    setNewPetSpeciesId(1);
+    setError("");
+    setSuccess(false);
     setLoading(false);
   };
 
@@ -101,7 +124,7 @@ export default function AddPetModal({ userId }: AddPetModalProps) {
         </div>
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="secondary" onClick={() => setNewPetName("")}>
+            <Button variant="secondary" onClick={handleClose}>
               キャンセル
             </Button>
           </DialogClose>

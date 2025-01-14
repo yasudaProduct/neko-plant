@@ -95,6 +95,23 @@ export default function AddPetDialogContent({
     setLoading(true);
     setError("");
     setSuccess(false);
+
+    const { error } = await supabase
+      .from("pets")
+      .update({
+        name: newPetName,
+        neko_id: newPetSpeciesId,
+      })
+      .eq("id", pet?.id);
+
+    if (error) {
+      console.log("error", error);
+      setError("飼い猫の編集に失敗しました。もう一度お試しください。");
+    } else {
+      setSuccess(true);
+    }
+
+    setLoading(false);
   };
 
   const handleClose = () => {
@@ -141,8 +158,11 @@ export default function AddPetDialogContent({
           </SelectContent>
         </Select>
         {error && <p className="text-red-500 text-sm">{error}</p>}
-        {success && (
+        {success && !pet && (
           <p className="text-green-500 text-sm">飼い猫を追加しました。</p>
+        )}
+        {success && pet && (
+          <p className="text-green-500 text-sm">飼い猫を更新しました。</p>
         )}
       </div>
       <DialogFooter>
@@ -165,7 +185,7 @@ export default function AddPetDialogContent({
             onClick={handleEditCat}
             disabled={loading || !newPetName}
           >
-            {loading ? "保存中..." : "保存"}
+            {loading ? "更新中..." : "更新"}
           </Button>
         )}
       </DialogFooter>

@@ -16,6 +16,11 @@ type Pet = {
   };
 };
 
+type NekoSpecies = {
+  id: number;
+  name: string;
+};
+
 export default async function ProfilePage({
   params,
 }: {
@@ -55,8 +60,11 @@ export default async function ProfilePage({
     .eq("user_id", user_profiles.id)
     .returns<Pet[]>();
 
-  console.log("pets", pets);
-  console.log("error", error);
+  // 猫種一覧取得
+  const { data: neko_species } = await supabase
+    .from("neko")
+    .select("id, name")
+    .returns<NekoSpecies[]>();
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 mt-4 mb-4">
@@ -105,6 +113,7 @@ export default async function ProfilePage({
                       <AddPetDialogContent
                         userId={user_profiles.id}
                         pet={pet}
+                        nekoSpecies={neko_species || []}
                       />
                     </Dialog>
                   ))
@@ -120,7 +129,10 @@ export default async function ProfilePage({
                       <span className="text-gray-500">+ 新しい猫を追加</span>
                     </button>
                   </DialogTrigger>
-                  <AddPetDialogContent userId={user_profiles.id} />
+                  <AddPetDialogContent
+                    userId={user_profiles.id}
+                    nekoSpecies={neko_species || []}
+                  />
                 </Dialog>
               )}
             </div>
@@ -146,9 +158,6 @@ interface PetCardProp {
 }
 
 function PetCard({ pet, authFlg }: PetCardProp) {
-  console.log("PetCard");
-  console.log(pet);
-
   return (
     <div
       className={`min-w-full bg-gray-50 rounded-lg p-4 border-2 border-solid border-gray-50 ${

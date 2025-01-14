@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -23,6 +23,7 @@ import {
 interface AddPetModalProps {
   userId: number;
   pet?: Pet;
+  nekoSpecies: NekoSpecies[];
 }
 
 interface Pet {
@@ -35,8 +36,16 @@ interface Pet {
     name: string;
   };
 }
+interface NekoSpecies {
+  id: number;
+  name: string;
+}
 
-export default function AddPetDialogContent({ userId, pet }: AddPetModalProps) {
+export default function AddPetDialogContent({
+  userId,
+  pet,
+  nekoSpecies,
+}: AddPetModalProps) {
   const [newPetName, setNewPetName] = useState(pet?.name || "");
   const [newPetImage, setNewPetImage] = useState(pet?.image || "");
   const [newPetSpeciesId, setNewPetSpeciesId] = useState(pet?.neko.id || 1);
@@ -124,8 +133,11 @@ export default function AddPetDialogContent({ userId, pet }: AddPetModalProps) {
             <SelectValue placeholder="猫種を選択" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="1">雑種</SelectItem>
-            <SelectItem value="2">スコティッシュフォールド</SelectItem>
+            {nekoSpecies.map((nekoSpecies) => (
+              <SelectItem value={nekoSpecies.id.toString()}>
+                {nekoSpecies.name}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         {error && <p className="text-red-500 text-sm">{error}</p>}

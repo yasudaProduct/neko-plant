@@ -114,6 +114,23 @@ export default function AddPetDialogContent({
     setLoading(false);
   };
 
+  const handleDelete = async () => {
+    setLoading(true);
+    setError("");
+    setSuccess(false);
+
+    const { error } = await supabase.from("pets").delete().eq("id", pet?.id);
+
+    if (error) {
+      console.log("error", error);
+      setError("飼い猫の削除に失敗しました。もう一度お試しください。");
+    } else {
+      setSuccess(true);
+    }
+
+    setLoading(false);
+  };
+
   const handleClose = () => {
     setNewPetName("");
     setNewPetImage("");
@@ -180,13 +197,18 @@ export default function AddPetDialogContent({
             {loading ? "保存中..." : "保存"}
           </Button>
         ) : (
-          <Button
-            variant="default"
-            onClick={handleEditCat}
-            disabled={loading || !newPetName}
-          >
-            {loading ? "更新中..." : "更新"}
-          </Button>
+          <>
+            <Button variant={"destructive"} onClick={handleDelete}>
+              {loading ? "削除中..." : "削除"}
+            </Button>
+            <Button
+              variant="default"
+              onClick={handleEditCat}
+              disabled={loading || !newPetName}
+            >
+              {loading ? "更新中..." : "更新"}
+            </Button>
+          </>
         )}
       </DialogFooter>
     </DialogContent>

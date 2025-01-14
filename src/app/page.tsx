@@ -6,17 +6,27 @@ import { plantData } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/client";
 import { useEffect, useState } from "react";
 
+type Plant = {
+  id: number;
+  name: string;
+  image: string;
+};
+
 export default function Home() {
   const supabase = createClient();
-  const [plants, setPlants] = useState(plantData);
+  const [plants, setPlants] = useState<Plant[]>([]);
 
   useEffect(() => {
     console.log("fetching plants");
     const fetchPlants = async () => {
-      const { data, error } = await supabase.from("plants").select("*");
+      const { data, error } = await supabase
+        .from("plants")
+        .select("id, name, image");
+
       if (error) {
         console.error("Error fetching plants:", error);
       } else {
+        console.log("data", data);
         setPlants(data);
       }
     };
@@ -53,11 +63,11 @@ export default function Home() {
               <PlantCard
                 key={plant.id}
                 name={plant.name}
-                imageSrc={plant.imageSrc}
-                isSafe={plant.isSafe}
-                likes={plant.likes}
-                dislikes={plant.dislikes}
-                reviewCount={plant.reviewCount}
+                imageSrc={plant.image}
+                isSafe={true}
+                likes={0}
+                dislikes={0}
+                reviewCount={0}
               />
             ))}
           </div>

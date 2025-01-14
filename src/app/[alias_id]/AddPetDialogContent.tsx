@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
-  Dialog,
   DialogClose,
   DialogContent,
   DialogFooter,
@@ -30,7 +29,6 @@ interface Pet {
   id: number;
   name: string;
   image: string;
-  // neko_id: number;
   neko: {
     id: number;
     name: string;
@@ -71,9 +69,6 @@ export default function AddPetDialogContent({
       setLoading(false);
       return;
     }
-    console.log("newPetName", newPetName);
-    console.log("newPetSpeciesId", newPetSpeciesId);
-    console.log("userId", userId);
 
     const { error } = await supabase.from("pets").insert({
       name: newPetName,
@@ -168,7 +163,10 @@ export default function AddPetDialogContent({
           </SelectTrigger>
           <SelectContent>
             {nekoSpecies.map((nekoSpecies) => (
-              <SelectItem value={nekoSpecies.id.toString()}>
+              <SelectItem
+                key={nekoSpecies.id}
+                value={nekoSpecies.id.toString()}
+              >
                 {nekoSpecies.name}
               </SelectItem>
             ))}

@@ -1,5 +1,12 @@
+import { ThumbsDown, ThumbsUp } from "lucide-react";
 import { Badge } from "./ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "./ui/card";
 import Image from "next/image";
 
 interface PlantCardProps {
@@ -42,16 +49,16 @@ export default function PlantCard({
       <CardContent className="pt-4">
         <CardTitle className="text-xl mb-2">{name}</CardTitle>
         <CardDescription className="flex items-center justify-between text-sm">
-          <div className="flex gap-4">
-            <span className="flex items-center gap-1">
-              {/* <ThumbsUp className="h-4 w-4 text-green-600" /> */}
-              {likes}
-            </span>
-            <span className="flex items-center gap-1">
-              {/* <ThumbsDown className="h-4 w-4 text-red-600" /> */}
-              {dislikes}
-            </span>
-          </div>
+          {/* <div className="flex gap-4"> */}
+          <span className="flex items-center gap-1">
+            <ThumbsUp className="h-4 w-4 text-green-600" />
+            {likes}
+          </span>
+          <span className="flex items-center gap-1">
+            <ThumbsDown className="h-4 w-4 text-red-600" />
+            {dislikes}
+          </span>
+          {/* </div> */}
           <span>レビュー {reviewCount}件</span>
         </CardDescription>
       </CardContent>

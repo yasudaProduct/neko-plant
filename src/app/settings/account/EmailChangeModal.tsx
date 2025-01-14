@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -32,9 +32,6 @@ export default function EmailChangeModal({
     setLoading(true);
     setError("");
     setSuccess(false);
-
-    console.log("newEmail", newEmail);
-    console.log("currentEmail", currentEmail);
 
     if (newEmail === currentEmail) {
       setError("新しいメールアドレスと現在のメールアドレスが同じです。");

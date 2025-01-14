@@ -26,7 +26,6 @@ export default async function ProfilePage({
 }: {
   params: { alias_id: string };
 }) {
-  console.log("ProfilePage");
   const aliasId = params.alias_id;
 
   const supabase = await createClient();
@@ -46,7 +45,7 @@ export default async function ProfilePage({
   }
 
   // 飼い猫情報取得
-  const { data: pets, error } = await supabase
+  const { data: pets } = await supabase
     .from("pets")
     .select(
       `

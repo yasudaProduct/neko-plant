@@ -27,7 +27,7 @@ export default function PlantCard({
   reviewCount,
 }: PlantCardProps) {
   return (
-    <Card>
+    <Card className="hover:shadow-lg transition-shadow duration-300">
       <CardHeader className="relative pb-0">
         <Badge
           className={`absolute top-4 right-4 ${

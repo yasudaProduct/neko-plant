@@ -6,4 +6,5 @@ services:
       - "12000:3000"
     volumes:
       - .:/app/
+    tty: true
     command: npm run dev

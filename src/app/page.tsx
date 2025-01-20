@@ -61,9 +61,8 @@ export default function Home() {
         ) : (
           <div className="grid md:grid-cols-2 gap-6">
             {plants.map((plant) => (
-              <Link href={`/plants/${plant.id}`}>
+              <Link key={plant.id} href={`/plants/${plant.id}`}>
                 <PlantCard
-                  key={plant.id}
                   name={plant.name}
                   imageSrc={plant.image}
                   isSafe={true}

@@ -24,9 +24,9 @@ type NekoSpecies = {
 export default async function ProfilePage({
   params,
 }: {
-  params: { alias_id: string };
+  params: Promise<{ aliasId: string }>;
 }) {
-  const aliasId = params.alias_id;
+  const {aliasId} = await params;
 
   const supabase = await createClient();
   const {

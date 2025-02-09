@@ -21,19 +21,28 @@ export default function Header() {
           <Leaf className="w-6 h-6" />
           neko-plant
         </Link>
-        {!user ? (
-          <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
-            <Link href="/signin" className="text-accent-foreground">
-              ログイン
-            </Link>
-          </Button>
-        ) : (
-          <DropdownMenu
-            userImage={user.image || ""}
-            aliasId={user.alias_id || ""}
-            userName={user.name || ""}
-          />
-        )}
+        <div className="flex items-center gap-2">
+          {!user ? (
+            <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+              <Link href="/signin" className="text-accent-foreground">
+                ログイン
+              </Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="outline">
+                <Link href="/plants/new" className="text-accent-foreground">
+                  植物を追加
+                </Link>
+              </Button>
+              <DropdownMenu
+                userImage={user.image || ""}
+                aliasId={user.alias_id || ""}
+                userName={user.name || ""}
+              />
+            </>
+          )}
+        </div>
       </div>
     </header>
   );

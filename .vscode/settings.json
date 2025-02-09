@@ -5,97 +5,97 @@
   "gitmoji.addCustomEmoji": [
     {
       "emoji": "✨",
-      "code": ":sparkles:",
+      "code": "✨",
       "description": "新機能"
     },
     {
       "emoji": "🐛",
-      "code": ":bug:",
+      "code": "🐛",
       "description": "バグ修正"
     },
     {
       "emoji": "♻️",
-      "code": ":recycle:",
+      "code": "♻️",
       "description": "リファクタリング"
     },
     {
       "emoji": "💄",
-      "code": ":lipstick:",
+      "code": "💄",
       "description": "UI/UX デザインの変更"
     },
     {
       "emoji": "🩹",
-      "code": ":adhesive_bandage:",
+      "code": "🩹",
       "description": "機能改善"
     },
     {
       "emoji": "✅",
-      "code": ":white_check_mark:",
+      "code": "✅",
       "description": "テストを追加、更新、または合格します。"
     },
     {
       "emoji": "🔥",
-      "code": ":fire:",
+      "code": "🔥",
       "description": "コードまたはファイルを削除します。"
     },
     {
       "emoji": "⚰️",
-      "code": ":coffin:",
+      "code": "⚰️",
       "description": "デッドコードを削除します。"
     },
     {
       "emoji": "📝",
-      "code": ":memo:",
+      "code": "📝",
       "description": "ドキュメントを追加または更新します。"
     },
     {
       "emoji": "🔍️",
-      "code": ":mag:",
+      "code": "🔍️",
       "description": "SEO改善"
     },
     {
       "emoji": "⚡️",
-      "code": ":zap:",
+      "code": "⚡️",
       "description": "パフォーマンス改善"
     },
     {
       "emoji": "💚",
-      "code": ":green_heart:",
+      "code": "💚",
       "description": "CI ビルドを修正します。"
     },
     {
       "emoji": "📦️",
-      "code": ":package:",
+      "code": "📦️",
       "description": "コンパイルされたファイルまたはパッケージを追加または更新します。"
     },
     {
       "emoji": "⏪️",
-      "code": ":rewind:",
+      "code": "⏪️",
       "description": "変更を元に戻します。"
     },
     {
       "emoji": "🔀",
-      "code": ":twisted_rightwards_arrows:",
+      "code": "🔀",
       "description": "ブランチをマージします。"
     },
     {
       "emoji": "🚧",
-      "code": ":construction:",
+      "code": "🚧",
       "description": "作業進行中です。"
     },
     {
       "emoji": "🧑‍💻",
-      "code": ":technologist:",
+      "code": "🧑‍💻",
       "description": "開発環境 開発者エクスペリエンスを向上します。"
     },
     {
       "emoji": "🚀",
-      "code": ":rocket:",
+      "code": "🚀",
       "description": "本番リリース"
     },
     {
       "emoji": "🎉",
-      "code": ":tada:",
+      "code": "🎉",
       "description": "プロジェクトを開始します。"
     }
   ]

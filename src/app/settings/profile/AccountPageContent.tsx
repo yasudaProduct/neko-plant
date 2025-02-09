@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { updateUser } from "./actions";
+import ProfileImageUploadModal from "./ProfileImageUploadModal";
 
 interface UserProfiles {
   id: string;
@@ -65,12 +66,10 @@ export default function AccountPageContent({
               />
             </AvatarFallback>
           </Avatar>
-          <Button variant="ghost" className="text-blue-500 hover:text-blue-600">
-            変更する
-          </Button>
+          <ProfileImageUploadModal userId={userProfiles.id} />
         </div>
 
-        <div className="space-y-4">
+        <div className="mt-8 space-y-4">
           <div className="space-y-2">
             <Label htmlFor="username" className="flex items-center gap-1">
               ユーザー名

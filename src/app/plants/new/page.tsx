@@ -12,6 +12,8 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { addPlant } from "./actions";
+import { SubmitButton } from "@/components/submit-button";
+import { toast } from "@/hooks/use-toast";
 
 const plantSchema = z.object({
   name: z
@@ -36,8 +38,6 @@ type PlantFormData = z.infer<typeof plantSchema>;
 
 export default function RegisterPlant() {
   const router = useRouter();
-  const [name, setName] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const {
@@ -52,21 +52,22 @@ export default function RegisterPlant() {
   const onSubmit = async (data: PlantFormData) => {
     const newPlant = {
       name: data.name,
-      //   imageUrl: URL.createObjectURL(data.image),
       image: data.image,
     };
-
-    console.log(newPlant);
 
     const result = await addPlant(newPlant.name, newPlant.image);
 
     if (result.success) {
+      toast({
+        title: "植物を登録しました",
+      });
       router.push("/");
     } else {
-      console.error(result.message);
+      toast({
+        title: "植物を登録に失敗しました",
+        description: result.message,
+      });
     }
-
-    router.push("/");
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -162,9 +163,9 @@ export default function RegisterPlant() {
             )}
 
             <div className="flex gap-4">
-              <Button type="submit" className="flex-1">
+              <SubmitButton pendingText="登録中..." className="flex-1">
                 登録
-              </Button>
+              </SubmitButton>
               <Button
                 type="button"
                 variant="outline"

@@ -2,7 +2,6 @@
 
 import PlantCard from "@/components/PlantCard";
 import { Input } from "@/components/ui/input";
-import { plantData } from "@/lib/mock-data";
 import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -61,11 +60,11 @@ export default function Home() {
         ) : (
           <div className="grid md:grid-cols-2 gap-6">
             {plants.map((plant) => (
-              <Link href={`/plants/${plant.id}`}>
+              <Link href={`/plants/${plant.id}`} key={plant.id}>
                 <PlantCard
                   key={plant.id}
                   name={plant.name}
-                  imageSrc={plant.image}
+                  imageSrc={""}
                   isSafe={true}
                   likes={0}
                   dislikes={0}

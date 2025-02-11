@@ -28,7 +28,6 @@ export async function addPlant(name: string, image: File) {
         .from("plants")
         .insert({
             name: name,
-            // image: imageData.fullPath,
         })
         .select();
 
@@ -39,25 +38,13 @@ export async function addPlant(name: string, image: File) {
 
     const plantId = data[0].id;
 
-    const { data: imageData, error: imageError } = await supabase.storage
+    const { error: imageError } = await supabase.storage
         .from("plant")
         .upload(plantId.toString(), image);
 
     if (imageError) {
         console.log("imageError", imageError);
         return { success: false, message: "画像のアップロードに失敗しました。" };
-    }
-
-    const { error: imageUrlError } = await supabase
-        .from("plants")
-        .update({
-            image: imageData.path,
-        })
-        .eq("id", plantId);
-
-    if (imageUrlError) {
-        console.log("imageUrlError", imageUrlError);
-        return { success: false, message: "画像のURL取得に失敗しました。" };
     }
 
     return { success: true };

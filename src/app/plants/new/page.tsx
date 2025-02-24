@@ -11,9 +11,9 @@ import { getImageData } from "@/lib/utils";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { addPlant } from "./actions";
 import { SubmitButton } from "@/components/submit-button";
 import { toast } from "@/hooks/use-toast";
+import { addPlant } from "@/actions/plant-action";
 
 const plantSchema = z.object({
   name: z

@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 
 export async function getPlants(): Promise<Plant[]> {
     console.log("plant-action:start")
-    const supabase = await createClient();
 
     const plantsData = await prisma.plants.findMany({
         select: {
@@ -19,10 +18,65 @@ export async function getPlants(): Promise<Plant[]> {
     const plants: Plant[] = plantsData.map((plant) => ({
         id: plant.id,
         name: plant.name,
-        imageUrl: plant.image ? supabase.storage.from("plant").getPublicUrl(plant.image).data.publicUrl : undefined,
+        imageUrl: plant.image ?? undefined,
     }));
 
     console.log(plants);
 
     return plants
+}
+
+export async function addPlant(name: string, image: File) {
+    console.log("addPlant", name, image);
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user == null) {
+        return { success: false, message: "ログインしてください。" };
+        // TODO ログイン画面にリダイレクト
+    }
+
+    if (!name || !image) {
+        return { success: false, message: "植物の名前と画像は必須です。" };
+    }
+
+    // prismaでトランザクションを実行
+    try {
+        await prisma.$transaction(async (prisma) => {
+
+            // 1. 植物を登録
+            const plant = await prisma.plants.create({
+                data: {
+                    name: name,
+                },
+            });
+
+            // 2. 画像をアップロード
+            const { error: imageError } = await supabase.storage
+                .from("plant")
+                .upload(plant.id.toString(), image);
+
+            if (imageError) {
+                console.log("imageError", imageError);
+                throw new Error("画像のアップロードに失敗しました。");
+            }
+
+            // 3. 画像のURLを取得
+            const { data: { publicUrl } } = supabase.storage
+                .from("plant")
+                .getPublicUrl(plant.id.toString());
+
+            // 4. 植物のレコードに画像のURLを保存
+            await prisma.plants.update({
+                where: { id: plant.id },
+                data: { image: publicUrl }
+            });
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.log("error", error);
+        return { success: false, message: error instanceof Error ? error.message : "植物の追加に失敗しました。" };
+    }
 }

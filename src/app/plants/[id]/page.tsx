@@ -1,37 +1,36 @@
 import Image from "next/image";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { ThumbsDown, ThumbsUp } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
 import RatingBar from "@/components/RatingBar";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import CommentForm from "./CommentForm";
+import { getPlant } from "@/actions/plant-action";
+import { getEvaluations } from "@/actions/evaluation-action";
+import { Evaluation, EvaluationType } from "@/app/types/evaluation";
+import { Plant } from "@/app/types/plant";
+import { notFound } from "next/navigation";
 
 export default async function PlantPage({
   params,
 }: {
-  params: Promise<{ id: number }>;
+  params: Promise<{ id: string }>;
 }) {
   console.log("PlantPage");
-  const {id} = await params;
+  const { id } = await params;
 
-  const supabase = await createClient();
-  const { data: plant } = await supabase
-    .from("plants")
-    .select("id, name, image")
-    .eq("id", id)
-    .single();
-
+  const plant: Plant | undefined = await getPlant(Number(id));
   if (!plant) {
-    return <div>Plant not found</div>;
+    return notFound();
   }
 
-  const { data: evaluations } = await supabase
-    .from("evaluations")
-    .select("id, type, comment")
-    .eq("plant_id", id);
-  // .order("created_at", { ascending: false });
+  const evaluations: Evaluation[] = await getEvaluations(plant.id);
+
+  // 評価をグループ化
+  const goodEvaluations = evaluations.filter(
+    (evaluation) => evaluation.type === EvaluationType.GOOD
+  );
+  const badEvaluations = evaluations.filter(
+    (evaluation) => evaluation.type === EvaluationType.BAD
+  );
 
   return (
     <div className="container mx-auto w-3/5">
@@ -39,7 +38,7 @@ export default async function PlantPage({
         <Card className="overflow-hidden">
           <CardHeader className="p-0">
             <Image
-              src={plant.image ?? "https://placehold.jp/400x400.png"}
+              src={plant.imageUrl ?? "/images/400x400.png"}
               alt="Monstera plant"
               width={600}
               height={400}
@@ -49,39 +48,38 @@ export default async function PlantPage({
           <CardContent className="p-6">
             <h1 className="text-2xl font-bold mb-4">{plant.name}</h1>
 
-            <RatingBar likes={100} dislikes={25} />
+            <RatingBar
+              likes={goodEvaluations.length}
+              dislikes={badEvaluations.length}
+            />
 
             {/* Comments Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-4">
-                {evaluations
-                  ?.filter((evaluation) => evaluation.type === "good")
-                  .map((evaluation) => (
-                    <div
-                      key={evaluation.id}
-                      className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
-                    >
-                      <Avatar className="w-10 h-10">
-                        <AvatarFallback>U</AvatarFallback>
-                      </Avatar>
-                      <span>{evaluation.comment}</span>
-                    </div>
-                  ))}
+                {goodEvaluations.map((evaluation) => (
+                  <div
+                    key={evaluation.id}
+                    className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
+                  >
+                    <Avatar className="w-10 h-10">
+                      <AvatarFallback>U</AvatarFallback>
+                    </Avatar>
+                    <span>{evaluation.comment}</span>
+                  </div>
+                ))}
               </div>
               <div className="space-y-4">
-                {evaluations
-                  ?.filter((evaluation) => evaluation.type === "bad")
-                  .map((evaluation) => (
-                    <div
-                      key={evaluation.id}
-                      className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
-                    >
-                      <Avatar className="w-10 h-10">
-                        <AvatarFallback>U</AvatarFallback>
-                      </Avatar>
-                      <span>{evaluation.comment}</span>
-                    </div>
-                  ))}
+                {badEvaluations.map((evaluation) => (
+                  <div
+                    key={evaluation.id}
+                    className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
+                  >
+                    <Avatar className="w-10 h-10">
+                      <AvatarFallback>U</AvatarFallback>
+                    </Avatar>
+                    <span>{evaluation.comment}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </CardContent>
@@ -92,7 +90,7 @@ export default async function PlantPage({
           <h2 className="text-2xl font-bold mb-4">
             この植物についての評価を追加する
           </h2>
-          <CommentForm plantId={id} />
+          <CommentForm plantId={plant.id} />
         </div>
       </div>
     </div>

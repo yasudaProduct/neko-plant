@@ -23,6 +23,20 @@ export async function getPlants(): Promise<Plant[]> {
     return plants
 }
 
+export async function getPlant(id: number): Promise<Plant | undefined> {
+    const plant = await prisma.plants.findUnique({
+        where: { id: id },
+    });
+    if (!plant) {
+        return undefined;
+    }
+    return {
+        id: plant.id,
+        name: plant.name,
+        imageUrl: plant.image_src ?? undefined,
+    };
+}
+
 export async function addPlant(name: string, image: File) {
     const supabase = await createClient();
 

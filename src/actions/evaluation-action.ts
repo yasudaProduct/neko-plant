@@ -7,12 +7,29 @@ import { revalidatePath } from "next/cache";
 
 export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
 
+    // TODO includeを使ってpetまで辿れなかった
+    // 評価を取得
     const evaluationsData = await prisma.evaluations.findMany({
         where: {
             plant_id: plantId,
         },
+        include: {
+            users: true,
+        },
         orderBy: {
             created_at: "desc",
+        },
+    });
+
+    // ユーザーのペットを取得
+    const petsData = await prisma.pets.findMany({
+        where: {
+            user_id: {
+                in: evaluationsData.map((evaluation) => evaluation.user_id),
+            }
+        },
+        include: {
+            neko: true,
         },
     });
 
@@ -21,6 +38,12 @@ export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
         type: evaluation.type as EvaluationType,
         comment: evaluation.comment ?? "",
         createdAt: evaluation.created_at,
+        pets: petsData.filter((pet) => pet.user_id === evaluation.user_id).map((pet) => ({
+            id: pet.id,
+            name: pet.name,
+            imageSrc: pet.image ?? undefined,
+            neko: pet.neko,
+        })),
     }));
 
     return evaluations

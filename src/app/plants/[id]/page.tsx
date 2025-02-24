@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import RatingBar from "@/components/RatingBar";
 import CommentForm from "./CommentForm";
@@ -64,7 +64,16 @@ export default async function PlantPage({
                       className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
                     >
                       <Avatar className="w-10 h-10">
-                        <AvatarFallback>U</AvatarFallback>
+                        {evaluation.pets?.map((pet) => (
+                          <Image
+                            key={pet.id}
+                            src={pet.imageSrc ?? "/images/cat_default.png"}
+                            alt={pet.name}
+                            width={60}
+                            height={60}
+                            className="rounded-full"
+                          />
+                        ))}
                       </Avatar>
                       <span>{evaluation.comment}</span>
                     </div>
@@ -79,7 +88,16 @@ export default async function PlantPage({
                       className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
                     >
                       <Avatar className="w-10 h-10">
-                        <AvatarFallback>U</AvatarFallback>
+                        {evaluation.pets?.map((pet) => (
+                          <Image
+                            key={pet.id}
+                            src={pet.imageSrc ?? "/images/cat_default.png"}
+                            alt={pet.name}
+                            width={60}
+                            height={60}
+                            className="rounded-full"
+                          />
+                        ))}
                       </Avatar>
                       <span>{evaluation.comment}</span>
                     </div>

@@ -3,6 +3,7 @@ import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
+import Image from "next/image";
 import AddPetDialogContent from "./AddPetDialogContent";
 
 type Pet = {
@@ -26,7 +27,7 @@ export default async function ProfilePage({
 }: {
   params: Promise<{ aliasId: string }>;
 }) {
-  const {aliasId} = await params;
+  const { aliasId } = await params;
 
   const supabase = await createClient();
   const {
@@ -116,7 +117,9 @@ export default async function ProfilePage({
                       />
                     </Dialog>
                   ))
-                : pets?.map((pet) => <PetCard pet={pet} authFlg={false} />)}
+                : pets?.map((pet) => (
+                    <PetCard key={pet.id} pet={pet} authFlg={false} />
+                  ))}
 
               {user && user_profiles.auth_id === user.id && (
                 <Dialog>
@@ -164,12 +167,11 @@ function PetCard({ pet, authFlg }: PetCardProp) {
       }`}
     >
       <div className="flex items-start space-x-4">
-        <img
-          src={
-            pet.image ||
-            "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=150"
-          }
+        <Image
+          src={pet.image || "/images/cat_default.png"}
           alt={pet.name}
+          width={80}
+          height={80}
           className="w-20 h-20 rounded-lg object-cover"
         />
         <div>

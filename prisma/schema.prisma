@@ -329,19 +329,21 @@ model auth_users {
 }
 
 model evaluations {
-  id       Int             @id @default(autoincrement())
-  plant_id Int
-  user_id  Int
-  type     evaluation_type
-  comment  String?         @db.VarChar
-  plants   plants          @relation(fields: [plant_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_plant")
+  id         Int             @id @default(autoincrement())
+  plant_id   Int
+  user_id    Int
+  type       evaluation_type
+  comment    String?         @db.VarChar
+  created_at DateTime        @default(now()) @db.Timestamptz(6)
+  plants     plants          @relation(fields: [plant_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_plant")
+  users      public_users    @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("public")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model neko {
-  id         BigInt   @id @default(autoincrement())
+  id         Int      @id @default(autoincrement())
   name       String   @unique @db.VarChar
   image      String?  @db.VarChar
   created_at DateTime @default(now()) @db.Timestamptz(6)
@@ -352,23 +354,23 @@ model neko {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model pets {
-  id         BigInt   @id @default(autoincrement())
-  user_id    BigInt
-  neko_id    BigInt?
+  id         Int      @id @default(autoincrement())
+  user_id    Int
+  neko_id    Int?
   created_at DateTime @default(now()) @db.Timestamptz(6)
   image      String?  @db.VarChar
   name       String   @db.VarChar
-  neko       neko?    @relation(fields: [neko_id], references: [id], onDelete: NoAction)
+  neko       neko?    @relation(fields: [neko_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("public")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model plants {
-  id          Int        @id(map: "plant_pkey") @default(autoincrement())
+  id          Int           @id(map: "plant_pkey") @default(autoincrement())
   name        String        @db.VarChar
   created_at  DateTime      @default(now()) @db.Timestamptz(6)
-  image       String?       @db.VarChar
+  image_src   String?       @db.VarChar
   evaluations evaluations[]
 
   @@schema("public")
@@ -376,13 +378,14 @@ model plants {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model public_users {
-  id         BigInt     @id @default(autoincrement())
-  auth_id    String     @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  alias_id   String     @db.VarChar
-  name       String     @db.VarChar
-  image      String?    @db.VarChar
-  created_at DateTime   @default(now()) @db.Timestamptz(6)
-  users      auth_users @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id          Int           @id @default(autoincrement())
+  auth_id     String        @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alias_id    String        @db.VarChar
+  name        String        @db.VarChar
+  image       String?       @db.VarChar
+  created_at  DateTime      @default(now()) @db.Timestamptz(6)
+  evaluations evaluations[]
+  users       auth_users    @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("users")
   @@schema("public")

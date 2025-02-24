@@ -5,29 +5,25 @@ import { Plant } from "../app/types/plant";
 import { createClient } from "@/lib/supabase/server";
 
 export async function getPlants(): Promise<Plant[]> {
-    console.log("plant-action:start")
 
     const plantsData = await prisma.plants.findMany({
         select: {
             id: true,
             name: true,
-            image: true,
+            image_src: true,
         },
     });
 
     const plants: Plant[] = plantsData.map((plant) => ({
         id: plant.id,
         name: plant.name,
-        imageUrl: plant.image ?? undefined,
+        imageUrl: plant.image_src ?? undefined,
     }));
-
-    console.log(plants);
 
     return plants
 }
 
 export async function addPlant(name: string, image: File) {
-    console.log("addPlant", name, image);
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -45,6 +41,7 @@ export async function addPlant(name: string, image: File) {
     try {
         await prisma.$transaction(async (prisma) => {
 
+            // TODO storageの名前をplantIdにする必要はないかもね
             // 1. 植物を登録
             const plant = await prisma.plants.create({
                 data: {
@@ -54,7 +51,7 @@ export async function addPlant(name: string, image: File) {
 
             // 2. 画像をアップロード
             const { error: imageError } = await supabase.storage
-                .from("plant")
+                .from("plants")
                 .upload(plant.id.toString(), image);
 
             if (imageError) {
@@ -64,7 +61,7 @@ export async function addPlant(name: string, image: File) {
 
             // 3. 画像のURLを取得
             const { data: { publicUrl } } = supabase.storage
-                .from("plant")
+                .from("plants")
                 .getPublicUrl(plant.id.toString());
 
             // 4. 植物のレコードに画像のURLを保存

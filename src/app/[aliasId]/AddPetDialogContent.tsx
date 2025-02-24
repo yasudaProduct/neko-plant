@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createClient } from "@/lib/supabase/client";
 import {
   Select,
   SelectContent,
@@ -18,197 +17,234 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { NekoSpecies, Pet } from "../types/neko";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from "@/components/ui/form";
+import { addPet, updatePet } from "@/actions/user-action";
+import { toast } from "@/hooks/use-toast";
 
 interface AddPetModalProps {
-  userId: number;
   pet?: Pet;
   nekoSpecies: NekoSpecies[];
 }
 
-interface Pet {
-  id: number;
-  name: string;
-  image: string;
-  neko: {
-    id: number;
-    name: string;
-  };
-}
-interface NekoSpecies {
-  id: number;
-  name: string;
-}
+const formSchema = z.object({
+  name: z.string().min(1, {
+    message: "名前は必須です。",
+  }),
+  species: z.number().min(1, {
+    message: "猫種を選択してください。",
+  }),
+});
 
 export default function AddPetDialogContent({
-  userId,
   pet,
   nekoSpecies,
 }: AddPetModalProps) {
-  const [newPetName, setNewPetName] = useState(pet?.name || "");
-  const [newPetImage, setNewPetImage] = useState(pet?.image || "");
-  const [newPetSpeciesId, setNewPetSpeciesId] = useState(pet?.neko.id || 1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  // const [newPetImage, setNewPetImage] = useState(pet?.imageSrc || "");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const supabase = createClient();
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: pet
+      ? {
+          name: pet.name,
+          species: pet.neko.id,
+        }
+      : {
+          name: "",
+          species: 1,
+        },
+  });
 
-  const handleAddCat = async () => {
-    setLoading(true);
-    setError("");
-    setSuccess(false);
+  // const supabase = createClient();
 
-    if (!newPetName) {
-      setError("名前は必須です。");
-      setLoading(false);
-      return;
+  // const handleAddCat = async () => {
+  //   setLoading(true);
+
+  //   if (!newPetName) {
+  //     setError("名前は必須です。");
+  //     setLoading(false);
+  //     return;
+  //   }
+
+  //   if (!newPetSpeciesId) {
+  //     setError("猫種を選択してください。");
+  //     setLoading(false);
+  //     return;
+  //   }
+
+  //   const { error } = await supabase.from("pets").insert({
+  //     name: newPetName,
+  //     neko_id: newPetSpeciesId,
+  //     user_id: userId,
+  //   });
+
+  //   if (error) {
+  //     console.log("error", error);
+  //     setError("飼い猫の追加に失敗しました。もう一度お試しください。");
+  //   } else {
+  //     setSuccess(true);
+  //   }
+
+  //   setLoading(false);
+  // };
+
+  // const handleEditCat = async () => {
+  //   setLoading(true);
+  //   setError("");
+  //   setSuccess(false);
+
+  //   const { error } = await supabase
+  //     .from("pets")
+  //     .update({
+  //       name: newPetName,
+  //       neko_id: newPetSpeciesId,
+  //     })
+  //     .eq("id", pet?.id);
+
+  //   if (error) {
+  //     console.log("error", error);
+  //     setError("飼い猫の編集に失敗しました。もう一度お試しください。");
+  //   } else {
+  //     setSuccess(true);
+  //   }
+
+  //   setLoading(false);
+  // };
+
+  // const handleDelete = async () => {
+  //   setLoading(true);
+  //   setError("");
+  //   setSuccess(false);
+
+  //   const { error } = await supabase.from("pets").delete().eq("id", pet?.id);
+
+  //   if (error) {
+  //     console.log("error", error);
+  //     setError("飼い猫の削除に失敗しました。もう一度お試しください。");
+  //   } else {
+  //     setSuccess(true);
+  //   }
+
+  //   setLoading(false);
+  // };
+
+  const handleClose = () => {};
+
+  const onSubmit = async (data: z.infer<typeof formSchema>) => {
+    setIsSubmitting(true);
+
+    try {
+      if (pet) {
+        await updatePet(pet.id, data.name, data.species);
+        toast({
+          title: "飼い猫を更新しました",
+        });
+      } else {
+        await addPet(data.name, data.species);
+        toast({
+          title: "飼い猫を追加しました",
+        });
+      }
+    } catch {
+      toast({
+        title: pet
+          ? "飼い猫の更新に失敗しました"
+          : "飼い猫の追加に失敗しました",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (!newPetSpeciesId) {
-      setError("猫種を選択してください。");
-      setLoading(false);
-      return;
-    }
-
-    const { error } = await supabase.from("pets").insert({
-      name: newPetName,
-      neko_id: newPetSpeciesId,
-      user_id: userId,
-    });
-
-    if (error) {
-      console.log("error", error);
-      setError("飼い猫の追加に失敗しました。もう一度お試しください。");
-    } else {
-      setSuccess(true);
-    }
-
-    setLoading(false);
-  };
-
-  const handleEditCat = async () => {
-    setLoading(true);
-    setError("");
-    setSuccess(false);
-
-    const { error } = await supabase
-      .from("pets")
-      .update({
-        name: newPetName,
-        neko_id: newPetSpeciesId,
-      })
-      .eq("id", pet?.id);
-
-    if (error) {
-      console.log("error", error);
-      setError("飼い猫の編集に失敗しました。もう一度お試しください。");
-    } else {
-      setSuccess(true);
-    }
-
-    setLoading(false);
-  };
-
-  const handleDelete = async () => {
-    setLoading(true);
-    setError("");
-    setSuccess(false);
-
-    const { error } = await supabase.from("pets").delete().eq("id", pet?.id);
-
-    if (error) {
-      console.log("error", error);
-      setError("飼い猫の削除に失敗しました。もう一度お試しください。");
-    } else {
-      setSuccess(true);
-    }
-
-    setLoading(false);
-  };
-
-  const handleClose = () => {
-    setNewPetName("");
-    setNewPetImage("");
-    setNewPetSpeciesId(1);
-    setError("");
-    setSuccess(false);
-    setLoading(false);
   };
 
   return (
     <DialogContent>
-      <DialogHeader>
-        <DialogTitle>飼い猫を追加する</DialogTitle>
-      </DialogHeader>
-      <div className="space-y-4">
-        <label htmlFor="name" className="block text-sm font-medium">
-          飼い猫の名前
-        </label>
-        <Input
-          id="name"
-          type="text"
-          value={newPetName}
-          onChange={(e) => setNewPetName(e.target.value)}
-          placeholder="例：ミケ"
-        />
-        <label htmlFor="species" className="block text-sm font-medium">
-          猫種
-        </label>
-        <Select
-          value={newPetSpeciesId.toString()}
-          onValueChange={(value) => setNewPetSpeciesId(Number(value))}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="猫種を選択" />
-          </SelectTrigger>
-          <SelectContent>
-            {nekoSpecies.map((nekoSpecies) => (
-              <SelectItem
-                key={nekoSpecies.id}
-                value={nekoSpecies.id.toString()}
-              >
-                {nekoSpecies.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        {success && !pet && (
-          <p className="text-green-500 text-sm">飼い猫を追加しました。</p>
-        )}
-        {success && pet && (
-          <p className="text-green-500 text-sm">飼い猫を更新しました。</p>
-        )}
-      </div>
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button variant="secondary" onClick={handleClose}>
-            キャンセル
-          </Button>
-        </DialogClose>
-        {!pet ? (
-          <Button
-            variant="default"
-            onClick={handleAddCat}
-            disabled={loading || !newPetName}
-          >
-            {loading ? "保存中..." : "保存"}
-          </Button>
-        ) : (
-          <>
-            <Button variant={"destructive"} onClick={handleDelete}>
-              {loading ? "削除中..." : "削除"}
-            </Button>
-            <Button
-              variant="default"
-              onClick={handleEditCat}
-              disabled={loading || !newPetName}
-            >
-              {loading ? "更新中..." : "更新"}
-            </Button>
-          </>
-        )}
-      </DialogFooter>
+      <Form {...form}>
+        <DialogHeader>
+          <DialogTitle>飼い猫を追加する</DialogTitle>
+        </DialogHeader>
+
+        <form onSubmit={form.handleSubmit(onSubmit)}>
+          <div className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>飼い猫の名前</FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      id="name"
+                      type="text"
+                      placeholder="例：ミケ"
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="species"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>猫種</FormLabel>
+                  <Select
+                    {...field}
+                    value={field.value.toString()}
+                    onValueChange={(value) => field.onChange(Number(value))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="猫種を選択" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {nekoSpecies.map((nekoSpecies) => (
+                        <SelectItem
+                          key={nekoSpecies.id}
+                          value={nekoSpecies.id.toString()}
+                        >
+                          {nekoSpecies.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              )}
+            />
+          </div>
+          <DialogFooter className="flex justify-end mt-4">
+            <DialogClose asChild>
+              <Button variant="secondary" onClick={handleClose}>
+                キャンセル
+              </Button>
+            </DialogClose>
+            {!pet ? (
+              <Button type="submit" variant="default" disabled={isSubmitting}>
+                {isSubmitting ? "保存中..." : "保存"}
+              </Button>
+            ) : (
+              <>
+                {/* <Button variant={"destructive"} onClick={handleDelete}>
+                  {isSubmitting ? "削除中..." : "削除"}
+                </Button> */}
+                <Button type="submit" variant="default" disabled={isSubmitting}>
+                  {isSubmitting ? "更新中..." : "更新"}
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </form>
+      </Form>
     </DialogContent>
   );
 }

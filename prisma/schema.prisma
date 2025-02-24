@@ -356,11 +356,11 @@ model neko {
 model pets {
   id         Int      @id @default(autoincrement())
   user_id    Int
-  neko_id    Int?
+  neko_id    Int
   created_at DateTime @default(now()) @db.Timestamptz(6)
   image      String?  @db.VarChar
   name       String   @db.VarChar
-  neko       neko?    @relation(fields: [neko_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  neko       neko     @relation(fields: [neko_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("public")
 }

@@ -123,6 +123,61 @@ export async function updateUser(name: string, aliasId: string, bio?: string) {
     revalidatePath(`/${userData.alias_id}`);
 }
 
+export async function updateUserImage(image: File) {
+    const supabase = await createClient();
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    const userData = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!userData) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    await prisma.$transaction(async (prisma) => {
+
+        // 1. 画像をアップロード
+        const { error } = await supabase.storage
+            .from("user_profiles")
+            .update(`${userData.auth_id}/profile_image.png`, image, {
+                upsert: true,
+                contentType: "image/png",
+            });
+
+        if (error) {
+            throw error;
+        }
+
+        // 2. 画像のURLを取得
+        const { data: { publicUrl } } = supabase.storage
+            .from("user_profiles")
+            .getPublicUrl(`${userData.auth_id}/profile_image.png`);
+
+        // 3. ユーザーの画像を更新
+        await prisma.public_users.update({
+            where: {
+                id: userData.id,
+            },
+            data: {
+                image: publicUrl,
+            },
+        });
+    })
+
+    revalidatePath(`/${userData.alias_id}`);
+
+}
+
 export async function addPet(name: string, speciesId: number) {
     const supabase = await createClient();
     const {

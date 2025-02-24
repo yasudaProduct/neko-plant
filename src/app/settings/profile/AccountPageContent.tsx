@@ -19,9 +19,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import Image from "next/image";
 import { toast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { UserIcon } from "lucide-react";
 interface UserProfileProps {
   userProfile: UserProfile;
 }
@@ -61,24 +61,22 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
 
   return (
     <Card className="p-6 space-y-8">
+      <div className="flex flex-col items-center gap-2">
+        <Avatar className="w-24 h-24">
+          <AvatarImage
+            src={userProfile.imageSrc ?? "/images/cat_default.png"}
+            alt="プロフィール画像"
+            width={96}
+            height={96}
+          />
+          <AvatarFallback className="bg-muted">
+            <UserIcon className="w-4 h-4" />
+          </AvatarFallback>
+        </Avatar>
+        <ProfileImageUploadModal userId={userProfile.aliasId} />
+      </div>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(handleSubmit)}>
-          <div className="flex flex-col items-center gap-2">
-            <Avatar className="w-24 h-24">
-              <AvatarImage src={userProfile.imageSrc || ""} />
-              <AvatarFallback className="bg-muted">
-                <Image
-                  src={userProfile.imageSrc || "/images/default-profile.png"}
-                  alt="プロフィール画像"
-                  className="w-24 h-24 rounded-full object-cover"
-                  width={96}
-                  height={96}
-                />
-              </AvatarFallback>
-            </Avatar>
-            <ProfileImageUploadModal userId={userProfile.aliasId} />
-          </div>
-
           <div className="mt-8 space-y-4">
             <div className="space-y-2">
               <FormField

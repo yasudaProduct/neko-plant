@@ -12,8 +12,28 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createClient } from "@/lib/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormField, FormMessage } from "@/components/ui/form";
+import { toast } from "@/hooks/use-toast";
+import { updateUserImage } from "@/actions/user-action";
+
+const profileImageUploadSchema = z.object({
+  image: z
+    .any()
+    .refine(
+      (file) => file instanceof File,
+      "有効な画像ファイルをアップロードしてください"
+    )
+    .refine((file) => file && ["image/jpeg", "image/png"].includes(file.type), {
+      message: "サポートされていないファイル形式です",
+    })
+    .refine((file) => file && file.size <= 5 * 1024 * 1024, {
+      message: "ファイルサイズは5MB以下にしてください",
+    }),
+});
 
 interface ProfileImageUploadModalProps {
   userId: string;
@@ -32,46 +52,34 @@ function getImageData(event: ChangeEvent<HTMLInputElement>) {
   return { files, displayUrl };
 }
 
-export default function ProfileImageUploadModal({
-  userId,
-}: ProfileImageUploadModalProps) {
+export default function ProfileImageUploadModal({}: ProfileImageUploadModalProps) {
   const [newImage, setNewImage] = useState("");
   const [preview, setPreview] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+  const [isSubmiting, setIsSubmiting] = useState(false);
 
-  const supabase = createClient();
+  const form = useForm<z.infer<typeof profileImageUploadSchema>>({
+    resolver: zodResolver(profileImageUploadSchema),
+  });
 
   const handleImageUpload = async () => {
-    setLoading(true);
-    setError("");
-    setSuccess(false);
+    setIsSubmiting(true);
 
-    if (!newImage) {
-      setError("画像を選択してください。");
-      return;
+    try {
+      await updateUserImage(form.getValues("image"));
+      toast({
+        title: "プロフィール画像を変更しました。",
+      });
+    } catch {
+      toast({
+        title: "画像のアップロードに失敗しました。",
+      });
+    } finally {
+      setIsSubmiting(false);
     }
-
-    const { data, error } = await supabase.storage
-      .from("user_profiles")
-      .upload(`${userId}/profile_image.png`, newImage);
-
-    if (error) {
-      console.error(error);
-      setError("画像のアップロードに失敗しました。");
-    } else {
-      setSuccess(true);
-    }
-
-    setLoading(false);
   };
 
   const handleClose = () => {
-    setNewImage("");
-    setError("");
-    setSuccess(false);
-    setLoading(false);
+    form.reset();
   };
 
   return (
@@ -85,58 +93,63 @@ export default function ProfileImageUploadModal({
         <DialogHeader>
           <DialogTitle>プロフィール画像を変更する</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <label htmlFor="image" className="block text-sm font-medium">
-            新しいプロフィール画像
-          </label>
-          <Input
-            id="image"
-            type="file"
-            value={newImage}
-            onChange={(e) => {
-              const { files, displayUrl } = getImageData(e);
-              setNewImage(e.target.value);
-              setPreview(displayUrl);
-            }}
-            required
-          />
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          {success && (
-            <p className="text-green-500 text-sm">
-              画像のアップロードに成功しました。
-            </p>
-          )}
-        </div>
-        <div className="aspect-video max-w-[560px] flex justify-center items-center">
-          {preview ? (
-            <Avatar className="w-24 h-24">
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-muted">
-                <img
-                  src={preview}
-                  alt="プロフィール画像"
-                  className="w-24 h-24 rounded-full object-cover"
-                />
-              </AvatarFallback>
-            </Avatar>
-          ) : (
-            <div className="w-full h-full bg-background/70 rounded-lg border flex justify-center items-center"></div>
-          )}
-        </div>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="secondary" onClick={handleClose}>
-              キャンセル
-            </Button>
-          </DialogClose>
-          <Button
-            variant="default"
-            onClick={handleImageUpload}
-            disabled={loading || !newImage}
-          >
-            {loading ? "保存中..." : "保存"}
-          </Button>
-        </DialogFooter>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleImageUpload)}>
+            <div className="space-y-4">
+              <label htmlFor="image" className="block text-sm font-medium">
+                新しいプロフィール画像
+              </label>
+              <FormField
+                control={form.control}
+                name="image"
+                render={({ field }) => (
+                  <Input
+                    {...field}
+                    id="image"
+                    type="file"
+                    value={newImage}
+                    onChange={(e) => {
+                      const { displayUrl } = getImageData(e);
+                      setNewImage(e.target.value);
+                      setPreview(displayUrl);
+                    }}
+                    required
+                  />
+                )}
+              />
+              <FormMessage />
+            </div>
+            <div className="aspect-video max-w-[560px] flex justify-center items-center">
+              {preview ? (
+                <Avatar className="w-24 h-24">
+                  <AvatarImage
+                    src={preview}
+                    alt="プロフィール画像"
+                    width={96}
+                    height={96}
+                  />
+                  <AvatarFallback className="bg-muted"></AvatarFallback>
+                </Avatar>
+              ) : (
+                <div className="w-full h-full bg-background/70 rounded-lg border flex justify-center items-center"></div>
+              )}
+            </div>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="secondary" onClick={handleClose}>
+                  キャンセル
+                </Button>
+              </DialogClose>
+              <Button
+                variant="default"
+                onClick={handleImageUpload}
+                disabled={isSubmiting || !newImage}
+              >
+                {isSubmiting ? "保存中..." : "保存"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

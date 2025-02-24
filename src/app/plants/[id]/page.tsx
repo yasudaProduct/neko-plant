@@ -56,37 +56,41 @@ export default async function PlantPage({
             {/* Comments Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-4">
-                {goodEvaluations.map((evaluation) => (
-                  <div
-                    key={evaluation.id}
-                    className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
-                  >
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback>U</AvatarFallback>
-                    </Avatar>
-                    <span>{evaluation.comment}</span>
-                  </div>
-                ))}
+                {goodEvaluations
+                  .filter((evaluation) => evaluation.comment)
+                  .map((evaluation) => (
+                    <div
+                      key={evaluation.id}
+                      className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
+                    >
+                      <Avatar className="w-10 h-10">
+                        <AvatarFallback>U</AvatarFallback>
+                      </Avatar>
+                      <span>{evaluation.comment}</span>
+                    </div>
+                  ))}
               </div>
               <div className="space-y-4">
-                {badEvaluations.map((evaluation) => (
-                  <div
-                    key={evaluation.id}
-                    className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
-                  >
-                    <Avatar className="w-10 h-10">
-                      <AvatarFallback>U</AvatarFallback>
-                    </Avatar>
-                    <span>{evaluation.comment}</span>
-                  </div>
-                ))}
+                {badEvaluations
+                  .filter((evaluation) => evaluation.comment)
+                  .map((evaluation) => (
+                    <div
+                      key={evaluation.id}
+                      className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
+                    >
+                      <Avatar className="w-10 h-10">
+                        <AvatarFallback>U</AvatarFallback>
+                      </Avatar>
+                      <span>{evaluation.comment}</span>
+                    </div>
+                  ))}
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Add comment form */}
-        <div className="mt-4">
+        <div className="mt-8">
           <h2 className="text-2xl font-bold mb-4">
             この植物についての評価を追加する
           </h2>

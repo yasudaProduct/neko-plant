@@ -43,12 +43,12 @@ export default function Home() {
             植物が見つかりませんでした
           </p>
         ) : (
-          <div className="grid md:grid-cols-2 gap-6">
+          <div className="grid md:grid-cols-3 gap-6">
             {plants.map((plant) => (
               <Link key={plant.id} href={`/plants/${plant.id}`}>
                 <PlantCard
                   name={plant.name}
-                  imageSrc={plant.imageUrl ?? ""}
+                  imageSrc={plant.imageUrl || undefined}
                   isSafe={true}
                   likes={0}
                   dislikes={0}

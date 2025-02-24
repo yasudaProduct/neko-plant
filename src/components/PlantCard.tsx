@@ -11,7 +11,7 @@ import Image from "next/image";
 
 interface PlantCardProps {
   name: string;
-  imageSrc: string;
+  imageSrc?: string;
   isSafe: boolean;
   likes: number;
   dislikes: number;
@@ -27,7 +27,16 @@ export default function PlantCard({
   reviewCount,
 }: PlantCardProps) {
   return (
-    <Card className="hover:shadow-lg transition-shadow duration-300">
+    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+      <div className="relative h-48 w-full">
+        {imageSrc ? (
+          <Image src={imageSrc} alt={name} fill className="object-cover" />
+        ) : (
+          <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+            <span className="text-gray-400">No image</span>
+          </div>
+        )}
+      </div>
       <CardHeader className="relative pb-0">
         <Badge
           className={`absolute top-4 right-4 ${
@@ -38,13 +47,6 @@ export default function PlantCard({
         >
           {isSafe ? "安全" : "危険"}
         </Badge>
-        <Image
-          src={imageSrc}
-          alt={name}
-          width={384}
-          height={256}
-          className="object-cover w-full h-64 rounded-t-lg"
-        />
       </CardHeader>
       <CardContent className="pt-4">
         <CardTitle className="text-xl mb-2">{name}</CardTitle>

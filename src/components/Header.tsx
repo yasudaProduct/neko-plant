@@ -19,7 +19,7 @@ export default function Header() {
       <div className="max-w-6xl mx-auto flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2 text-xl font-medium">
           <Leaf className="w-6 h-6" />
-          neko-plant
+          猫と植物
         </Link>
         <div className="flex items-center gap-2">
           {!user ? (

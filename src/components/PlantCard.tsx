@@ -1,5 +1,4 @@
 import { ThumbsDown, ThumbsUp } from "lucide-react";
-import { Badge } from "./ui/badge";
 import {
   Card,
   CardContent,
@@ -21,7 +20,6 @@ interface PlantCardProps {
 export default function PlantCard({
   name,
   imageSrc,
-  isSafe,
   likes,
   dislikes,
   reviewCount,
@@ -38,7 +36,7 @@ export default function PlantCard({
         )}
       </div>
       <CardHeader className="relative pb-0">
-        <Badge
+        {/* <Badge
           className={`absolute top-4 right-4 ${
             isSafe
               ? "bg-success text-success-foreground"
@@ -46,7 +44,7 @@ export default function PlantCard({
           }`}
         >
           {isSafe ? "安全" : "危険"}
-        </Badge>
+        </Badge> */}
       </CardHeader>
       <CardContent className="pt-4">
         <CardTitle className="text-xl mb-2">{name}</CardTitle>

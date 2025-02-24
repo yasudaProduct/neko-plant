@@ -11,10 +11,10 @@ import CommentForm from "./CommentForm";
 export default async function PlantPage({
   params,
 }: {
-  params: { id: number };
+  params: Promise<{ id: number }>;
 }) {
   console.log("PlantPage");
-  const id = params.id;
+  const {id} = await params;
 
   const supabase = await createClient();
   const { data: plant } = await supabase

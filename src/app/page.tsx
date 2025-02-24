@@ -2,33 +2,18 @@
 
 import PlantCard from "@/components/PlantCard";
 import { Input } from "@/components/ui/input";
-import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-
-type Plant = {
-  id: number;
-  name: string;
-  image: string;
-};
+import { Plant } from "./types/plant";
+import { getPlants } from "@/actions/plant-action";
 
 export default function Home() {
-  const supabase = createClient();
   const [plants, setPlants] = useState<Plant[]>([]);
 
   useEffect(() => {
-    console.log("fetching plants");
     const fetchPlants = async () => {
-      const { data, error } = await supabase
-        .from("plants")
-        .select("id, name, image");
-
-      if (error) {
-        console.error("Error fetching plants:", error);
-      } else {
-        console.log("data", data);
-        setPlants(data);
-      }
+      const plants = await getPlants();
+      setPlants(plants);
     };
     fetchPlants();
   }, []);
@@ -60,11 +45,10 @@ export default function Home() {
         ) : (
           <div className="grid md:grid-cols-2 gap-6">
             {plants.map((plant) => (
-              <Link href={`/plants/${plant.id}`} key={plant.id}>
+              <Link key={plant.id} href={`/plants/${plant.id}`}>
                 <PlantCard
-                  key={plant.id}
                   name={plant.name}
-                  imageSrc={""}
+                  imageSrc={plant.imageUrl ?? ""}
                   isSafe={true}
                   likes={0}
                   dislikes={0}

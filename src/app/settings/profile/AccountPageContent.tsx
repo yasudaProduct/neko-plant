@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
 import { useState } from "react";
-import { UserIcon } from "lucide-react";
+import Image from "next/image";
 interface UserProfileProps {
   userProfile: UserProfile;
 }
@@ -63,15 +63,13 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
     <Card className="p-6 space-y-8">
       <div className="flex flex-col items-center gap-2">
         <Avatar className="w-24 h-24">
-          <AvatarImage
+          <Image
             src={userProfile.imageSrc ?? "/images/cat_default.png"}
             alt="プロフィール画像"
             width={96}
             height={96}
+            className="rounded-full"
           />
-          <AvatarFallback className="bg-muted">
-            <UserIcon className="w-4 h-4" />
-          </AvatarFallback>
         </Avatar>
         <ProfileImageUploadModal userId={userProfile.aliasId} />
       </div>

@@ -149,9 +149,8 @@ export async function updateUserImage(image: File) {
         // 1. 画像をアップロード
         const { error } = await supabase.storage
             .from("user_profiles")
-            .update(`${userData.auth_id}/profile_image.png`, image, {
+            .upload(`${userData.auth_id}/profile_image.png`, image, {
                 upsert: true,
-                contentType: "image/png",
             });
 
         if (error) {
@@ -174,7 +173,7 @@ export async function updateUserImage(image: File) {
         });
     })
 
-    revalidatePath(`/${userData.alias_id}`);
+    revalidatePath(`/settings/profile`);
 
 }
 

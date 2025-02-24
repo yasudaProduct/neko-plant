@@ -19,5 +19,7 @@ export default async function AccountPage() {
     redirect("/signin");
   }
 
+  console.log(userProfile);
+
   return <AccountPageContent userProfile={userProfile} />;
 }

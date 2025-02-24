@@ -16,7 +16,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormField, FormMessage } from "@/components/ui/form";
 import { toast } from "@/hooks/use-toast";
 import { updateUserImage } from "@/actions/user-action";
 
@@ -52,20 +51,33 @@ function getImageData(event: ChangeEvent<HTMLInputElement>) {
   return { files, displayUrl };
 }
 
+type ProfileImageUploadFormData = z.infer<typeof profileImageUploadSchema>;
+
 export default function ProfileImageUploadModal({}: ProfileImageUploadModalProps) {
-  const [newImage, setNewImage] = useState("");
   const [preview, setPreview] = useState("");
   const [isSubmiting, setIsSubmiting] = useState(false);
 
-  const form = useForm<z.infer<typeof profileImageUploadSchema>>({
+  // const form = useForm<z.infer<typeof profileImageUploadSchema>>({
+  //   resolver: zodResolver(profileImageUploadSchema),
+  //   defaultValues: {
+  //     image: undefined,
+  //   },
+  // });
+
+  const {
+    handleSubmit,
+    formState: { errors },
+    setValue,
+    reset,
+  } = useForm<ProfileImageUploadFormData>({
     resolver: zodResolver(profileImageUploadSchema),
   });
 
-  const handleImageUpload = async () => {
+  async function onSubmit(values: z.infer<typeof profileImageUploadSchema>) {
     setIsSubmiting(true);
 
     try {
-      await updateUserImage(form.getValues("image"));
+      await updateUserImage(values.image);
       toast({
         title: "プロフィール画像を変更しました。",
       });
@@ -76,10 +88,18 @@ export default function ProfileImageUploadModal({}: ProfileImageUploadModalProps
     } finally {
       setIsSubmiting(false);
     }
-  };
+  }
 
   const handleClose = () => {
-    form.reset();
+    reset();
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { files, displayUrl } = getImageData(e);
+    if (files && files[0]) {
+      setValue("image", files[0], { shouldValidate: true });
+      setPreview(displayUrl);
+    }
   };
 
   return (
@@ -93,63 +113,48 @@ export default function ProfileImageUploadModal({}: ProfileImageUploadModalProps
         <DialogHeader>
           <DialogTitle>プロフィール画像を変更する</DialogTitle>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleImageUpload)}>
-            <div className="space-y-4">
-              <label htmlFor="image" className="block text-sm font-medium">
-                新しいプロフィール画像
-              </label>
-              <FormField
-                control={form.control}
-                name="image"
-                render={({ field }) => (
-                  <Input
-                    {...field}
-                    id="image"
-                    type="file"
-                    value={newImage}
-                    onChange={(e) => {
-                      const { displayUrl } = getImageData(e);
-                      setNewImage(e.target.value);
-                      setPreview(displayUrl);
-                    }}
-                    required
-                  />
-                )}
-              />
-              <FormMessage />
-            </div>
-            <div className="aspect-video max-w-[560px] flex justify-center items-center">
-              {preview ? (
-                <Avatar className="w-24 h-24">
-                  <AvatarImage
-                    src={preview}
-                    alt="プロフィール画像"
-                    width={96}
-                    height={96}
-                  />
-                  <AvatarFallback className="bg-muted"></AvatarFallback>
-                </Avatar>
-              ) : (
-                <div className="w-full h-full bg-background/70 rounded-lg border flex justify-center items-center"></div>
-              )}
-            </div>
-            <DialogFooter>
-              <DialogClose asChild>
-                <Button variant="secondary" onClick={handleClose}>
-                  キャンセル
-                </Button>
-              </DialogClose>
-              <Button
-                variant="default"
-                onClick={handleImageUpload}
-                disabled={isSubmiting || !newImage}
-              >
-                {isSubmiting ? "保存中..." : "保存"}
+
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className="space-y-4">
+            <label htmlFor="image" className="block text-sm font-medium">
+              新しいプロフィール画像
+            </label>
+            <Input
+              id="image"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+            />
+            {errors.image && (
+              <p className="text-red-500 text-sm">{errors.image.message}</p>
+            )}
+          </div>
+          <div className="aspect-video max-w-[560px] flex justify-center items-center">
+            {preview ? (
+              <Avatar className="w-24 h-24">
+                <AvatarImage
+                  src={preview}
+                  alt="プロフィール画像"
+                  width={96}
+                  height={96}
+                />
+                <AvatarFallback className="bg-muted"></AvatarFallback>
+              </Avatar>
+            ) : (
+              <div className="w-full h-full bg-background/70 rounded-lg border flex justify-center items-center"></div>
+            )}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="secondary" onClick={handleClose}>
+                キャンセル
               </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+            </DialogClose>
+            <Button type="submit" variant="default" disabled={isSubmiting}>
+              {isSubmiting ? "保存中..." : "保存"}
+            </Button>
+          </DialogFooter>
+        </form>
       </DialogContent>
     </Dialog>
   );

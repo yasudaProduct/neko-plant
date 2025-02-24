@@ -4,4 +4,5 @@ export type UserProfile = {
     authId: string;
     name: string;
     imageSrc?: string;
+    bio?: string;
 };

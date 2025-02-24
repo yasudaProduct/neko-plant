@@ -33,6 +33,36 @@ export async function getUserProfile(aliasId: string): Promise<UserProfile | und
     };
 }
 
+export async function getUserProfileByAuthId(): Promise<UserProfile | undefined> {
+    const supabase = await createClient();
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        return undefined;
+    }
+
+    const userData = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!userData) {
+        return undefined;
+    }
+
+    return {
+        id: userData.id,
+        aliasId: userData.alias_id,
+        authId: userData.auth_id,
+        name: userData.name,
+        imageSrc: userData.image ?? undefined,
+    };
+}
+
 export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
     const pets = await prisma.pets.findMany({
         where: {
@@ -58,6 +88,40 @@ export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
     }));
 }
 
+export async function updateUser(name: string, aliasId: string, bio?: string) {
+    const supabase = await createClient();
+
+    const {
+        data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        throw new Error("ユーザーが見つかりません。");
+    }
+
+    const userData = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!userData) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    await prisma.public_users.update({
+        where: {
+            id: userData.id,
+        },
+        data: {
+            name: name,
+            alias_id: aliasId,
+            // bio: bio,
+        },
+    });
+
+    revalidatePath(`/${userData.alias_id}`);
+}
 
 export async function addPet(name: string, speciesId: number) {
     const supabase = await createClient();

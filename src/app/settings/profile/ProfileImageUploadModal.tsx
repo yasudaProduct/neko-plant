@@ -53,7 +53,6 @@ export default function ProfileImageUploadModal({
       return;
     }
 
-    console.log(newImage);
     const { data, error } = await supabase.storage
       .from("user_profiles")
       .upload(`${userId}/profile_image.png`, newImage);

@@ -67,7 +67,7 @@ export async function addPlant(name: string, image: File) {
             // 4. 植物のレコードに画像のURLを保存
             await prisma.plants.update({
                 where: { id: plant.id },
-                data: { image: publicUrl }
+                data: { image_src: publicUrl }
             });
         });
 

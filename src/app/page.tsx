@@ -6,6 +6,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Plant } from "./types/plant";
 import { getPlants } from "@/actions/plant-action";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function Home() {
   const [plants, setPlants] = useState<Plant[]>([]);
@@ -38,26 +40,53 @@ export default function Home() {
           />
         </div>
 
-        {plants.length === 0 ? (
-          <p className="text-center text-muted-foreground">
-            植物が見つかりませんでした
-          </p>
-        ) : (
-          <div className="grid md:grid-cols-3 gap-6">
-            {plants.map((plant) => (
-              <Link key={plant.id} href={`/plants/${plant.id}`}>
-                <PlantCard
-                  name={plant.name}
-                  imageSrc={plant.imageUrl || undefined}
-                  isSafe={true}
-                  likes={0}
-                  dislikes={0}
-                  reviewCount={0}
-                />
-              </Link>
-            ))}
-          </div>
-        )}
+        <div className="grid md:grid-cols-3 gap-6">
+          {plants.length === 0 ? (
+            <>
+              <Card className="w-full h-full">
+                <CardContent>
+                  <CardHeader>
+                    <Skeleton className="w-full h-48" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="w-[200px] h-[20px] rounded-full" />
+                  </CardContent>
+                </CardContent>
+              </Card>
+              <Card className="w-full h-full">
+                <CardHeader>
+                  <Skeleton className="w-full h-48" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="w-[200px] h-[20px] rounded-full" />
+                </CardContent>
+              </Card>
+              <Card className="w-full h-full">
+                <CardHeader>
+                  <Skeleton className="w-full h-48" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="w-[200px] h-[20px] rounded-full" />
+                </CardContent>
+              </Card>
+            </>
+          ) : (
+            <>
+              {plants.map((plant) => (
+                <Link key={plant.id} href={`/plants/${plant.id}`}>
+                  <PlantCard
+                    name={plant.name}
+                    imageSrc={plant.imageUrl || undefined}
+                    isSafe={true}
+                    likes={0}
+                    dislikes={0}
+                    reviewCount={0}
+                  />
+                </Link>
+              ))}
+            </>
+          )}
+        </div>
       </main>
     </div>
   );

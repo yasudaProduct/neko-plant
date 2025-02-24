@@ -28,7 +28,7 @@ import {
   FormItem,
   FormLabel,
 } from "@/components/ui/form";
-import { addPet, updatePet } from "@/actions/user-action";
+import { addPet, deletePet, updatePet } from "@/actions/user-action";
 import { toast } from "@/hooks/use-toast";
 
 interface AddPetModalProps {
@@ -51,7 +51,7 @@ export default function AddPetDialogContent({
 }: AddPetModalProps) {
   // const [newPetImage, setNewPetImage] = useState(pet?.imageSrc || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [isDeleting, setIsDeleting] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: pet
@@ -65,80 +65,30 @@ export default function AddPetDialogContent({
         },
   });
 
-  // const supabase = createClient();
+  const handleDelete = async () => {
+    if (!pet) {
+      return;
+    }
 
-  // const handleAddCat = async () => {
-  //   setLoading(true);
+    setIsDeleting(true);
 
-  //   if (!newPetName) {
-  //     setError("名前は必須です。");
-  //     setLoading(false);
-  //     return;
-  //   }
+    try {
+      await deletePet(pet.id);
+      toast({
+        title: "飼い猫を削除しました",
+      });
+    } catch {
+      toast({
+        title: "飼い猫の削除に失敗しました",
+      });
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
-  //   if (!newPetSpeciesId) {
-  //     setError("猫種を選択してください。");
-  //     setLoading(false);
-  //     return;
-  //   }
-
-  //   const { error } = await supabase.from("pets").insert({
-  //     name: newPetName,
-  //     neko_id: newPetSpeciesId,
-  //     user_id: userId,
-  //   });
-
-  //   if (error) {
-  //     console.log("error", error);
-  //     setError("飼い猫の追加に失敗しました。もう一度お試しください。");
-  //   } else {
-  //     setSuccess(true);
-  //   }
-
-  //   setLoading(false);
-  // };
-
-  // const handleEditCat = async () => {
-  //   setLoading(true);
-  //   setError("");
-  //   setSuccess(false);
-
-  //   const { error } = await supabase
-  //     .from("pets")
-  //     .update({
-  //       name: newPetName,
-  //       neko_id: newPetSpeciesId,
-  //     })
-  //     .eq("id", pet?.id);
-
-  //   if (error) {
-  //     console.log("error", error);
-  //     setError("飼い猫の編集に失敗しました。もう一度お試しください。");
-  //   } else {
-  //     setSuccess(true);
-  //   }
-
-  //   setLoading(false);
-  // };
-
-  // const handleDelete = async () => {
-  //   setLoading(true);
-  //   setError("");
-  //   setSuccess(false);
-
-  //   const { error } = await supabase.from("pets").delete().eq("id", pet?.id);
-
-  //   if (error) {
-  //     console.log("error", error);
-  //     setError("飼い猫の削除に失敗しました。もう一度お試しください。");
-  //   } else {
-  //     setSuccess(true);
-  //   }
-
-  //   setLoading(false);
-  // };
-
-  const handleClose = () => {};
+  const handleClose = () => {
+    form.reset();
+  };
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
@@ -234,9 +184,13 @@ export default function AddPetDialogContent({
               </Button>
             ) : (
               <>
-                {/* <Button variant={"destructive"} onClick={handleDelete}>
-                  {isSubmitting ? "削除中..." : "削除"}
-                </Button> */}
+                <Button
+                  variant={"destructive"}
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? "削除中..." : "削除"}
+                </Button>
                 <Button type="submit" variant="default" disabled={isSubmitting}>
                   {isSubmitting ? "更新中..." : "更新"}
                 </Button>

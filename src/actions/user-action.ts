@@ -130,3 +130,33 @@ export async function updatePet(petId: number, name: string, speciesId: number) 
 
     return petData;
 }
+
+export async function deletePet(petId: number) {
+    const supabase = await createClient();
+    const {
+        data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    const userData = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!userData) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    const petData = await prisma.pets.delete({
+        where: {
+            id: petId,
+        },
+    });
+
+    revalidatePath(`/${userData.alias_id}`);
+
+    return petData;
+}

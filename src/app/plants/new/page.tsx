@@ -69,12 +69,14 @@ export default function RegisterPlant() {
         description: (
           <>
             {result.message}{" "}
-            <Link
-              href={`${result.plantId}`}
-              className="text-blue-500 underline"
-            >
-              こちら
-            </Link>
+            {result.plantId && (
+              <Link
+                href={`/plants/${result.plantId}`}
+                className="text-blue-500 underline"
+              >
+                こちら
+              </Link>
+            )}
           </>
         ),
       });

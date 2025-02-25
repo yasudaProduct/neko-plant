@@ -17,6 +17,7 @@ export default function useUser() {
 
     const getUserProfiles = async () => {
         console.log('useUser: getUserProfiles')
+        console.log('useUser: getUserProfiles: session', session)
         try {
             const { data: user_profiles } = await supabase
                 .from('users')
@@ -41,15 +42,15 @@ export default function useUser() {
     useEffect(() => {
         console.log('useUser: useEffect')
 
-        const { data: authListener } = supabase.auth.onAuthStateChange(
-            async (event, session) => {
-                console.log('useUser: onAuthStateChange')
-                if (session) {
-                    // signInWithPasswordの後sessionがnullの状態で呼ばれる
-                    setSession(session);
-                    getUserProfiles();
-                }
+        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log('useUser: onAuthStateChange')
+            console.log('useUser: onAuthStateChange: event', event)
+            if (session) {
+                // signInWithPasswordの後sessionがnullの状態で呼ばれる
+                setSession(session);
+                getUserProfiles();
             }
+        }
         );
 
         return () => {

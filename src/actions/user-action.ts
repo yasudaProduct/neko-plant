@@ -88,7 +88,9 @@ export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
     }));
 }
 
-export async function updateUser(name: string, aliasId: string, bio?: string) {
+// クライアントでupdateUserを使用しないとonAuthStateChangeが発火しないため未使用
+// useUserから取得している情報を更新する時はclientで行っている
+export async function updateUser(name: string, aliasId: string) {
     const supabase = await createClient();
 
     const {
@@ -109,10 +111,8 @@ export async function updateUser(name: string, aliasId: string, bio?: string) {
         throw new Error("ユーザーが見つかりません");
     }
 
-    await prisma.public_users.update({
-        where: {
-            id: userData.id,
-        },
+    // クライアントでupdateUserを使用しないとonAuthStateChangeが発火しない。
+    const { error } = await supabase.auth.updateUser({
         data: {
             name: name,
             alias_id: aliasId,
@@ -120,7 +120,11 @@ export async function updateUser(name: string, aliasId: string, bio?: string) {
         },
     });
 
-    revalidatePath(`/${userData.alias_id}`);
+    if (error) {
+        throw error;
+    }
+
+    revalidatePath(`/settings/profile`);
 }
 
 export async function updateUserImage(image: File) {

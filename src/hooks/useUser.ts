@@ -49,6 +49,9 @@ export default function useUser() {
                 // signInWithPasswordの後sessionがnullの状態で呼ばれる
                 setSession(session);
                 getUserProfiles();
+            } else {
+                setSession(null);
+                setUser(null);
             }
         }
         );
@@ -59,6 +62,7 @@ export default function useUser() {
     }, []);
 
     useEffect(() => {
+        console.log('useUser: useEffect: session', session)
         if (session) {
             getUserProfiles();
         } else {
@@ -74,12 +78,13 @@ export default function useUser() {
                 options: {
                     data: {
                         name: username,
-                        default_alias_id: generateAliasId(),
+                        alias_id: generateAliasId(),
                     },
                 },
             });
 
             if (error) {
+                console.log('useUser: signUp: error', error)
                 throw error;
             }
 

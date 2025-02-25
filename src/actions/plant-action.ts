@@ -54,7 +54,9 @@ export async function addPlant(name: string, image: File): Promise<{ success: bo
     // チェック
     // 1. 植物名が重複していないか
     const existingPlant = await prisma.plants.findFirst({
-        where: { name: name },
+        where: {
+            name: name
+        },
     });
     if (existingPlant) {
         return { success: false, message: "植物名が重複しています。", plantId: existingPlant.id };
@@ -101,5 +103,72 @@ export async function addPlant(name: string, image: File): Promise<{ success: bo
     } catch (error) {
         console.log("error", error);
         return { success: false, message: error instanceof Error ? error.message : "植物の追加に失敗しました。" };
+    }
+}
+
+export async function updatePlant(id: number, plant: { name: string, image?: File }): Promise<{ success: boolean, message?: string, plantId?: number }> {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user == null) {
+        return { success: false, message: "ログインしてください。" };
+    }
+
+    if (!plant.name) {
+        return { success: false, message: "植物の名前は必須です。" };
+    }
+
+    // 1. 植物名が重複していないか
+    const existingPlant = await prisma.plants.findFirst({
+        where: {
+            id: { not: id },
+            name: plant.name
+        },
+    });
+    if (existingPlant) {
+        return { success: false, message: "植物名が重複しています。", plantId: existingPlant.id };
+    }
+
+    try {
+
+        await prisma.$transaction(async (prisma) => {
+            let publicUrl = undefined
+
+            // 1. 画像をアップロード
+            if (plant.image) {
+                const { error: imageError } = await supabase.storage
+                    .from("plants")
+                    .update(id.toString(), plant.image, {
+                        upsert: true
+                    });
+
+                if (imageError) {
+                    console.log("imageError", imageError);
+                    throw new Error("画像のアップロードに失敗しました。");
+                }
+
+                const { data } = supabase.storage
+                    .from("plants")
+                    .getPublicUrl(id.toString());
+
+                publicUrl = data.publicUrl
+            }
+
+            // 2. 植物のレコードを更新
+            await prisma.plants.update({
+                where: { id: id },
+                data: {
+                    name: plant.name,
+                    image_src: publicUrl,
+                },
+            });
+
+        });
+
+        return { success: true, plantId: id };
+    } catch (error) {
+        console.log("error", error);
+        return { success: false, message: error instanceof Error ? error.message : "植物の更新に失敗しました。" };
     }
 }

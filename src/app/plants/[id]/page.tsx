@@ -8,14 +8,21 @@ import { getEvaluations } from "@/actions/evaluation-action";
 import { Evaluation, EvaluationType } from "@/app/types/evaluation";
 import { Plant } from "@/app/types/plant";
 import { notFound } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Pencil } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function PlantPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
-  console.log("PlantPage");
   const { id } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const plant: Plant | undefined = await getPlant(Number(id));
   if (!plant) {
@@ -36,7 +43,7 @@ export default async function PlantPage({
     <div className="container mx-auto w-3/5">
       <div className="p-4">
         <Card className="overflow-hidden">
-          <CardHeader className="p-0">
+          <CardHeader className="p-0 relative">
             <Image
               src={plant.imageUrl ?? "/images/400x400.png"}
               alt="Monstera plant"
@@ -44,6 +51,15 @@ export default async function PlantPage({
               height={400}
               className="w-full h-[300px] object-cover bg-gray-200"
             />
+            {user?.id && (
+              <div className="absolute top-2 right-2">
+                <Link href={`/plants/${plant.id}/edit`}>
+                  <Button variant="outline">
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-6">
             <h1 className="text-2xl font-bold mb-4">{plant.name}</h1>

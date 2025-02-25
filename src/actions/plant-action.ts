@@ -37,7 +37,7 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
     };
 }
 
-export async function addPlant(name: string, image: File) {
+export async function addPlant(name: string, image: File): Promise<{ success: boolean, message?: string, plantId?: number }> {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -51,8 +51,18 @@ export async function addPlant(name: string, image: File) {
         return { success: false, message: "植物の名前と画像は必須です。" };
     }
 
+    // チェック
+    // 1. 植物名が重複していないか
+    const existingPlant = await prisma.plants.findFirst({
+        where: { name: name },
+    });
+    if (existingPlant) {
+        return { success: false, message: "植物名が重複しています。", plantId: existingPlant.id };
+    }
+
     // prismaでトランザクションを実行
     try {
+        let newPlantId
         await prisma.$transaction(async (prisma) => {
 
             // TODO storageの名前をplantIdにする必要はないかもね
@@ -79,13 +89,15 @@ export async function addPlant(name: string, image: File) {
                 .getPublicUrl(plant.id.toString());
 
             // 4. 植物のレコードに画像のURLを保存
-            await prisma.plants.update({
+            const newPlant = await prisma.plants.update({
                 where: { id: plant.id },
                 data: { image_src: publicUrl }
             });
+
+            newPlantId = newPlant.id
         });
 
-        return { success: true };
+        return { success: true, plantId: newPlantId };
     } catch (error) {
         console.log("error", error);
         return { success: false, message: error instanceof Error ? error.message : "植物の追加に失敗しました。" };

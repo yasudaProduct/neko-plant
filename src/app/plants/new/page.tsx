@@ -14,6 +14,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { SubmitButton } from "@/components/submit-button";
 import { toast } from "@/hooks/use-toast";
 import { addPlant } from "@/actions/plant-action";
+import Link from "next/link";
 
 const plantSchema = z.object({
   name: z
@@ -61,11 +62,21 @@ export default function RegisterPlant() {
       toast({
         title: "植物を登録しました",
       });
-      router.push("/");
+      router.push(`/plants/${result.plantId}`);
     } else {
       toast({
         title: "植物を登録に失敗しました",
-        description: result.message,
+        description: (
+          <>
+            {result.message}{" "}
+            <Link
+              href={`${result.plantId}`}
+              className="text-blue-500 underline"
+            >
+              こちら
+            </Link>
+          </>
+        ),
       });
     }
   };

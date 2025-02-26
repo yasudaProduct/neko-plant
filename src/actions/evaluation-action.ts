@@ -22,10 +22,10 @@ export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
     });
 
     // ユーザーのペットを取得
-    const petsData = await prisma.pets.findMany({
+    const petsData = evaluationsData.length > 0 && await prisma.pets.findMany({
         where: {
             user_id: {
-                in: evaluationsData.map((evaluation) => evaluation.user_id),
+                in: evaluationsData.map((evaluation) => evaluation.user_id).filter((id): id is number => id !== null),
             }
         },
         include: {
@@ -38,15 +38,16 @@ export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
         type: evaluation.type as EvaluationType,
         comment: evaluation.comment ?? "",
         createdAt: evaluation.created_at,
-        pets: petsData.filter((pet) => pet.user_id === evaluation.user_id).map((pet) => ({
+        pets: petsData ? petsData.filter((pet) => pet.user_id === evaluation.user_id).map((pet) => ({
             id: pet.id,
             name: pet.name,
             imageSrc: pet.image ?? undefined,
             neko: pet.neko,
-        })),
+        })) : undefined,
     }));
 
     return evaluations
+
 }
 
 export async function addEvaluation(plantId: number, comment: string, type: EvaluationType): Promise<void> {
@@ -86,7 +87,7 @@ export async function addEvaluation(plantId: number, comment: string, type: Eval
         revalidatePath(`/plants/${plantId}`);
 
     } catch (error) {
-        console.error('Error adding evaluation:', error);
+        console.error("Error adding evaluation:", error);
         throw error;
     }
 }

@@ -26,6 +26,7 @@ export default function WithdrawalModal({ userId }: WithdrawalModalProps) {
 
     try {
       await deleteUser(userId);
+      // TODO 画面遷移しない
       router.push("/");
     } catch (error) {
       console.log("アカウントの削除に失敗しました。");

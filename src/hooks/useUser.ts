@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { Session, User } from "@supabase/supabase-js";
+import { AuthChangeEvent, Session, User } from "@supabase/supabase-js";
 import { generateAliasId } from "@/lib/utils";
 
 interface ExtendedUser extends User {
@@ -42,7 +42,7 @@ export default function useUser() {
     useEffect(() => {
         console.log('useUser: useEffect')
 
-        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        const { data: authListener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
             console.log('useUser: onAuthStateChange')
             console.log('useUser: onAuthStateChange: event', event)
             if (session) {

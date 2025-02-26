@@ -172,3 +172,34 @@ export async function updatePlant(id: number, plant: { name: string, image?: Fil
         return { success: false, message: error instanceof Error ? error.message : "植物の更新に失敗しました。" };
     }
 }
+
+export async function deletePlant(id: number): Promise<{ success: boolean, message?: string }> {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user == null) {
+        return { success: false, message: "ログインしてください。" };
+    }
+
+    try {
+        await prisma.plants.delete({
+            where: { id: id },
+        });
+
+        const { error: imageError } = await supabase.storage
+            .from("plants")
+            .remove([id.toString()]);
+
+        if (imageError) {
+            console.log("imageError", imageError);
+            throw new Error("画像の削除に失敗しました。");
+        }
+
+
+        return { success: true };
+    } catch (error) {
+        console.log("error", error);
+        return { success: false, message: error instanceof Error ? error.message : "植物の削除に失敗しました。" };
+    }
+}

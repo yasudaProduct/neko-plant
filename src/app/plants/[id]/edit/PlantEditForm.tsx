@@ -12,7 +12,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SubmitButton } from "@/components/submit-button";
 import { toast } from "@/hooks/use-toast";
-import { updatePlant } from "@/actions/plant-action";
+import { deletePlant, updatePlant } from "@/actions/plant-action";
 import Link from "next/link";
 import { Plant } from "@/app/types/plant";
 
@@ -103,6 +103,28 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
     }
   };
 
+  const handleDelete = async () => {
+    try {
+      const result = await deletePlant(plant.id);
+      if (result.success) {
+        toast({
+          title: "植物を削除しました",
+        });
+        router.push("/plants");
+      } else {
+        toast({
+          title: "植物の削除に失敗しました",
+          description: result.message,
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "植物の削除に失敗しました",
+        description: error instanceof Error ? error.message : "不明なエラー",
+      });
+    }
+  };
+
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-2">
@@ -147,15 +169,11 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
       )}
 
       <div className="flex gap-4">
-        <SubmitButton pendingText="登録中..." className="flex-1">
-          登録
-        </SubmitButton>
-        <Button
-          type="button"
-          variant="outline"
-          className="flex-1"
-          onClick={() => router.back()}
-        >
+        <SubmitButton pendingText="更新中...">更新</SubmitButton>
+        <Button variant="destructive" onClick={handleDelete}>
+          削除
+        </Button>
+        <Button type="button" variant="outline" onClick={() => router.back()}>
           キャンセル
         </Button>
       </div>

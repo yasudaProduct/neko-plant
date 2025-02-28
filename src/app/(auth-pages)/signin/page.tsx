@@ -1,47 +1,66 @@
 "use client";
 
-import { Leaf, Loader2 } from "lucide-react";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import useUser from "@/hooks/useUser";
-import { AuthApiError } from "@supabase/supabase-js";
+import { Leaf, PawPrint } from "lucide-react";
 import Link from "next/link";
+import { signInWithGoogle } from "@/lib/supabase/auth-google";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const router = useRouter();
-  const { signIn } = useUser();
+  // const [email, setEmail] = useState("");
+  // const [password, setPassword] = useState("");
+  // const [error, setError] = useState("");
+  // const [isLoading, setIsLoading] = useState(false);
+  // const router = useRouter();
+  // const { signIn } = useUser();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
+  // const supabase = createClient();
 
-    try {
-      await signIn(email, password);
-      router.push("/");
-    } catch (error) {
-      const code = (error as AuthApiError).code;
-      switch (code) {
-        case "invalid_credentials":
-          setError("メールアドレスまたはパスワードが正しくありません");
-          break;
-        case "email_not_confirmed":
-          setError(
-            "電子メール アドレスが確認されていないため、このユーザーのサインインは許可されません。"
-          );
-          break;
-        default:
-          setError("エラーが発生しました。再度お試しください。");
-          break;
-      }
-    } finally {
-      setIsLoading(false);
-    }
+  const handleLogin = async () => {
+    await signInWithGoogle();
+    // const { data, error } = await supabase.auth.signInWithOAuth({
+    //   provider: "google",
+    //   options: {
+    //     // redirectTo: `${process.env.SUPABASE_AUTH_URL}/auth/callback`,
+    //     redirectTo: `${process.env.NEXT_PUBLIC_APP_BASE_URL}/auth/callback`,
+    //     queryParams: {
+    //       access_type: "offline",
+    //       prompt: "consent",
+    //     },
+    //   },
+    // });
+    // if (error) {
+    //   console.error("Error logging in:", error);
+    // } else {
+    //   console.log("User logged in:", data);
+    // }
   };
+
+  // const handleSubmit = async (e: React.FormEvent) => {
+  //   e.preventDefault();
+  //   setError("");
+  //   setIsLoading(true);
+
+  //   try {
+  //     await signIn(email, password);
+  //     router.push("/");
+  //   } catch (error) {
+  //     const code = (error as AuthApiError).code;
+  //     switch (code) {
+  //       case "invalid_credentials":
+  //         setError("メールアドレスまたはパスワードが正しくありません");
+  //         break;
+  //       case "email_not_confirmed":
+  //         setError(
+  //           "電子メール アドレスが確認されていないため、このユーザーのサインインは許可されません。"
+  //         );
+  //         break;
+  //       default:
+  //         setError("エラーが発生しました。再度お試しください。");
+  //         break;
+  //     }
+  //   } finally {
+  //     setIsLoading(false);
+  //   }
+  // };
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center">
@@ -57,8 +76,8 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-white rounded-xl shadow-lg p-8">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
+          {/* <form onSubmit={handleSubmit} className="space-y-6"> */}
+          {/* <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 メールアドレス
               </label>
@@ -95,12 +114,22 @@ export default function LoginPage() {
             >
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               ログイン
-            </button>
+            </button> */}
 
-            <div className="text-center text-sm text-gray-600">
-              <Link href="/signup">アカウントを作成する</Link>
-            </div>
-          </form>
+          {/* google */}
+          <button
+            type="button"
+            onClick={handleLogin}
+            className="w-full inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+          >
+            <span className="mr-2">Googleでログイン</span>
+            <PawPrint className="w-4 h-4" />
+          </button>
+
+          <div className="text-center text-sm text-gray-600">
+            <Link href="/signup">アカウントを作成する</Link>
+          </div>
+          {/* </form> */}
         </div>
       </div>
     </div>

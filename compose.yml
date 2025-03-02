@@ -8,3 +8,9 @@ services:
       - .:/app/
     tty: true
     command: npm run dev
+    networks:
+      - supabase_network_neko-plant
+
+networks:
+  supabase_network_neko-plant:
+    external: true

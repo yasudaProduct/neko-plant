@@ -59,6 +59,7 @@ export default function useUser() {
         return () => {
             authListener.subscription.unsubscribe();
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -68,6 +69,7 @@ export default function useUser() {
         } else {
             setUser(null);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [session]);
 
     const signUp = async (email: string, password: string, username: string) => {

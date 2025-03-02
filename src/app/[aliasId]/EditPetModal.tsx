@@ -27,7 +27,6 @@ interface EditPetModalProps {
 
 export default function EditPetModal({ userId }: EditPetModalProps) {
   const [newPetName, setNewPetName] = useState("");
-  const [newPetImage, setNewPetImage] = useState("");
   const [newPetSpeciesId, setNewPetSpeciesId] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -73,7 +72,6 @@ export default function EditPetModal({ userId }: EditPetModalProps) {
 
   const handleClose = () => {
     setNewPetName("");
-    setNewPetImage("");
     setNewPetSpeciesId(1);
     setError("");
     setSuccess(false);

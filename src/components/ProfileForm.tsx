@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Pencil } from "lucide-react";
-
+import Image from "next/image";
 export default function ProfileForm() {
   return (
     <div className="max-w-4xl mx-auto space-y-8">
@@ -20,7 +20,7 @@ export default function ProfileForm() {
 
         <div className="space-y-6">
           <div className="flex items-center space-x-4">
-            <img
+            <Image
               src="https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=150"
               alt="プロフィール画像"
               className="w-24 h-24 rounded-full object-cover"
@@ -36,7 +36,7 @@ export default function ProfileForm() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-gray-50 rounded-lg p-4">
                 <div className="flex items-start space-x-4">
-                  <img
+                  <Image
                     src="https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&q=80&w=150"
                     alt="モモ"
                     className="w-20 h-20 rounded-lg object-cover"

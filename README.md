@@ -2,7 +2,7 @@
 
 ```bash
 #App
-NEXT_PUBLIC_APP_BASE_URL="http://localhost:12000"
+NEXT_PUBLIC_APP_BASE_URL="http://localhost:3000"
 
 # Database
 DATABASE_URL=

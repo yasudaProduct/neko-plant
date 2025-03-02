@@ -21,8 +21,6 @@ export async function signInWithGoogle() {
             },
         },
     });
-    console.log(url);
-    console.log(error);
     if (error) console.error('Googleログインエラー:', error.message)
     if (!error && url) redirect(url);
 }

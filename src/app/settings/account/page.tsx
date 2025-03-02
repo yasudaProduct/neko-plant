@@ -16,6 +16,10 @@ export default async function AccountPage() {
     redirect("/signin");
   }
 
+  console.log("ーーーーーーーーーーーーーー");
+  console.log(user.app_metadata.provider);
+  console.log(user.app_metadata);
+  console.log("ーーーーーーーーーーーーーー");
   const { data: user_profiles } = await supabase
     .from("users")
     .select("alias_id, name, image")
@@ -37,21 +41,27 @@ export default async function AccountPage() {
             </div>
             <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
-          <EmailChangeModal currentEmail={user.email || ""} />
+          {user.app_metadata.provider === "google" ? (
+            <p className="text-sm text-muted-foreground">Google</p>
+          ) : (
+            <EmailChangeModal currentEmail={user.email || ""} />
+          )}
         </div>
       </div>
-      <div className="p-4 space-y-4">
-        <div className="flex items-start justify-between">
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <h2 className="font-medium">パスワード</h2>
-              <Info className="h-4 w-4 text-muted-foreground" />
+      {user.app_metadata.provider === "mail" && (
+        <div className="p-4 space-y-4">
+          <div className="flex items-start justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <h2 className="font-medium">パスワード</h2>
+                <Info className="h-4 w-4 text-muted-foreground" />
+              </div>
+              <p className="text-sm text-muted-foreground">********</p>
             </div>
-            <p className="text-sm text-muted-foreground">********</p>
+            <PasswordChangeModal />
           </div>
-          <PasswordChangeModal />
         </div>
-      </div>
+      )}
 
       <div className="p-4">
         <div className="flex items-start justify-between">

@@ -94,12 +94,17 @@ file_size_limit = "50MiB"
 # [storage.image_transformation]
 # enabled = true
 
-# Uncomment to configure local storage buckets
-# [storage.buckets.images]
-# public = false
-# file_size_limit = "50MiB"
-# allowed_mime_types = ["image/png", "image/jpeg"]
-# objects_path = "./images"
+[storage.buckets.plants]
+public = false
+file_size_limit = "50MiB"
+allowed_mime_types = ["image/png", "image/jpeg"]
+objects_path = "./storage/plants"
+
+[storage.buckets.user_profiles]
+public = false
+file_size_limit = "50MiB"
+allowed_mime_types = ["image/png", "image/jpeg"]
+objects_path = "./storage/user_profiles"
 
 [auth]
 enabled = true

@@ -89,6 +89,11 @@
       "description": "開発環境 開発者エクスペリエンスを向上します。"
     },
     {
+      "emoji": "🔧",
+      "code": "🔧",
+      "description": "設定変更"
+    },
+    {
       "emoji": "🚀",
       "code": "🚀",
       "description": "本番リリース"

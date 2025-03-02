@@ -1,3 +1,19 @@
+## secret env
+
+```bash
+#App
+NEXT_PUBLIC_APP_BASE_URL="http://localhost:12000"
+
+# Database
+DATABASE_URL=
+DIRECT_URL=
+
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SERVICE_ROLE_KEY=
+```
+
 ## dotenv
 
 ```bash

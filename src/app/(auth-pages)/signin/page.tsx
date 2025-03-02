@@ -1,8 +1,8 @@
 "use client";
 
-import { Leaf, PawPrint } from "lucide-react";
-import Link from "next/link";
+import { Leaf } from "lucide-react";
 import { signInWithGoogle } from "@/lib/supabase/auth-google";
+import { FcGoogle } from "react-icons/fc";
 
 export default function LoginPage() {
   // const [email, setEmail] = useState("");
@@ -120,15 +120,15 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={handleLogin}
-            className="w-full inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium bg-blue-600 text-white hover:bg-blue-700 transition-colors"
+            className="w-full inline-flex items-center justify-center px-4 py-2 rounded-lg font-medium hover:bg-gray-100 transition-colors border border-gray-300"
           >
-            <span className="mr-2">Googleでログイン</span>
-            <PawPrint className="w-4 h-4" />
+            <FcGoogle className="w-4 h-4" />
+            <span className="ml-2">Googleでログイン</span>
           </button>
 
-          <div className="text-center text-sm text-gray-600">
+          {/* <div className="text-center text-sm text-gray-600">
             <Link href="/signup">アカウントを作成する</Link>
-          </div>
+          </div> */}
           {/* </form> */}
         </div>
       </div>

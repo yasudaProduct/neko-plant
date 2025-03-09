@@ -4,15 +4,34 @@ import Link from "next/link";
 import { Button } from "./ui/button";
 import { Leaf } from "lucide-react";
 import { DropdownMenu } from "./HeaderDropMenu";
-import useUser from "@/hooks/useUser";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { User } from "@supabase/supabase-js";
 
 export default function Header() {
-  const { user } = useUser();
+  // const { user } = useUser();
+  const [user, setUser] = useState<User | null>(null);
+  const supabase = createClient();
+
+  const getCurrentUser = async () => {
+    // ログインのセッションを取得する処理
+    const { data } = await supabase.auth.getSession();
+
+    // セッションがあるときだけ現在ログインしているユーザーを取得する
+    if (data.session !== null) {
+      // supabaseに用意されている現在ログインしているユーザーを取得する関数
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      // currentUserにユーザーのメールアドレスを格納
+      setUser(user);
+    }
+  };
 
   useEffect(() => {
+    getCurrentUser();
     console.log("Header: useEffect user", user);
-  }, [user]);
+  }, []);
 
   return (
     <header className="bg-[#2d5a27] text-primary-foreground p-4">
@@ -36,9 +55,9 @@ export default function Header() {
                 </Link>
               </Button>
               <DropdownMenu
-                userImage={user.image || ""}
-                aliasId={user.alias_id || ""}
-                userName={user.name || ""}
+                userImage={user.user_metadata.image_url || ""}
+                aliasId={user.user_metadata.alias_id || ""}
+                userName={user.user_metadata.name || ""}
               />
             </>
           )}

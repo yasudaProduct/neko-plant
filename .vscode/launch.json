@@ -1,0 +1,21 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // client side debug
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Nextjs: Client",
+      "url": "http://localhost:3000",
+      "webRoot": "${workspaceFolder}"
+    },
+    {
+      // server side debug
+      "type": "node",
+      "request": "attach",
+      "name": "Nextjs: Server",
+      "skipFiles": ["<node_internals>/**"],
+      "port": 9229
+    }
+  ]
+}

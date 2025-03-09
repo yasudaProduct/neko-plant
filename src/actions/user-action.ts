@@ -50,10 +50,10 @@ export async function getUserProfileByAuthId(): Promise<UserProfile | undefined>
         },
     });
 
+    // TODO public_usersのテーブルにデータがない場合は登録ページに飛ばしてもいい
     if (!userData) {
         return undefined;
     }
-
     return {
         id: userData.id,
         aliasId: userData.alias_id,
@@ -88,8 +88,6 @@ export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
     }));
 }
 
-// クライアントでupdateUserを使用しないとonAuthStateChangeが発火しないため未使用
-// useUserから取得している情報を更新する時はclientで行っている
 export async function updateUser(name: string, aliasId: string) {
     const supabase = await createClient();
 
@@ -111,7 +109,6 @@ export async function updateUser(name: string, aliasId: string) {
         throw new Error("ユーザーが見つかりません");
     }
 
-    // クライアントでupdateUserを使用しないとonAuthStateChangeが発火しない。
     const { error } = await supabase.auth.updateUser({
         data: {
             name: name,

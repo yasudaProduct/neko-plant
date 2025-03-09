@@ -21,7 +21,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useState } from "react";
 import Image from "next/image";
-import { createClient } from "@/lib/supabase/client";
+import { updateUser } from "@/actions/user-action";
 interface UserProfileProps {
   userProfile: UserProfile;
 }
@@ -46,20 +46,7 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
   const handleSubmit = async (formData: z.infer<typeof userProfileSchema>) => {
     try {
       setIsSubmitting(true);
-      const supabase = await createClient();
-      // await updateUser(formData.name, formData.aliasId, formData.bio);
-      // クライアントでupdateUserを使用しないとonAuthStateChangeが発火しない。
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          name: formData.name,
-          alias_id: formData.aliasId,
-          // bio: formData.bio,
-        },
-      });
-
-      if (error) {
-        throw error;
-      }
+      await updateUser(formData.name, formData.aliasId);
 
       toast({
         title: "更新しました",

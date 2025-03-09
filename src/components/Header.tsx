@@ -1,37 +1,18 @@
-"use client";
-
 import Link from "next/link";
 import { Button } from "./ui/button";
 import { Leaf } from "lucide-react";
 import { DropdownMenu } from "./HeaderDropMenu";
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/server";
+import { getUserProfileByAuthId } from "@/actions/user-action";
 
-export default function Header() {
-  // const { user } = useUser();
-  const [user, setUser] = useState<User | null>(null);
-  const supabase = createClient();
+export default async function Header() {
+  const supabase = await createClient();
 
-  const getCurrentUser = async () => {
-    // ログインのセッションを取得する処理
-    const { data } = await supabase.auth.getSession();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
 
-    // セッションがあるときだけ現在ログインしているユーザーを取得する
-    if (data.session !== null) {
-      // supabaseに用意されている現在ログインしているユーザーを取得する関数
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      // currentUserにユーザーのメールアドレスを格納
-      setUser(user);
-    }
-  };
-
-  useEffect(() => {
-    getCurrentUser();
-    console.log("Header: useEffect user", user);
-  }, []);
+  const user = await getUserProfileByAuthId();
 
   return (
     <header className="bg-[#2d5a27] text-primary-foreground p-4">
@@ -41,7 +22,7 @@ export default function Header() {
           猫と植物
         </Link>
         <div className="flex items-center gap-2">
-          {!user ? (
+          {!session || !user ? (
             <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
               <Link href="/signin" className="text-accent-foreground">
                 ログイン
@@ -55,9 +36,9 @@ export default function Header() {
                 </Link>
               </Button>
               <DropdownMenu
-                userImage={user.user_metadata.image_url || ""}
-                aliasId={user.user_metadata.alias_id || ""}
-                userName={user.user_metadata.name || ""}
+                userImage={user.imageSrc || ""}
+                aliasId={user.aliasId || ""}
+                userName={user.name || ""}
               />
             </>
           )}

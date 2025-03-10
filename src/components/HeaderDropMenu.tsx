@@ -1,10 +1,12 @@
 "use client";
 
-import useUser from "@/hooks/useUser";
 import { useEffect, useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import Link from "next/link";
 import { LogOut, Settings, SquareUserRound } from "lucide-react";
+import { signOut } from "@/lib/supabase/auth-google";
+import { toast } from "@/hooks/use-toast";
+import { useRouter } from "next/navigation";
 
 interface DropdownMenuProps {
   userImage: string;
@@ -17,9 +19,9 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   userName,
   aliasId,
 }) => {
-  const { signOut } = useUser();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -48,6 +50,26 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
 
   const handleMenuItemClick = () => {
     setIsOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+
+      toast({
+        title: "ログアウトしました",
+      });
+      router.push("/");
+    } catch (error) {
+      console.error("ログアウトエラー:", error);
+
+      toast({
+        title: "ログアウトに失敗しました",
+        description: error instanceof Error ? error.stack : "不明なエラー",
+      });
+    } finally {
+      handleMenuItemClick();
+    }
   };
 
   return (
@@ -84,9 +106,8 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
             <span>設定</span>
           </Link>
           <button
-            onClick={() => {
-              signOut();
-              handleMenuItemClick();
+            onClick={async () => {
+              await handleSignOut();
             }}
             className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-100 w-full text-left text-red-600"
           >

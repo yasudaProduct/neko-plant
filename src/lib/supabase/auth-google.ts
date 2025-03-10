@@ -1,4 +1,3 @@
-// lib/supabase-auth/authGoogle.ts
 "use server";
 
 import { redirect } from "next/navigation";
@@ -25,14 +24,14 @@ export async function signInWithGoogle() {
     if (!error && url) redirect(url);
 }
 
-// ---------------------------------------------
-// Googleログアウト
-// ---------------------------------------------
 export async function signOut() {
     // クライアントを作成
     const supabase = await createClient();
     const { error } = await supabase.auth.signOut();
-    if (error) console.error('Googleログアウトエラー:', error.message)
-    if (!error) return true;
+    if (error) console.error('エラー:', error.message)
+    if (!error) {
+        return true;
+    }
+
     return false;
 }

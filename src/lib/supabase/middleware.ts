@@ -29,18 +29,11 @@ export async function updateSession(request: NextRequest) {
   )
 
   const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser()
-
-  if (error) {
-    console.error('middleware: updateSession: error⇩')
-    console.error(error)
-    console.error('middleware: updateSession: error↑')
-  }
+    data: { session },
+  } = await supabase.auth.getSession()
 
   if (
-    !user &&
+    !session &&
     protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))
   ) {
     const url = request.nextUrl.clone()

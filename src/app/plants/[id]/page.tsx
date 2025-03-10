@@ -124,12 +124,14 @@ export default async function PlantPage({
         </Card>
 
         {/* Add comment form */}
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold mb-4">
-            この植物についての評価を追加する
-          </h2>
-          <CommentForm plantId={plant.id} />
-        </div>
+        {user?.id && (
+          <div className="mt-8">
+            <h2 className="text-2xl font-bold mb-4">
+              この植物についての評価を追加する
+            </h2>
+            <CommentForm plantId={plant.id} />
+          </div>
+        )}
       </div>
     </div>
   );

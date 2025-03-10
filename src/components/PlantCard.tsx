@@ -8,7 +8,7 @@ import {
 } from "./ui/card";
 import Image from "next/image";
 
-interface PlantCardProps {
+export interface PlantCardProps {
   name: string;
   imageSrc?: string;
   isSafe: boolean;

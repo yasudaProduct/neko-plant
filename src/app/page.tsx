@@ -1,6 +1,6 @@
 "use client";
 
-import PlantCard from "@/components/PlantCard";
+import PlantCard, { PlantCardProps } from "@/components/PlantCard";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -8,9 +8,12 @@ import { Plant } from "./types/plant";
 import { getPlants } from "@/actions/plant-action";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Evaluation, EvaluationType } from "./types/evaluation";
+import { getEvaluations } from "@/actions/evaluation-action";
 
 export default function Home() {
   const [plants, setPlants] = useState<Plant[]>([]);
+  const [plantCards, setPlantCards] = useState<PlantCardProps[]>([]);
 
   useEffect(() => {
     const fetchPlants = async () => {
@@ -19,6 +22,33 @@ export default function Home() {
     };
     fetchPlants();
   }, []);
+
+  useEffect(() => {
+    const fetchEvaluations = async () => {
+      if (plants.length > 0) {
+        const plantCards: PlantCardProps[] = await Promise.all(
+          plants.map(async (plant) => {
+            const evaluations: Evaluation[] = await getEvaluations(plant.id);
+            return {
+              name: plant.name,
+              imageSrc: plant.imageUrl || undefined,
+              isSafe: evaluations.length > 0, // TODO: Safeは必要？
+              likes: evaluations.filter(
+                (evaluation) => evaluation.type === EvaluationType.GOOD
+              ).length,
+              dislikes: evaluations.filter(
+                (evaluation) => evaluation.type === EvaluationType.BAD
+              ).length,
+              reviewCount: evaluations.length,
+            };
+          })
+        );
+
+        setPlantCards(plantCards);
+      }
+    };
+    fetchEvaluations();
+  }, [plants]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -77,10 +107,22 @@ export default function Home() {
                   <PlantCard
                     name={plant.name}
                     imageSrc={plant.imageUrl || undefined}
-                    isSafe={true}
-                    likes={0}
-                    dislikes={0}
-                    reviewCount={0}
+                    isSafe={
+                      plantCards.find((card) => card.name === plant.name)
+                        ?.isSafe || false
+                    }
+                    likes={
+                      plantCards.find((card) => card.name === plant.name)
+                        ?.likes || 0
+                    }
+                    dislikes={
+                      plantCards.find((card) => card.name === plant.name)
+                        ?.dislikes || 0
+                    }
+                    reviewCount={
+                      plantCards.find((card) => card.name === plant.name)
+                        ?.reviewCount || 0
+                    }
                   />
                 </Link>
               ))}

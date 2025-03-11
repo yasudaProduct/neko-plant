@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/form";
 import { addPet, deletePet, updatePet } from "@/actions/user-action";
 import { toast } from "@/hooks/use-toast";
+import { getImageData } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface AddPetModalProps {
   pet?: Pet;
@@ -43,15 +45,27 @@ const formSchema = z.object({
   species: z.number().min(1, {
     message: "猫種を選択してください。",
   }),
+  image: z
+    .any()
+    .refine(
+      (file) => file instanceof File,
+      "有効な画像ファイルをアップロードしてください"
+    )
+    .refine((file) => file && ["image/jpeg", "image/png"].includes(file.type), {
+      message: "サポートされていないファイル形式です",
+    })
+    .refine((file) => file && file.size <= 5 * 1024 * 1024, {
+      message: "ファイルサイズは5MB以下にしてください",
+    }),
 });
 
 export default function AddPetDialogContent({
   pet,
   nekoSpecies,
 }: AddPetModalProps) {
-  // const [newPetImage, setNewPetImage] = useState(pet?.imageSrc || "");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [preview, setPreview] = useState("");
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: pet
@@ -90,6 +104,14 @@ export default function AddPetDialogContent({
     form.reset();
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { files, displayUrl } = getImageData(e);
+    if (files && files[0]) {
+      form.setValue("image", files[0], { shouldValidate: true });
+      setPreview(displayUrl);
+    }
+  };
+
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
 
@@ -100,7 +122,7 @@ export default function AddPetDialogContent({
           title: "飼い猫を更新しました",
         });
       } else {
-        await addPet(data.name, data.species);
+        await addPet(data.name, data.species, data.image);
         toast({
           title: "飼い猫を追加しました",
         });
@@ -171,6 +193,37 @@ export default function AddPetDialogContent({
                 </FormItem>
               )}
             />
+
+            <label htmlFor="image" className="block text-sm font-medium">
+              新しいプロフィール画像
+            </label>
+            <Input
+              id="image"
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+            />
+            {form.formState.errors.image && (
+              <p className="text-red-500 text-sm">
+                {form.formState.errors.image.message}
+              </p>
+            )}
+
+            <div className="aspect-video max-w-[560px] flex justify-center items-center">
+              {preview ? (
+                <Avatar className="w-24 h-24">
+                  <AvatarImage
+                    src={preview}
+                    alt="プロフィール画像"
+                    width={96}
+                    height={96}
+                  />
+                  <AvatarFallback className="bg-muted"></AvatarFallback>
+                </Avatar>
+              ) : (
+                <div className="w-full h-full bg-background/70 rounded-lg border flex justify-center items-center"></div>
+              )}
+            </div>
           </div>
           <DialogFooter className="flex justify-end mt-4">
             <DialogClose asChild>

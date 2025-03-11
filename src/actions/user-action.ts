@@ -83,7 +83,7 @@ export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
     return pets.map((pet) => ({
         id: pet.id,
         name: pet.name,
-        imageSrc: pet.image ?? undefined,
+        imageSrc: pet.image ? "http://localhost:54321/storage/v1/object/public/user_pets/" + pet.image : undefined,
         neko: pet.neko,
     }));
 }
@@ -178,7 +178,7 @@ export async function updateUserImage(image: File) {
 
 }
 
-export async function addPet(name: string, speciesId: number) {
+export async function addPet(name: string, speciesId: number, image?: File) {
     const supabase = await createClient();
     const {
         data: { user } } = await supabase.auth.getUser();
@@ -186,7 +186,6 @@ export async function addPet(name: string, speciesId: number) {
     if (!user) {
         throw new Error("ユーザーが見つかりません");
     }
-    // TODO 認証状態の確認ってこれであっている？
 
     const userData = await prisma.public_users.findFirst({
         where: {
@@ -207,6 +206,33 @@ export async function addPet(name: string, speciesId: number) {
             user_id: userData.id,
         },
     });
+
+    // 画像をアップロード
+    if (image) {
+
+        const imageSrc: string = `${userData.auth_id}/${neko.id}`;
+
+        const { error } = await supabase.storage
+            .from("user_pets")
+            .upload(imageSrc, image, {
+                upsert: true,
+            });
+
+        if (error) {
+            console.error(error);
+            throw error;
+        }
+
+        // 画像のURLを更新
+        await prisma.pets.update({
+            where: {
+                id: neko.id,
+            },
+            data: {
+                image: imageSrc,
+            },
+        });
+    }
 
     revalidatePath(`/${userData.alias_id}`);
 

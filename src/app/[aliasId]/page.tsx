@@ -37,7 +37,6 @@ export default async function ProfilePage({
   return (
     <div className="max-w-4xl mx-auto space-y-8 mt-4 mb-4">
       <div className="bg-white rounded-xl shadow-lg p-6">
-        {/* <h1 className="text-2xl font-bold text-gray-800">ユーザー設定</h1> */}
         <div className="flex items-center justify-between mb-6 mt-6">
           <h2 className="text-xl font-semibold mb-4">プロフィール</h2>
           {user && userProfile.authId === user.id && (

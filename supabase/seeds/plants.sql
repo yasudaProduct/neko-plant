@@ -1,3 +1,4 @@
+-- 植物
 INSERT INTO plants (name, image_src) VALUES 
 ('ネコマダラ', NULL);
 

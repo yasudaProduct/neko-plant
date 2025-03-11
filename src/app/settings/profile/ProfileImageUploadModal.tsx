@@ -57,13 +57,6 @@ export default function ProfileImageUploadModal({}: ProfileImageUploadModalProps
   const [preview, setPreview] = useState("");
   const [isSubmiting, setIsSubmiting] = useState(false);
 
-  // const form = useForm<z.infer<typeof profileImageUploadSchema>>({
-  //   resolver: zodResolver(profileImageUploadSchema),
-  //   defaultValues: {
-  //     image: undefined,
-  //   },
-  // });
-
   const {
     handleSubmit,
     formState: { errors },

@@ -32,7 +32,7 @@ import { addPet, deletePet, updatePet } from "@/actions/user-action";
 import { toast } from "@/hooks/use-toast";
 import { getImageData } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
+import Image from "next/image";
 interface AddPetModalProps {
   pet?: Pet;
   nekoSpecies: NekoSpecies[];
@@ -47,14 +47,19 @@ const formSchema = z.object({
   }),
   image: z
     .any()
+    .optional()
     .refine(
-      (file) => file instanceof File,
+      (file) => file instanceof File || file === undefined,
       "有効な画像ファイルをアップロードしてください"
     )
-    .refine((file) => file && ["image/jpeg", "image/png"].includes(file.type), {
-      message: "サポートされていないファイル形式です",
-    })
-    .refine((file) => file && file.size <= 5 * 1024 * 1024, {
+    .refine(
+      (file) =>
+        file === undefined || ["image/jpeg", "image/png"].includes(file.type),
+      {
+        message: "サポートされていないファイル形式です",
+      }
+    )
+    .refine((file) => file === undefined || file.size <= 5 * 1024 * 1024, {
       message: "ファイルサイズは5MB以下にしてください",
     }),
 });
@@ -117,7 +122,7 @@ export default function AddPetDialogContent({
 
     try {
       if (pet) {
-        await updatePet(pet.id, data.name, data.species);
+        await updatePet(pet.id, data.name, data.species, data.image);
         toast({
           title: "飼い猫を更新しました",
         });
@@ -142,7 +147,26 @@ export default function AddPetDialogContent({
     <DialogContent>
       <Form {...form}>
         <DialogHeader>
-          <DialogTitle>飼い猫を追加する</DialogTitle>
+          <DialogTitle>
+            {pet ? "飼い猫を更新する" : "飼い猫を追加する"}
+          </DialogTitle>
+          {pet && (
+            <div className="flex items-center gap-2">
+              <Avatar className="w-24 h-24">
+                <Image
+                  src={pet.imageSrc ?? "/images/cat_default.png"}
+                  alt="プロフィール画像"
+                  width={96}
+                  height={96}
+                />
+                <AvatarFallback className="bg-muted"></AvatarFallback>
+              </Avatar>
+              <div>
+                <h2 className="text-xl font-semibold">{pet.name}</h2>
+                <p className="text-gray-500">{pet.neko.name}</p>
+              </div>
+            </div>
+          )}
         </DialogHeader>
 
         <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -205,7 +229,7 @@ export default function AddPetDialogContent({
             />
             {form.formState.errors.image && (
               <p className="text-red-500 text-sm">
-                {form.formState.errors.image.message}
+                {form.formState.errors.image.message as string}
               </p>
             )}
 

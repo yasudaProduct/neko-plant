@@ -199,48 +199,48 @@ export async function addPet(name: string, speciesId: number, image?: File) {
         throw new Error("ユーザーが見つかりません");
     }
 
-    const neko = await prisma.pets.create({
-        data: {
-            name: name,
-            neko_id: speciesId,
-            user_id: userData.id,
-        },
-    });
+    await prisma.$transaction(async (prisma) => {
 
-    // 画像をアップロード
-    if (image) {
-
-        const imageSrc: string = `${userData.auth_id}/${neko.id}`;
-
-        const { error } = await supabase.storage
-            .from("user_pets")
-            .upload(imageSrc, image, {
-                upsert: true,
-            });
-
-        if (error) {
-            console.error(error);
-            throw error;
-        }
-
-        // 画像のURLを更新
-        await prisma.pets.update({
-            where: {
-                id: neko.id,
-            },
+        const neko = await prisma.pets.create({
             data: {
-                image: imageSrc,
+                name: name,
+                neko_id: speciesId,
+                user_id: userData.id,
             },
         });
-    }
+
+        // 画像をアップロード
+        if (image) {
+
+            const imageSrc: string = `${userData.auth_id}/${neko.id}`;
+
+            const { error } = await supabase.storage
+                .from("user_pets")
+                .upload(imageSrc, image, {
+                    upsert: true,
+                });
+
+            if (error) {
+                console.error(error);
+                throw error;
+            }
+
+            // 画像のURLを更新
+            await prisma.pets.update({
+                where: {
+                    id: neko.id,
+                },
+                data: {
+                    image: imageSrc,
+                },
+            });
+        }
+    })
 
     revalidatePath(`/${userData.alias_id}`);
-
-    return neko;
 }
 
-export async function updatePet(petId: number, name: string, speciesId: number) {
-
+export async function updatePet(petId: number, name: string, speciesId: number, image?: File) {
     const supabase = await createClient();
     const {
         data: { user } } = await supabase.auth.getUser();
@@ -261,19 +261,46 @@ export async function updatePet(petId: number, name: string, speciesId: number) 
         throw new Error("ユーザーが見つかりません");
     }
 
-    const petData = await prisma.pets.update({
-        where: {
-            id: petId,
-        },
-        data: {
-            name: name,
-            neko_id: speciesId,
-        },
-    });
+    await prisma.$transaction(async (prisma) => {
 
+        await prisma.pets.update({
+            where: {
+                id: petId,
+            },
+            data: {
+                name: name,
+                neko_id: speciesId,
+            },
+        });
+
+        // 画像をアップロード
+        if (image) {
+
+            const imageSrc: string = `${userData.auth_id}/${petId}`;
+
+            const { error } = await supabase.storage
+                .from("user_pets")
+                .upload(imageSrc, image, {
+                    upsert: true,
+                });
+
+            if (error) {
+                console.error(error);
+                throw error;
+            }
+
+            // 画像のURLを更新
+            await prisma.pets.update({
+                where: {
+                    id: petId,
+                },
+                data: {
+                    image: imageSrc,
+                },
+            });
+        }
+    })
     revalidatePath(`/${userData.alias_id}`);
-
-    return petData;
 }
 
 export async function deletePet(petId: number) {

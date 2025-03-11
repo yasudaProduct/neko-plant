@@ -83,7 +83,7 @@ export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
     return pets.map((pet) => ({
         id: pet.id,
         name: pet.name,
-        imageSrc: pet.image ? "http://localhost:54321/storage/v1/object/public/user_pets/" + pet.image : undefined,
+        imageSrc: pet.image ? process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/user_pets/" + pet.image : undefined,
         neko: pet.neko,
     }));
 }

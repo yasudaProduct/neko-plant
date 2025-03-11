@@ -136,7 +136,11 @@ export default function CommentForm({ plantId }: { plantId: number }) {
             </div>
           )} */}
 
-            <Button type="submit" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-green-600 hover:bg-green-700"
+            >
               {isSubmitting ? "投稿中..." : "投稿"}
             </Button>
           </form>

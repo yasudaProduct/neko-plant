@@ -126,9 +126,6 @@ export default async function PlantPage({
         {/* Add comment form */}
         {user?.id && (
           <div className="mt-8">
-            <h2 className="text-2xl font-bold mb-4">
-              この植物についての評価を追加する
-            </h2>
             <CommentForm plantId={plant.id} />
           </div>
         )}

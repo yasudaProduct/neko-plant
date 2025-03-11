@@ -41,7 +41,7 @@ export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
         pets: petsData ? petsData.filter((pet) => pet.user_id === evaluation.user_id).map((pet) => ({
             id: pet.id,
             name: pet.name,
-            imageSrc: pet.image ?? undefined,
+            imageSrc: pet.image ? process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/user_pets/" + pet.image : undefined,
             neko: pet.neko,
         })) : undefined,
     }));

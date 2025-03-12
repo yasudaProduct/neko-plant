@@ -36,6 +36,20 @@ npx prisma generate
 
 ## supabase
 
+### supabase cli
+
+```bash
+
+supabase db diff -f <fileName>
+
+```
+
+```bash
+
+supabase db push
+
+```
+
 ### create function
 
 ````sql

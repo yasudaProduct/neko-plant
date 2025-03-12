@@ -1,9 +1,10 @@
 "use server";
 
-import { Pet } from "@/app/types/neko";
+import { Pet, SexType } from "@/app/types/neko";
 import { UserProfile } from "@/app/types/user";
 import prisma from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { pets } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 export async function getUserProfile(aliasId: string): Promise<UserProfile | undefined> {
@@ -85,6 +86,9 @@ export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
         name: pet.name,
         imageSrc: pet.image ? process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/user_pets/" + pet.image : undefined,
         neko: pet.neko,
+        sex: pet.sex as SexType ?? undefined,
+        birthday: pet.birthday ?? undefined,
+        age: pet.age ?? undefined,
     }));
 }
 
@@ -178,7 +182,7 @@ export async function updateUserImage(image: File) {
 
 }
 
-export async function addPet(name: string, speciesId: number, image?: File) {
+export async function addPet(name: string, speciesId: number, image?: File, sex?: SexType, birthday?: string, age?: number) {
     const supabase = await createClient();
     const {
         data: { user } } = await supabase.auth.getUser();
@@ -201,12 +205,18 @@ export async function addPet(name: string, speciesId: number, image?: File) {
 
     await prisma.$transaction(async (prisma) => {
 
+        console.log(sex);
+        console.log(birthday);
+        console.log(age);
         const neko = await prisma.pets.create({
             data: {
                 name: name,
                 neko_id: speciesId,
                 user_id: userData.id,
-            },
+                sex: sex as SexType,
+                age: age,
+                birthday: birthday ? new Date(birthday) : undefined,
+            } as pets,
         });
 
         // 画像をアップロード
@@ -240,7 +250,7 @@ export async function addPet(name: string, speciesId: number, image?: File) {
     revalidatePath(`/${userData.alias_id}`);
 }
 
-export async function updatePet(petId: number, name: string, speciesId: number, image?: File) {
+export async function updatePet(petId: number, name: string, speciesId: number, image?: File, sex?: SexType, birthday?: string, age?: number) {
     const supabase = await createClient();
     const {
         data: { user } } = await supabase.auth.getUser();
@@ -270,6 +280,9 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
             data: {
                 name: name,
                 neko_id: speciesId,
+                sex: sex as SexType,
+                birthday: birthday ? new Date(birthday) : undefined,
+                age: age,
             },
         });
 

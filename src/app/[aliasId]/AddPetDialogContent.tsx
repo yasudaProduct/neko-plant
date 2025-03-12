@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { NekoSpecies, Pet } from "../types/neko";
+import { NekoSpecies, Pet, SexType } from "../types/neko";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -27,12 +27,14 @@ import {
   FormField,
   FormItem,
   FormLabel,
+  FormMessage,
 } from "@/components/ui/form";
 import { addPet, deletePet, updatePet } from "@/actions/user-action";
 import { toast } from "@/hooks/use-toast";
 import { getImageData } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Image from "next/image";
+import { DatePicker } from "@/components/ui/datepicker";
 interface AddPetModalProps {
   pet?: Pet;
   nekoSpecies: NekoSpecies[];
@@ -45,6 +47,28 @@ const formSchema = z.object({
   species: z.number().min(1, {
     message: "猫種を選択してください。",
   }),
+  sex: z.nativeEnum(SexType).optional(),
+  age: z
+    .preprocess(
+      (val) => Number(val),
+      z.number().min(0, {
+        message: "年齢は0以上で入力してください。",
+      })
+    )
+    .transform((val) => {
+      if (!val) return undefined;
+      const num = Number(val);
+      if (isNaN(num)) throw new Error("年齢は数値で入力してください。");
+      if (num < 0) throw new Error("年齢は0以上で入力してください。");
+      return num;
+    })
+    .optional(),
+  birthday: z
+    .string()
+    .regex(/^\d{4}\/\d{2}\/\d{2}$/, {
+      message: "誕生日は YYYY/MM/DD 形式で入力してください。",
+    })
+    .optional(),
   image: z
     .any()
     .optional()
@@ -77,10 +101,16 @@ export default function AddPetDialogContent({
       ? {
           name: pet.name,
           species: pet.neko.id,
+          sex: pet.sex,
+          age: pet.age,
+          birthday: pet.birthday?.toISOString().split("T")[0],
         }
       : {
           name: "",
           species: 1,
+          sex: undefined,
+          age: undefined,
+          birthday: undefined,
         },
   });
 
@@ -122,12 +152,27 @@ export default function AddPetDialogContent({
 
     try {
       if (pet) {
-        await updatePet(pet.id, data.name, data.species, data.image);
+        await updatePet(
+          pet.id,
+          data.name,
+          data.species,
+          data.image,
+          data.sex,
+          data.birthday,
+          data.age
+        );
         toast({
           title: "飼い猫を更新しました",
         });
       } else {
-        await addPet(data.name, data.species, data.image);
+        await addPet(
+          data.name,
+          data.species,
+          data.image,
+          data.sex,
+          data.birthday,
+          data.age
+        );
         toast({
           title: "飼い猫を追加しました",
         });
@@ -185,6 +230,7 @@ export default function AddPetDialogContent({
                       placeholder="例：ミケ"
                     />
                   </FormControl>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -214,6 +260,7 @@ export default function AddPetDialogContent({
                       ))}
                     </SelectContent>
                   </Select>
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -247,6 +294,56 @@ export default function AddPetDialogContent({
               ) : (
                 <div className="w-full h-full bg-background/70 rounded-lg border flex justify-center items-center"></div>
               )}
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <FormField
+                control={form.control}
+                name="sex"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>性別</FormLabel>
+                    <Select
+                      {...field}
+                      value={field.value?.toString() ?? ""}
+                      onValueChange={(value) => field.onChange(value)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="性別を選択" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={SexType.MALE}>おとこのこ</SelectItem>
+                        <SelectItem value={SexType.FEMALE}>
+                          おんなのこ
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="age"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>年齢</FormLabel>
+                    <Input {...field} type="number" placeholder="例：3" />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="birthday"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>誕生日</FormLabel>
+                    <DatePicker field={field} />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
           </div>
           <DialogFooter className="flex justify-end mt-4">

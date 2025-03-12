@@ -372,28 +372,41 @@ model pets {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model plants {
-  id          Int           @id(map: "plant_pkey") @default(autoincrement())
-  name        String        @db.VarChar
-  created_at  DateTime      @default(now()) @db.Timestamptz(6)
-  image_src   String?       @db.VarChar
-  evaluations evaluations[]
+  id              Int               @id(map: "plant_pkey") @default(autoincrement())
+  name            String            @db.VarChar
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  image_src       String?           @db.VarChar
+  evaluations     evaluations[]
+  plant_favorites plant_favorites[]
 
   @@schema("public")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model public_users {
-  id          Int           @id @default(autoincrement())
-  auth_id     String        @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  alias_id    String        @db.VarChar
-  name        String        @db.VarChar
-  image       String?       @db.VarChar
-  created_at  DateTime      @default(now()) @db.Timestamptz(6)
-  evaluations evaluations[]
-  pets        pets[]
-  users       auth_users    @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id              Int               @id @default(autoincrement())
+  auth_id         String            @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alias_id        String            @db.VarChar
+  name            String            @db.VarChar
+  image           String?           @db.VarChar
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  evaluations     evaluations[]
+  pets            pets[]
+  plant_favorites plant_favorites[]
+  users           auth_users        @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("users")
+  @@schema("public")
+}
+
+model plant_favorites {
+  id         Int          @id @default(autoincrement())
+  user_id    Int
+  plant_id   Int
+  created_at DateTime     @default(now()) @db.Timestamptz(6)
+  plants     plants       @relation(fields: [plant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users      public_users @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
   @@schema("public")
 }
 

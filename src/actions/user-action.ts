@@ -1,6 +1,7 @@
 "use server";
 
 import { Pet, SexType } from "@/app/types/neko";
+import { Plant } from "@/app/types/plant";
 import { UserProfile } from "@/app/types/user";
 import prisma from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
@@ -344,4 +345,26 @@ export async function deletePet(petId: number) {
     revalidatePath(`/${userData.alias_id}`);
 
     return petData;
+}
+
+export async function getUserPlants(userId: number): Promise<Plant[] | undefined> {
+    const plants = await prisma.plant_have.findMany({
+        where: {
+            user_id: userId,
+        },
+        include: {
+            plants: true,
+        },
+        orderBy: {
+            id: "asc",
+        },
+    });
+
+    return plants.map((plant) => ({
+        id: plant.id,
+        name: plant.plants.name,
+        imageUrl: plant.plants.image_src ?? undefined,
+        isFavorite: false,
+        isHave: true,
+    }));
 }

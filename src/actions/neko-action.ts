@@ -19,6 +19,7 @@ export async function getPlants(): Promise<Plant[]> {
         name: plant.name,
         imageUrl: plant.image_src ?? undefined,
         isFavorite: false,
+        isHave: false,
     }));
 
     return plants

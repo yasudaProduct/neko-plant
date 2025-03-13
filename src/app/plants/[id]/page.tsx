@@ -13,6 +13,7 @@ import Link from "next/link";
 import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import FavoriteButton from "./FavoriteButton";
+import HaveButton from "./HaveButton";
 
 export default async function PlantPage({
   params,
@@ -66,11 +67,12 @@ export default async function PlantPage({
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-bold mb-4">{plant.name}</h1>
               {/* <div className="text-sm text-gray-500">{"test"}</div> */}
-              <div className="ml-auto">
+              <div className="ml-auto flex items-center gap-2">
                 <FavoriteButton
                   plantId={plant.id}
                   isFavorite={plant.isFavorite}
                 />
+                <HaveButton plantId={plant.id} isHave={plant.isHave} />
               </div>
             </div>
 

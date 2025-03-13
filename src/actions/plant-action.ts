@@ -20,6 +20,7 @@ export async function getPlants(): Promise<Plant[]> {
         name: plant.name,
         imageUrl: plant.image_src ?? undefined,
         isFavorite: false,
+        isHave: false,
     }));
 
     return plants
@@ -35,8 +36,9 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
         return undefined;
     }
 
-    // 認証ユーザーの場合お気に入りしているか取得
+    // 認証ユーザーの場合はfavoriteとhaveを取得
     let isFavorite = false
+    let isHave = false
     const { data: { user } } = await supabase.auth.getUser();
     if (user != null) {
 
@@ -53,6 +55,14 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
             },
         });
         isFavorite = favorite != null
+
+        const have = await prisma.plant_have.findFirst({
+            where: {
+                user_id: publicUser!.id,
+                plant_id: id,
+            },
+        });
+        isHave = have != null
     }
 
     return {
@@ -60,6 +70,7 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
         name: plant.name,
         imageUrl: plant.image_src ?? undefined,
         isFavorite: isFavorite,
+        isHave: isHave,
     };
 }
 
@@ -288,6 +299,64 @@ export async function deleteFavorite(plantId: number): Promise<{ success: boolea
     });
 
     revalidatePath(`/plants/${plantId}`);
+
+    return { success: true };
+}
+
+export async function addHave(plantId: number): Promise<{ success: boolean, message?: string }> {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user == null) {
+        return { success: false, message: "ログインしてください。" };
+    }
+
+    const publicUser = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!publicUser) {
+        return { success: false, message: "ユーザーが見つかりません。" };
+    }
+
+    await prisma.plant_have.create({
+        data: {
+            user_id: publicUser.id,
+            plant_id: plantId,
+        },
+    });
+
+    return { success: true };
+}
+
+export async function deleteHave(plantId: number): Promise<{ success: boolean, message?: string }> {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user == null) {
+        return { success: false, message: "ログインしてください。" };
+    }
+
+    const publicUser = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!publicUser) {
+        return { success: false, message: "ユーザーが見つかりません。" };
+    }
+
+    await prisma.plant_have.deleteMany({
+        where: {
+            user_id: publicUser.id,
+            plant_id: plantId,
+        },
+    });
 
     return { success: true };
 }

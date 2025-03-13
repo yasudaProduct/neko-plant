@@ -378,6 +378,7 @@ model plants {
   image_src       String?           @db.VarChar
   evaluations     evaluations[]
   plant_favorites plant_favorites[]
+  plant_have      plant_have[]
 
   @@schema("public")
 }
@@ -393,6 +394,7 @@ model public_users {
   evaluations     evaluations[]
   pets            pets[]
   plant_favorites plant_favorites[]
+  plant_have      plant_have[]
   users           auth_users        @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("users")
@@ -406,6 +408,17 @@ model plant_favorites {
   created_at DateTime     @default(now()) @db.Timestamptz(6)
   plants     plants       @relation(fields: [plant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users      public_users @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("public")
+}
+
+model plant_have {
+  id         Int          @id(map: "plant_ have_pkey") @default(autoincrement())
+  plant_id   Int
+  user_id    Int
+  created_at DateTime     @default(now()) @db.Timestamptz(6)
+  plants     plants       @relation(fields: [plant_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "plant_ have_plant_id_fkey")
+  users      public_users @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "plant_ have_user_id_fkey")
 
   @@schema("public")
 }

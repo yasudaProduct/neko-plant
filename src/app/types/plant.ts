@@ -3,4 +3,5 @@ export type Plant = {
     name: string;
     imageUrl?: string;
     isFavorite: boolean;
+    isHave: boolean;
 };

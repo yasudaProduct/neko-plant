@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { Plant } from "../app/types/plant";
 import { createClient } from "@/lib/supabase/server";
+import { revalidatePath } from "next/cache";
 
 export async function getPlants(): Promise<Plant[]> {
 
@@ -18,22 +19,47 @@ export async function getPlants(): Promise<Plant[]> {
         id: plant.id,
         name: plant.name,
         imageUrl: plant.image_src ?? undefined,
+        isFavorite: false,
     }));
 
     return plants
 }
 
 export async function getPlant(id: number): Promise<Plant | undefined> {
+    const supabase = await createClient();
+
     const plant = await prisma.plants.findUnique({
         where: { id: id },
     });
     if (!plant) {
         return undefined;
     }
+
+    // 認証ユーザーの場合お気に入りしているか取得
+    let isFavorite = false
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user != null) {
+
+        const publicUser = await prisma.public_users.findFirst({
+            where: {
+                auth_id: user.id,
+            },
+        });
+
+        const favorite = await prisma.plant_favorites.findFirst({
+            where: {
+                user_id: publicUser!.id,
+                plant_id: id,
+            },
+        });
+        isFavorite = favorite != null
+    }
+
     return {
         id: plant.id,
         name: plant.name,
         imageUrl: plant.image_src ?? undefined,
+        isFavorite: isFavorite,
     };
 }
 
@@ -202,4 +228,66 @@ export async function deletePlant(id: number): Promise<{ success: boolean, messa
         console.log("error", error);
         return { success: false, message: error instanceof Error ? error.message : "植物の削除に失敗しました。" };
     }
+}
+
+export async function addFavorite(plantId: number): Promise<{ success: boolean, message?: string }> {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user == null) {
+        return { success: false, message: "ログインしてください。" };
+    }
+
+    const publicUser = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!publicUser) {
+        return { success: false, message: "ユーザーが見つかりません。" };
+    }
+
+    // すでに登録してあったらあったら終了
+
+    await prisma.plant_favorites.create({
+        data: {
+            user_id: publicUser.id,
+            plant_id: plantId,
+        },
+    });
+
+    return { success: true };
+}
+
+export async function deleteFavorite(plantId: number): Promise<{ success: boolean, message?: string }> {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user == null) {
+        return { success: false, message: "ログインしてください。" };
+    }
+
+    const publicUser = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!publicUser) {
+        return { success: false, message: "ユーザーが見つかりません。" };
+    }
+
+    await prisma.plant_favorites.deleteMany({
+        where: {
+            user_id: publicUser.id,
+            plant_id: plantId,
+        },
+    });
+
+    revalidatePath(`/plants/${plantId}`);
+
+    return { success: true };
 }

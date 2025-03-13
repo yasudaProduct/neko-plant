@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import FavoriteButton from "./FavoriteButton";
 
 export default async function PlantPage({
   params,
@@ -62,7 +63,16 @@ export default async function PlantPage({
             )}
           </CardHeader>
           <CardContent className="p-6">
-            <h1 className="text-2xl font-bold mb-4">{plant.name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold mb-4">{plant.name}</h1>
+              {/* <div className="text-sm text-gray-500">{"test"}</div> */}
+              <div className="ml-auto">
+                <FavoriteButton
+                  plantId={plant.id}
+                  isFavorite={plant.isFavorite}
+                />
+              </div>
+            </div>
 
             <RatingBar
               likes={goodEvaluations.length}

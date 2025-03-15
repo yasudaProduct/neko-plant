@@ -27,8 +27,15 @@ interface UserProfileProps {
 }
 
 const userProfileSchema = z.object({
-  name: z.string().min(1, { message: "ユーザー名は必須です。" }),
-  aliasId: z.string().min(1, { message: "表示名は必須です。" }),
+  name: z
+    .string()
+    .min(1, { message: "ユーザー名は必須です。" })
+    .max(20, { message: "ユーザー名は7文字以内で入力してください。" }),
+  aliasId: z
+    .string()
+    .min(1, { message: "表示名は必須です。" })
+    .max(10, { message: "表示名は10文字以内で入力してください。" })
+    .regex(/^[a-zA-Z0-9]+$/, { message: "表示名は英数字で入力してください。" }),
   bio: z.string().optional(),
 });
 
@@ -51,9 +58,10 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
       toast({
         title: "更新しました",
       });
-    } catch {
+    } catch (error) {
       toast({
         title: "更新に失敗しました",
+        description: error instanceof Error ? error.message : "不明なエラー",
       });
     } finally {
       setIsSubmitting(false);
@@ -83,7 +91,7 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
                 name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>ユーザー名</FormLabel>
+                    <FormLabel>名前</FormLabel>
                     <FormControl>
                       <Input
                         id="username"
@@ -105,7 +113,7 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
                 name="aliasId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>表示名</FormLabel>
+                    <FormLabel>ユーザーID</FormLabel>
                     <FormControl>
                       <Input
                         id="displayName"

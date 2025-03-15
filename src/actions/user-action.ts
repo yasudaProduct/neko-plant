@@ -115,6 +115,19 @@ export async function updateUser(name: string, aliasId: string) {
         throw new Error("ユーザーが見つかりません");
     }
 
+    // 入力チェック
+    if (name.length > 20) {
+        throw new Error("名前は7文字以内で入力してください");
+    }
+
+    if (aliasId.length > 10) {
+        throw new Error("ユーザーIDは10文字以内で入力してください");
+    }
+
+    if (!aliasId.match(/^[a-zA-Z]+$/)) {
+        throw new Error("ユーザーIDは英数字で入力してください");
+    }
+    // ユーザー情報を更新
     const { error } = await supabase.auth.updateUser({
         data: {
             name: name,

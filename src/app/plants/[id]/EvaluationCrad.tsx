@@ -5,6 +5,7 @@ import { Evaluation } from "@/app/types/evaluation";
 import { Pet } from "@/app/types/neko";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 export default function EvaluationCard({
   evaluation,
 }: {
@@ -37,21 +38,31 @@ export default function EvaluationCard({
           />
         ))}
       </Avatar>
-      <div className="relative bg-white p-4 rounded-lg shadow-sm flex-grow">
-        <div className="absolute left-[-8px] top-3 w-4 h-4 bg-white transform rotate-45" />
-        <div className="relative z-10">
-          <div className="text-gray-700 whitespace-pre-wrap">
-            <div>
-              <p
-                className={`text-gray-700 whitespace-pre-wrap ${
-                  isExpanded ? "line-clamp-3" : "line-clamp-none"
-                }`}
-              >
-                {evaluation.comment}
-              </p>
-              {evaluation.comment.split("\n").length > 3 && (
-                <ExpandButton isExpanded={isExpanded} onExpand={handleExpand} />
-              )}
+      <div className="flex flex-col gap-2 w-full">
+        <div className="text-sm text-gray-500 hover:text-gray-700">
+          <Link href={`/${evaluation.user.aliasId}`}>
+            {evaluation.user.name}
+          </Link>
+        </div>
+        <div className="relative bg-white p-4 rounded-lg shadow-sm flex-grow">
+          <div className="absolute left-[-8px] top-3 w-4 h-4 bg-white transform rotate-45" />
+          <div className="relative z-10">
+            <div className="text-gray-700 whitespace-pre-wrap">
+              <div>
+                <p
+                  className={`text-gray-700 whitespace-pre-wrap ${
+                    isExpanded ? "line-clamp-3" : "line-clamp-none"
+                  }`}
+                >
+                  {evaluation.comment}
+                </p>
+                {evaluation.comment.split("\n").length > 3 && (
+                  <ExpandButton
+                    isExpanded={isExpanded}
+                    onExpand={handleExpand}
+                  />
+                )}
+              </div>
             </div>
           </div>
         </div>

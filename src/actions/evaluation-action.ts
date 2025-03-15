@@ -14,7 +14,13 @@ export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
             plant_id: plantId,
         },
         include: {
-            users: true,
+            users: {
+                select: {
+                    alias_id: true,
+                    name: true,
+                    image: true,
+                },
+            },
         },
         orderBy: {
             created_at: "desc",
@@ -44,6 +50,11 @@ export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
             imageSrc: pet.image ? process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/user_pets/" + pet.image : undefined,
             neko: pet.neko,
         })) : undefined,
+        user: {
+            aliasId: evaluation.users?.alias_id ?? "",
+            name: evaluation.users?.name ?? "",
+            imageSrc: evaluation.users?.image ? process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/user_profiles/" + evaluation.users.image : undefined,
+        },
     }));
 
     return evaluations

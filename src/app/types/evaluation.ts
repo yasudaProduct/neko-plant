@@ -6,6 +6,11 @@ export type Evaluation = {
     comment: string;
     createdAt: Date;
     pets?: Pet[];
+    user: {
+        aliasId: string;
+        name: string;
+        imageSrc?: string;
+    };
 };
 
 export enum EvaluationType {

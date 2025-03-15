@@ -1,5 +1,6 @@
 "use server";
 
+import { Evaluation, EvaluationType } from "@/app/types/evaluation";
 import { Pet, SexType } from "@/app/types/neko";
 import { Plant } from "@/app/types/plant";
 import { UserProfile } from "@/app/types/user";
@@ -388,8 +389,6 @@ export async function deleteHavePlant(plantId: number) {
         throw new Error("ユーザーが見つかりません");
     }
 
-    console.log(plantId);
-    console.log(userData.id);
     await prisma.plant_have.deleteMany({
         where: {
             plant_id: plantId,
@@ -398,4 +397,27 @@ export async function deleteHavePlant(plantId: number) {
     });
 
     revalidatePath(`/${userData.alias_id}`);
+}
+
+export async function getUserEvaluations(userId: number): Promise<Evaluation[] | undefined> {
+    const evaluations = await prisma.evaluations.findMany({
+        where: {
+            user_id: userId,
+        },
+        include: {
+            plants: true,
+        },
+        orderBy: {
+            id: "asc",
+        },
+    });
+
+    console.log(evaluations);
+
+    return evaluations.map((evaluation) => ({
+        id: evaluation.id,
+        type: evaluation.type as EvaluationType,
+        comment: evaluation.comment ?? "",
+        createdAt: evaluation.created_at,
+    }));
 }

@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
-import { Cat, Pencil, Sprout } from "lucide-react";
+import { Cat, Pencil, Sprout, Star, ThumbsDown, ThumbsUp } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import Image from "next/image";
 import AddPetDialogContent from "./AddPetDialogContent";
 import {
+  getUserEvaluations,
   getUserPets,
   getUserPlants,
   getUserProfile,
@@ -42,6 +43,9 @@ export default async function ProfilePage({
   // 飼い植物一覧取得
   const havePlants = await getUserPlants(userProfile.id);
 
+  // 評価一覧取得
+  const evaluations = await getUserEvaluations(userProfile.id);
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 mt-4 mb-4">
       <div className="bg-white rounded-xl shadow-lg p-6">
@@ -75,6 +79,7 @@ export default async function ProfilePage({
             </div>
           </div>
 
+          {/* 飼い猫一覧 */}
           <div className="lg:min-w-[500px] border-t pt-6">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
               <Cat className="text-gray-500" />
@@ -115,6 +120,7 @@ export default async function ProfilePage({
             </div>
           </div>
 
+          {/* 飼い植物一覧 */}
           <div className="lg:min-w-[500px] border-t pt-6">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
               <Sprout className="text-green-500" />
@@ -135,6 +141,28 @@ export default async function ProfilePage({
                     />
                   ))}
             </div>
+          </div>
+
+          {/* 評価一覧 */}
+          <div className="lg:min-w-[500px] border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Star className="text-yellow-500" />
+              評価一覧
+            </h2>
+            {evaluations &&
+              evaluations.map((evaluation) => (
+                <div
+                  key={evaluation.id}
+                  className="flex items-center gap-2 bg-gray-50 p-4 rounded-lg"
+                >
+                  {evaluation.type === "good" ? (
+                    <ThumbsUp className="w-4 h-4" />
+                  ) : (
+                    <ThumbsDown className="w-4 h-4" />
+                  )}
+                  <p>{evaluation.comment}</p>
+                </div>
+              ))}
           </div>
         </div>
       </div>

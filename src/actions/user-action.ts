@@ -361,10 +361,41 @@ export async function getUserPlants(userId: number): Promise<Plant[] | undefined
     });
 
     return plants.map((plant) => ({
-        id: plant.id,
+        id: plant.plant_id,
         name: plant.plants.name,
         imageUrl: plant.plants.image_src ?? undefined,
         isFavorite: false,
         isHave: true,
     }));
+}
+
+export async function deleteHavePlant(plantId: number) {
+    const supabase = await createClient();
+    const {
+        data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    const userData = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!userData) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    console.log(plantId);
+    console.log(userData.id);
+    await prisma.plant_have.deleteMany({
+        where: {
+            plant_id: plantId,
+            user_id: userData.id,
+        },
+    });
+
+    revalidatePath(`/${userData.alias_id}`);
 }

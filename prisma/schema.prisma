@@ -330,14 +330,15 @@ model auth_users {
 }
 
 model evaluations {
-  id         Int             @id @default(autoincrement())
-  plant_id   Int
-  user_id    Int?
-  type       evaluation_type
-  comment    String?         @db.VarChar
-  created_at DateTime        @default(now()) @db.Timestamptz(6)
-  plants     plants          @relation(fields: [plant_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_plant")
-  users      public_users?   @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  id                   Int                    @id @default(autoincrement())
+  plant_id             Int
+  user_id              Int?
+  type                 evaluation_type
+  comment              String?                @db.VarChar
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  evaluation_reactions evaluation_reactions[]
+  plants               plants                 @relation(fields: [plant_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_plant")
+  users                public_users?          @relation(fields: [user_id], references: [id], onUpdate: NoAction)
 
   @@schema("public")
 }
@@ -385,17 +386,18 @@ model plants {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model public_users {
-  id              Int               @id @default(autoincrement())
-  auth_id         String            @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  alias_id        String            @db.VarChar
-  name            String            @db.VarChar
-  image           String?           @db.VarChar
-  created_at      DateTime          @default(now()) @db.Timestamptz(6)
-  evaluations     evaluations[]
-  pets            pets[]
-  plant_favorites plant_favorites[]
-  plant_have      plant_have[]
-  users           auth_users        @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                   Int                    @id @default(autoincrement())
+  auth_id              String                 @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alias_id             String                 @db.VarChar
+  name                 String                 @db.VarChar
+  image                String?                @db.VarChar
+  created_at           DateTime               @default(now()) @db.Timestamptz(6)
+  evaluation_reactions evaluation_reactions[]
+  evaluations          evaluations[]
+  pets                 pets[]
+  plant_favorites      plant_favorites[]
+  plant_have           plant_have[]
+  users                auth_users             @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("users")
   @@schema("public")
@@ -419,6 +421,18 @@ model plant_have {
   created_at DateTime     @default(now()) @db.Timestamptz(6)
   plants     plants       @relation(fields: [plant_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "plant_ have_plant_id_fkey")
   users      public_users @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "plant_ have_user_id_fkey")
+
+  @@schema("public")
+}
+
+model evaluation_reactions {
+  id            Int           @id @default(autoincrement())
+  evaluation_id Int
+  user_id       Int
+  created_at    DateTime      @default(now()) @db.Timestamptz(6)
+  type          reaction_type
+  evaluations   evaluations   @relation(fields: [evaluation_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users         public_users  @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("public")
 }
@@ -482,6 +496,13 @@ enum mood {
 enum sex {
   male
   female
+
+  @@schema("public")
+}
+
+enum reaction_type {
+  good
+  bad
 
   @@schema("public")
 }

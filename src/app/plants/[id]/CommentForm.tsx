@@ -74,7 +74,7 @@ export default function CommentForm({ plantId }: { plantId: number }) {
                       type="button"
                       variant={
                         field.value === EvaluationType.GOOD
-                          ? "default"
+                          ? "destructive"
                           : "outline"
                       }
                       onClick={() => field.onChange(EvaluationType.GOOD)}

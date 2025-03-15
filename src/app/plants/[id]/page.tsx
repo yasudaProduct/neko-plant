@@ -1,5 +1,4 @@
 import Image from "next/image";
-import { Avatar } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import RatingBar from "@/components/RatingBar";
 import CommentForm from "./CommentForm";
@@ -14,6 +13,7 @@ import { Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import FavoriteButton from "./FavoriteButton";
 import HaveButton from "./HaveButton";
+import EvaluationCard from "./EvaluationCrad";
 
 export default async function PlantPage({
   params,
@@ -82,54 +82,36 @@ export default async function PlantPage({
             />
 
             {/* Comments Grid */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-4">
-                {goodEvaluations
-                  .filter((evaluation) => evaluation.comment)
-                  .map((evaluation) => (
-                    <div
-                      key={evaluation.id}
-                      className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
-                    >
-                      <Avatar className="w-10 h-10">
-                        {evaluation.pets?.map((pet) => (
-                          <Image
-                            key={pet.id}
-                            src={pet.imageSrc ?? "/images/cat_default.png"}
-                            alt={pet.name}
-                            width={60}
-                            height={60}
-                            className="rounded-full"
-                          />
-                        ))}
-                      </Avatar>
-                      <span>{evaluation.comment}</span>
-                    </div>
-                  ))}
+            <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
+              <div>
+                <h3 className="text-lg font-semibold text-green-600 mb-2">
+                  良い評価
+                </h3>
+                <div className="space-y-4 max-h-[300px] md:max-h-[500px] overflow-y-auto">
+                  {goodEvaluations
+                    .filter((evaluation) => evaluation.comment)
+                    .map((evaluation) => (
+                      <EvaluationCard
+                        key={evaluation.id}
+                        evaluation={evaluation}
+                      />
+                    ))}
+                </div>
               </div>
-              <div className="space-y-4">
-                {badEvaluations
-                  .filter((evaluation) => evaluation.comment)
-                  .map((evaluation) => (
-                    <div
-                      key={evaluation.id}
-                      className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
-                    >
-                      <Avatar className="w-10 h-10">
-                        {evaluation.pets?.map((pet) => (
-                          <Image
-                            key={pet.id}
-                            src={pet.imageSrc ?? "/images/cat_default.png"}
-                            alt={pet.name}
-                            width={60}
-                            height={60}
-                            className="rounded-full"
-                          />
-                        ))}
-                      </Avatar>
-                      <span>{evaluation.comment}</span>
-                    </div>
-                  ))}
+              <div>
+                <h3 className="text-lg font-semibold text-red-600 mb-2">
+                  悪い評価
+                </h3>
+                <div className="space-y-4 max-h-[300px] md:max-h-[500px] overflow-y-auto">
+                  {badEvaluations
+                    .filter((evaluation) => evaluation.comment)
+                    .map((evaluation) => (
+                      <EvaluationCard
+                        key={evaluation.id}
+                        evaluation={evaluation}
+                      />
+                    ))}
+                </div>
               </div>
             </div>
           </CardContent>

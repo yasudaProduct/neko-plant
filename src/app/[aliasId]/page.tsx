@@ -1,5 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
-import { Cat, Pencil, Sprout, Star, ThumbsDown, ThumbsUp } from "lucide-react";
+import {
+  Cat,
+  Heart,
+  Pencil,
+  Sprout,
+  Star,
+  ThumbsDown,
+  ThumbsUp,
+} from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Dialog, DialogTrigger } from "@/components/ui/dialog";
@@ -7,13 +15,14 @@ import Image from "next/image";
 import AddPetDialogContent from "./AddPetDialogContent";
 import {
   getUserEvaluations,
+  getUserFavoritePlants,
   getUserPets,
   getUserPlants,
   getUserProfile,
 } from "@/actions/user-action";
 import { getNekoSpecies } from "@/actions/neko-action";
 import { Pet } from "../types/neko";
-import PlantContent from "./CardContent";
+import PlantContent, { FavoriteContent } from "./CardContent";
 
 export default async function ProfilePage({
   params,
@@ -45,6 +54,9 @@ export default async function ProfilePage({
 
   // 評価一覧取得
   const evaluations = await getUserEvaluations(userProfile.id);
+
+  // お気に入り一覧取得
+  const favoritePlants = await getUserFavoritePlants(userProfile.id);
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 mt-4 mb-4">
@@ -163,6 +175,33 @@ export default async function ProfilePage({
                   <p>{evaluation.comment}</p>
                 </div>
               ))}
+          </div>
+
+          {/* お気に入り一覧 */}
+          <div className="lg:min-w-[500px] border-t pt-6">
+            <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+              <Heart className="text-red-500" />
+              お気に入り一覧
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {user && userProfile.authId === user.id
+                ? favoritePlants &&
+                  favoritePlants.map((plant) => (
+                    <FavoriteContent
+                      key={plant.id}
+                      plant={plant}
+                      authFlg={true}
+                    />
+                  ))
+                : favoritePlants &&
+                  favoritePlants.map((plant) => (
+                    <FavoriteContent
+                      key={plant.id}
+                      plant={plant}
+                      authFlg={false}
+                    />
+                  ))}
+            </div>
           </div>
         </div>
       </div>

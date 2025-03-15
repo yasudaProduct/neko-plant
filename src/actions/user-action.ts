@@ -419,3 +419,54 @@ export async function getUserEvaluations(userId: number): Promise<Evaluation[] |
         createdAt: evaluation.created_at,
     }));
 }
+
+export async function getUserFavoritePlants(userId: number): Promise<Plant[] | undefined> {
+    const favoritePlants = await prisma.plant_favorites.findMany({
+        where: {
+            user_id: userId,
+        },
+        include: {
+            plants: true,
+        },
+        orderBy: {
+            id: "asc",
+        },
+    });
+
+    return favoritePlants.map((favoritePlant) => ({
+        id: favoritePlant.plant_id,
+        name: favoritePlant.plants.name,
+        imageUrl: favoritePlant.plants.image_src ?? undefined,
+        isFavorite: true,
+        isHave: false,
+    }));
+}
+
+export async function deleteFavoritePlant(plantId: number) {
+    const supabase = await createClient();
+    const {
+        data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    const userData = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!userData) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    await prisma.plant_favorites.deleteMany({
+        where: {
+            plant_id: plantId,
+            user_id: userData.id,
+        },
+    });
+
+    revalidatePath(`/${userData.alias_id}`);
+}

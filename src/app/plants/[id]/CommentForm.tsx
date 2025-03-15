@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ThumbsDown, ThumbsUp } from "lucide-react";
+import { Heart, Skull } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EvaluationType } from "@/app/types/evaluation";
 import { z } from "zod";
@@ -79,7 +79,7 @@ export default function CommentForm({ plantId }: { plantId: number }) {
                       }
                       onClick={() => field.onChange(EvaluationType.GOOD)}
                     >
-                      <ThumbsUp />
+                      <Heart className="w-4 h-4 text-red-500" />
                       Good
                     </Button>
                     <Button
@@ -91,7 +91,7 @@ export default function CommentForm({ plantId }: { plantId: number }) {
                       }
                       onClick={() => field.onChange(EvaluationType.BAD)}
                     >
-                      <ThumbsDown />
+                      <Skull className="w-4 h-4 text-indigo-500" />
                       Bad
                     </Button>
                   </div>

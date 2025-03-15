@@ -1,4 +1,4 @@
-import { ThumbsDown, ThumbsUp } from "lucide-react";
+import { Heart, Skull } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -51,11 +51,11 @@ export default function PlantCard({
         <CardDescription className="flex items-center justify-between text-sm">
           {/* <div className="flex gap-4"> */}
           <span className="flex items-center gap-1">
-            <ThumbsUp className="h-4 w-4 text-green-600" />
+            <Heart className="h-4 w-4 text-red-600" />
             {likes}
           </span>
           <span className="flex items-center gap-1">
-            <ThumbsDown className="h-4 w-4 text-red-600" />
+            <Skull className="h-4 w-4 text-indigo-600" />
             {dislikes}
           </span>
           {/* </div> */}

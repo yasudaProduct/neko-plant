@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import {
+  BookHeart,
   Cat,
-  Heart,
   Pencil,
   Sprout,
   Star,
@@ -180,7 +180,7 @@ export default async function ProfilePage({
           {/* お気に入り一覧 */}
           <div className="lg:min-w-[500px] border-t pt-6">
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-              <Heart className="text-red-500" />
+              <BookHeart className="text-red-500" />
               お気に入り一覧
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

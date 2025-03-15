@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Heart } from "lucide-react";
+import { BookHeart } from "lucide-react";
 import { addFavorite, deleteFavorite } from "@/actions/plant-action";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
@@ -55,11 +55,11 @@ export default function FavoriteButton({
     >
       {isFavoriteState ? (
         <>
-          <Heart className="w-4 h-4 text-red-500" />
+          <BookHeart className="w-4 h-4 text-red-500" />
         </>
       ) : (
         <>
-          <Heart className="w-4 h-4" />
+          <BookHeart className="w-4 h-4" />
         </>
       )}
     </Button>

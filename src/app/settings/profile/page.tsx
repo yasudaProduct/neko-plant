@@ -14,6 +14,7 @@ export default async function AccountPage() {
   }
 
   const userProfile: UserProfile | undefined = await getUserProfileByAuthId();
+  console.log(userProfile);
 
   if (!userProfile) {
     redirect("/signin");

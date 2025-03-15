@@ -4,6 +4,7 @@ import { Evaluation, EvaluationType } from "@/app/types/evaluation";
 import { Pet, SexType } from "@/app/types/neko";
 import { Plant } from "@/app/types/plant";
 import { UserProfile } from "@/app/types/user";
+import { STORAGE_PATH } from "@/lib/const";
 import prisma from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { pets } from "@prisma/client";
@@ -32,7 +33,7 @@ export async function getUserProfile(aliasId: string): Promise<UserProfile | und
         aliasId: userData.alias_id,
         authId: userData.auth_id,
         name: userData.name,
-        imageSrc: userData.image ?? undefined,
+        imageSrc: userData.image ? STORAGE_PATH.USER_PROFILE + userData.image : undefined,
     };
 }
 
@@ -62,7 +63,7 @@ export async function getUserProfileByAuthId(): Promise<UserProfile | undefined>
         aliasId: userData.alias_id,
         authId: userData.auth_id,
         name: userData.name,
-        imageSrc: userData.image ?? undefined,
+        imageSrc: userData.image ? STORAGE_PATH.USER_PROFILE + userData.image : undefined,
     };
 }
 
@@ -86,7 +87,7 @@ export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
     return pets.map((pet) => ({
         id: pet.id,
         name: pet.name,
-        imageSrc: pet.image ? process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/user_pets/" + pet.image : undefined,
+        imageSrc: pet.image ? STORAGE_PATH.USER_PET + pet.image : undefined,
         neko: pet.neko,
         sex: pet.sex as SexType ?? undefined,
         birthday: pet.birthday ?? undefined,
@@ -169,7 +170,7 @@ export async function updateUserImage(image: File) {
         // 1. 画像をアップロード
         const { error } = await supabase.storage
             .from("user_profiles")
-            .upload(`${userData.auth_id}/profile_image.png`, image, {
+            .upload(`/${userData.auth_id}/profile_image.png`, image, {
                 upsert: true,
             });
 
@@ -177,18 +178,13 @@ export async function updateUserImage(image: File) {
             throw error;
         }
 
-        // 2. 画像のURLを取得
-        const { data: { publicUrl } } = supabase.storage
-            .from("user_profiles")
-            .getPublicUrl(`${userData.auth_id}/profile_image.png`);
-
-        // 3. ユーザーの画像を更新
+        // 2. ユーザーの画像を更新
         await prisma.public_users.update({
             where: {
                 id: userData.id,
             },
             data: {
-                image: publicUrl,
+                image: `${userData.auth_id}/profile_image.png`,
             },
         });
     })
@@ -434,7 +430,7 @@ export async function getUserEvaluations(userId: number): Promise<Evaluation[] |
         user: {
             aliasId: evaluation.users?.alias_id ?? "",
             name: evaluation.users?.name ?? "",
-            imageSrc: evaluation.users?.image ? process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/user_profiles/" + evaluation.users.image : undefined,
+            imageSrc: evaluation.users?.image ? STORAGE_PATH.USER_PROFILE + evaluation.users.image : undefined,
         },
     }));
 }

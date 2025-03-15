@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import EmailChangeModal from "./EmailChangeModal";
 import WithdrawalModal from "./WithdrawalModal";
 import PasswordChangeModal from "./PasswordChangeModal";
+import { getUserProfileByAuthId } from "@/actions/user-action";
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -16,17 +17,8 @@ export default async function AccountPage() {
     redirect("/signin");
   }
 
-  console.log("ーーーーーーーーーーーーーー");
-  console.log(user.app_metadata.provider);
-  console.log(user.app_metadata);
-  console.log("ーーーーーーーーーーーーーー");
-  const { data: user_profiles } = await supabase
-    .from("users")
-    .select("alias_id, name, image")
-    .eq("auth_id", user.id)
-    .single();
-
-  if (!user_profiles) {
+  const userProfile = await getUserProfileByAuthId();
+  if (!userProfile) {
     redirect("/signin");
   }
 

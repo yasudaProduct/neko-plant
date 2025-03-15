@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { Plant } from "../app/types/plant";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { STORAGE_PATH } from "@/lib/const";
 
 export async function getPlants(): Promise<Plant[]> {
 
@@ -18,7 +19,7 @@ export async function getPlants(): Promise<Plant[]> {
     const plants: Plant[] = plantsData.map((plant) => ({
         id: plant.id,
         name: plant.name,
-        imageUrl: plant.image_src ?? undefined,
+        imageUrl: plant.image_src ? STORAGE_PATH.PLANT + plant.image_src : undefined,
         isFavorite: false,
         isHave: false,
     }));
@@ -68,7 +69,7 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
     return {
         id: plant.id,
         name: plant.name,
-        imageUrl: plant.image_src ?? undefined,
+        imageUrl: plant.image_src ? STORAGE_PATH.PLANT + plant.image_src : undefined,
         isFavorite: isFavorite,
         isHave: isHave,
     };
@@ -104,7 +105,6 @@ export async function addPlant(name: string, image: File): Promise<{ success: bo
         let newPlantId
         await prisma.$transaction(async (prisma) => {
 
-            // TODO storageの名前をplantIdにする必要はないかもね
             // 1. 植物を登録
             const plant = await prisma.plants.create({
                 data: {
@@ -118,19 +118,13 @@ export async function addPlant(name: string, image: File): Promise<{ success: bo
                 .upload(plant.id.toString(), image);
 
             if (imageError) {
-                console.log("imageError", imageError);
                 throw new Error("画像のアップロードに失敗しました。");
             }
-
-            // 3. 画像のURLを取得
-            const { data: { publicUrl } } = supabase.storage
-                .from("plants")
-                .getPublicUrl(plant.id.toString());
 
             // 4. 植物のレコードに画像のURLを保存
             const newPlant = await prisma.plants.update({
                 where: { id: plant.id },
-                data: { image_src: publicUrl }
+                data: { image_src: plant.id.toString() }
             });
 
             newPlantId = newPlant.id
@@ -170,7 +164,6 @@ export async function updatePlant(id: number, plant: { name: string, image?: Fil
     try {
 
         await prisma.$transaction(async (prisma) => {
-            let publicUrl = undefined
 
             // 1. 画像をアップロード
             if (plant.image) {
@@ -181,15 +174,8 @@ export async function updatePlant(id: number, plant: { name: string, image?: Fil
                     });
 
                 if (imageError) {
-                    console.log("imageError", imageError);
                     throw new Error("画像のアップロードに失敗しました。");
                 }
-
-                const { data } = supabase.storage
-                    .from("plants")
-                    .getPublicUrl(id.toString());
-
-                publicUrl = data.publicUrl
             }
 
             // 2. 植物のレコードを更新
@@ -197,7 +183,7 @@ export async function updatePlant(id: number, plant: { name: string, image?: Fil
                 where: { id: id },
                 data: {
                     name: plant.name,
-                    image_src: publicUrl,
+                    image_src: id.toString(),
                 },
             });
 

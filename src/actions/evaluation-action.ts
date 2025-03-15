@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { Evaluation, EvaluationType } from "../app/types/evaluation";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { STORAGE_PATH } from "@/lib/const";
 
 export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
 
@@ -47,13 +48,13 @@ export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
         pets: petsData ? petsData.filter((pet) => pet.user_id === evaluation.user_id).map((pet) => ({
             id: pet.id,
             name: pet.name,
-            imageSrc: pet.image ? process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/user_pets/" + pet.image : undefined,
+            imageSrc: pet.image ? STORAGE_PATH.USER_PET + pet.image : undefined,
             neko: pet.neko,
         })) : undefined,
         user: {
             aliasId: evaluation.users?.alias_id ?? "",
             name: evaluation.users?.name ?? "",
-            imageSrc: evaluation.users?.image ? process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/user_profiles/" + evaluation.users.image : undefined,
+            imageSrc: evaluation.users?.image ? STORAGE_PATH.USER_PROFILE + evaluation.users.image : undefined,
         },
     }));
 

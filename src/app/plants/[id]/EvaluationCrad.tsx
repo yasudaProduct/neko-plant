@@ -10,7 +10,11 @@ import { Pet } from "@/app/types/neko";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getEvalReAction } from "@/actions/evaluation-action";
+import {
+  deleteReAction,
+  getEvalReAction,
+  upsertReAction,
+} from "@/actions/evaluation-action";
 import { ThumbsDown, ThumbsUp } from "lucide-react";
 export default function EvaluationCard({
   evaluation,
@@ -23,15 +27,8 @@ export default function EvaluationCard({
     EvaluationReActionType | undefined
   >(undefined);
   useEffect(() => {
-    const fetchReActions = async () => {
-      const reActions = await getEvalReAction(evaluation.id);
-      setReActions(reActions);
-
-      const mineReAction = reActions.find((reAction) => reAction.isMine);
-      setIsMineReAction(mineReAction?.type);
-    };
     fetchReActions();
-  }, [evaluation.id]);
+  }, []);
 
   useEffect(() => {
     setIsExpanded(evaluation.comment.split("\n").length > 3);
@@ -39,6 +36,25 @@ export default function EvaluationCard({
 
   const handleExpand = () => {
     setIsExpanded(!isExpanded);
+  };
+
+  const handleReAction = (type: EvaluationReActionType) => {
+    if (isMineReAction === type) {
+      // 自分のコメント評価をクリックした場合削除
+      deleteReAction(evaluation.id);
+    } else {
+      // 自分のコメント評価をクリックしなかった場合作成
+      upsertReAction(evaluation.id, type);
+    }
+    fetchReActions();
+  };
+
+  const fetchReActions = async () => {
+    const reActions = await getEvalReAction(evaluation.id);
+    setReActions(reActions);
+
+    const mineReAction = reActions.find((reAction) => reAction.isMine);
+    setIsMineReAction(mineReAction?.type);
   };
 
   return (
@@ -90,7 +106,10 @@ export default function EvaluationCard({
         {/* コメント評価 */}
         <div className="flex flex-col gap-2 w-full">
           <div className="flex items-center gap-2 text-sm text-gray-500">
-            <div className="flex items-center gap-2 hover:text-gray-700">
+            <div
+              className="flex items-center gap-2 hover:text-gray-700"
+              onClick={() => handleReAction(EvaluationReActionType.GOOD)}
+            >
               <ThumbsUp
                 className={`w-4 h-4 ${
                   isMineReAction === EvaluationReActionType.GOOD
@@ -104,7 +123,10 @@ export default function EvaluationCard({
                 ).length
               }
             </div>
-            <div className="flex items-center gap-2 hover:text-gray-700 ml-2">
+            <div
+              className="flex items-center gap-2 hover:text-gray-700 ml-2"
+              onClick={() => handleReAction(EvaluationReActionType.BAD)}
+            >
               <ThumbsDown
                 className={`w-4 h-4 ${
                   isMineReAction === EvaluationReActionType.BAD

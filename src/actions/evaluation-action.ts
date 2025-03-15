@@ -139,4 +139,80 @@ export async function getEvalReAction(evalId: number): Promise<EvaluationReActio
         type: reAction.type as EvaluationReActionType,
         isMine: reAction.users.id === userId,
     }));
-}   
+}
+
+export async function upsertReAction(evalId: number, type: EvaluationReActionType): Promise<void> {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    const userData = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!userData) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    // 自分のコメント評価を取得
+    const reAction = await prisma.evaluation_reactions.findFirst({
+        where: {
+            evaluation_id: evalId,
+            user_id: userData.id,
+        },
+    });
+
+    if (reAction) {
+        // 既にコメント評価している場合はupdate
+        await prisma.evaluation_reactions.update({
+            where: {
+                id: reAction.id,
+            },
+            data: {
+                type: type,
+            },
+        });
+    } else {
+        // 自分のコメント評価がない場合はcreate
+        await prisma.evaluation_reactions.create({
+            data: {
+                evaluation_id: evalId,
+                user_id: userData.id,
+                type: type,
+            },
+        });
+    }
+}
+
+export async function deleteReAction(evalId: number): Promise<void> {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    const userData = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!userData) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    await prisma.evaluation_reactions.deleteMany({ // キー指定ではないためdeleteManyとなるがドメイン制約上は1件のみとなる
+        where: {
+            evaluation_id: evalId,
+            user_id: userData.id,
+        }
+    });
+}

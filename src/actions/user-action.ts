@@ -406,6 +406,7 @@ export async function getUserEvaluations(userId: number): Promise<Evaluation[] |
         },
         include: {
             plants: true,
+            users: true,
         },
         orderBy: {
             id: "asc",
@@ -417,6 +418,11 @@ export async function getUserEvaluations(userId: number): Promise<Evaluation[] |
         type: evaluation.type as EvaluationType,
         comment: evaluation.comment ?? "",
         createdAt: evaluation.created_at,
+        user: {
+            aliasId: evaluation.users?.alias_id ?? "",
+            name: evaluation.users?.name ?? "",
+            imageSrc: evaluation.users?.image ? process.env.NEXT_PUBLIC_SUPABASE_URL + "/storage/v1/object/public/user_profiles/" + evaluation.users.image : undefined,
+        },
     }));
 }
 

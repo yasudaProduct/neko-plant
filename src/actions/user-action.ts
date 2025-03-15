@@ -412,8 +412,6 @@ export async function getUserEvaluations(userId: number): Promise<Evaluation[] |
         },
     });
 
-    console.log(evaluations);
-
     return evaluations.map((evaluation) => ({
         id: evaluation.id,
         type: evaluation.type as EvaluationType,

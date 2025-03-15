@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { Evaluation, EvaluationType } from "../app/types/evaluation";
+import { Evaluation, EvaluationReAction, EvaluationReActionType, EvaluationType } from "../app/types/evaluation";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { STORAGE_PATH } from "@/lib/const";
@@ -103,3 +103,40 @@ export async function addEvaluation(plantId: number, comment: string, type: Eval
         throw error;
     }
 }
+
+export async function getEvalReAction(evalId: number): Promise<EvaluationReAction[]> {
+    const supabase = await createClient();
+
+    let userId: number | undefined;
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+
+        const userData = await prisma.public_users.findFirst({
+            where: {
+                auth_id: user.id,
+            },
+        });
+        userId = userData?.id;
+    }
+
+    const reActions = await prisma.evaluation_reactions.findMany({
+        where: {
+            evaluation_id: evalId,
+        },
+        include: {
+            users: {
+                select: {
+                    id: true,
+                },
+            },
+        },
+    });
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return reActions.map((reAction: any) => ({
+        id: reAction.id,
+        type: reAction.type as EvaluationReActionType,
+        isMine: reAction.users.id === userId,
+    }));
+}   

@@ -7,14 +7,24 @@ import { revalidatePath } from "next/cache";
 import { STORAGE_PATH } from "@/lib/const";
 import { generateImageName } from "@/lib/utils";
 
-export async function getPlants(): Promise<Plant[]> {
+export async function getPlants(
+    sortBy: string = 'name',
+    page: number = 1,
+    pageSize: number = 9
+): Promise<{ plants: Plant[], totalCount: number }> {
+    // 総件数を取得
+    const totalCount = await prisma.plants.count();
 
+    // ページングを適用してデータを取得
     const plantsData = await prisma.plants.findMany({
         select: {
             id: true,
             name: true,
             image_src: true,
         },
+        orderBy: getSortOption(sortBy),
+        skip: (page - 1) * pageSize,
+        take: pageSize,
     });
 
     const plants: Plant[] = plantsData.map((plant) => ({
@@ -25,7 +35,56 @@ export async function getPlants(): Promise<Plant[]> {
         isHave: false,
     }));
 
-    return plants
+    return { plants, totalCount };
+}
+
+export async function searchPlants(
+    query: string,
+    sortBy: string = 'name',
+    page: number = 1,
+    pageSize: number = 9
+): Promise<{ plants: Plant[], totalCount: number }> {
+    if (!query || query.trim() === '') {
+        return getPlants(sortBy, page, pageSize);
+    }
+
+    // 検索条件に一致する総件数を取得
+    const totalCount = await prisma.plants.count({
+        where: {
+            name: {
+                contains: query,
+                mode: 'insensitive',
+            },
+        },
+    });
+
+    // ページングを適用してデータを取得
+    const plantsData = await prisma.plants.findMany({
+        where: {
+            name: {
+                contains: query,
+                mode: 'insensitive', // 大文字小文字を区別しない
+            },
+        },
+        select: {
+            id: true,
+            name: true,
+            image_src: true,
+        },
+        orderBy: getSortOption(sortBy),
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+    });
+
+    const plants: Plant[] = plantsData.map((plant) => ({
+        id: plant.id,
+        name: plant.name,
+        imageUrl: plant.image_src ? STORAGE_PATH.PLANT + plant.image_src : undefined,
+        isFavorite: false,
+        isHave: false,
+    }));
+
+    return { plants, totalCount };
 }
 
 export async function getPlant(id: number): Promise<Plant | undefined> {
@@ -351,4 +410,19 @@ export async function deleteHave(plantId: number): Promise<{ success: boolean, m
     });
 
     return { success: true };
+}
+
+// ソートオプションを取得する関数
+function getSortOption(sortBy: string) {
+    switch (sortBy) {
+        case 'name_desc':
+            return { name: 'desc' as const };
+        case 'created_at':
+            return { created_at: 'asc' as const };
+        case 'created_at_desc':
+            return { created_at: 'desc' as const };
+        case 'name':
+        default:
+            return { name: 'asc' as const };
+    }
 }

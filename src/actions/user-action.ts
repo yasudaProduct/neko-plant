@@ -129,17 +129,15 @@ export async function updateUser(name: string, aliasId: string) {
         throw new Error("ユーザーIDは英数字で入力してください");
     }
     // ユーザー情報を更新
-    const { error } = await supabase.auth.updateUser({
+    await prisma.public_users.update({
+        where: {
+            id: userData.id,
+        },
         data: {
             name: name,
             alias_id: aliasId,
-            // bio: bio,
         },
     });
-
-    if (error) {
-        throw error;
-    }
 
     revalidatePath(`/settings/profile`);
 }

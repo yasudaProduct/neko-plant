@@ -11,11 +11,15 @@ import type {
 const TOAST_LIMIT = 1
 const TOAST_REMOVE_DELAY = 1000000
 
+// トーストの種類を定義
+export type ToastVariant = 'default' | 'info' | 'success' | 'error' | 'warning';
+
 type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  variant?: ToastVariant // 追加：トーストの種類
 }
 
 let count = 0
@@ -182,9 +186,15 @@ function useToast() {
     }
   }, [state])
 
+  // 各種類のトースト用ヘルパー関数を追加
   return {
     ...state,
     toast,
+    // 各種類のトースト用ヘルパー関数
+    info: (props: Omit<Toast, 'variant'>) => toast({ ...props, variant: 'info' }),
+    success: (props: Omit<Toast, 'variant'>) => toast({ ...props, variant: 'success' }),
+    error: (props: Omit<Toast, 'variant'>) => toast({ ...props, variant: 'error' }),
+    warning: (props: Omit<Toast, 'variant'>) => toast({ ...props, variant: 'warning' }),
     dismiss: (toastId?: string) => dispatch({ type: "DISMISS_TOAST", toastId }),
   }
 }

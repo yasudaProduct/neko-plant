@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { BookHeart } from "lucide-react";
 import { addFavorite, deleteFavorite } from "@/actions/plant-action";
 import { useState } from "react";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface FavoriteButtonProps {
   plantId: number;
@@ -15,6 +15,7 @@ export default function FavoriteButton({
   plantId,
   isFavorite,
 }: FavoriteButtonProps) {
+  const { success, error } = useToast();
   const [isFavoriteState, setIsFavoriteState] = useState(isFavorite);
 
   const handleClick = async () => {
@@ -22,11 +23,11 @@ export default function FavoriteButton({
       setIsFavoriteState(false);
       const result = await deleteFavorite(plantId);
       if (result.success) {
-        toast({
+        success({
           title: "お気に入りから削除しました。",
         });
       } else {
-        toast({
+        error({
           title: "お気に入りから削除に失敗しました。",
         });
         setIsFavoriteState(true);
@@ -35,11 +36,11 @@ export default function FavoriteButton({
       setIsFavoriteState(true);
       const result = await addFavorite(plantId);
       if (result.success) {
-        toast({
+        success({
           title: "お気に入りに追加しました。",
         });
       } else {
-        toast({
+        error({
           title: "お気に入りに追加に失敗しました。",
         });
         setIsFavoriteState(false);

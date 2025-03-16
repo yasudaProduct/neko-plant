@@ -12,13 +12,15 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { deleteUser } from "./actions";
-import router from "next/router";
+import { useRouter } from "next/navigation";
+import { toast } from "@/hooks/use-toast";
 
 interface WithdrawalModalProps {
   userId: string;
 }
 
 export default function WithdrawalModal({ userId }: WithdrawalModalProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
 
   const handleWithdrawal = async () => {
@@ -26,11 +28,17 @@ export default function WithdrawalModal({ userId }: WithdrawalModalProps) {
 
     try {
       await deleteUser(userId);
-      // TODO 画面遷移しない
       router.push("/");
-    } catch (error) {
-      console.log("アカウントの削除に失敗しました。");
-      console.log(error);
+      toast({
+        title: "アカウントの削除に成功しました。",
+        description: "ご利用ありがとうございました。",
+      });
+    } catch {
+      toast({
+        title: "アカウントの削除に失敗しました。",
+        description:
+          "再度試していただくか、サイト管理者にお問い合わせください。",
+      });
     } finally {
       setLoading(false);
     }

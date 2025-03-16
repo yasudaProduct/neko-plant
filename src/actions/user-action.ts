@@ -7,6 +7,7 @@ import { UserProfile } from "@/app/types/user";
 import { STORAGE_PATH } from "@/lib/const";
 import prisma from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import { generateImageName } from "@/lib/utils";
 import { pets } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -165,13 +166,13 @@ export async function updateUserImage(image: File) {
 
     await prisma.$transaction(async (prisma) => {
 
-        const currentDate = new Date().toISOString().replace(/[:.]/g, '-');
-        const imageName = `profile_image_${currentDate}`;
+        const imageName = generateImageName("profile");
+        const imagePath = `${userData.auth_id}/${imageName}`;
 
         // 1. 画像をアップロード
         const { error } = await supabase.storage
             .from("user_profiles")
-            .upload(`/${userData.auth_id}/${imageName}`, image, {
+            .upload(imagePath, image, {
                 upsert: true,
             });
 
@@ -185,7 +186,7 @@ export async function updateUserImage(image: File) {
                 id: userData.id,
             },
             data: {
-                image: `${userData.auth_id}/${imageName}`,
+                image: imagePath,
             },
         });
     })
@@ -217,9 +218,7 @@ export async function addPet(name: string, speciesId: number, image?: File, sex?
 
     await prisma.$transaction(async (prisma) => {
 
-        console.log(sex);
-        console.log(birthday);
-        console.log(age);
+        // ネコを作成
         const neko = await prisma.pets.create({
             data: {
                 name: name,
@@ -234,7 +233,7 @@ export async function addPet(name: string, speciesId: number, image?: File, sex?
         // 画像をアップロード
         if (image) {
 
-            const imageSrc: string = `${userData.auth_id}/${neko.id}`;
+            const imageSrc: string = `${userData.auth_id}/${neko.id}_${generateImageName("pet")}`;
 
             const { error } = await supabase.storage
                 .from("user_pets")
@@ -243,7 +242,6 @@ export async function addPet(name: string, speciesId: number, image?: File, sex?
                 });
 
             if (error) {
-                console.error(error);
                 throw error;
             }
 
@@ -285,6 +283,7 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
 
     await prisma.$transaction(async (prisma) => {
 
+        // ネコを更新
         await prisma.pets.update({
             where: {
                 id: petId,
@@ -301,7 +300,7 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
         // 画像をアップロード
         if (image) {
 
-            const imageSrc: string = `${userData.auth_id}/${petId}`;
+            const imageSrc: string = `${userData.auth_id}/${petId}_${generateImageName("pet")}`;
 
             const { error } = await supabase.storage
                 .from("user_pets")
@@ -310,7 +309,6 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
                 });
 
             if (error) {
-                console.error(error);
                 throw error;
             }
 
@@ -374,7 +372,7 @@ export async function getUserPlants(userId: number): Promise<Plant[] | undefined
     return plants.map((plant) => ({
         id: plant.plant_id,
         name: plant.plants.name,
-        imageUrl: plant.plants.image_src ?? undefined,
+        imageUrl: plant.plants.image_src ? STORAGE_PATH.PLANT + plant.plants.image_src : undefined,
         isFavorite: false,
         isHave: true,
     }));
@@ -452,7 +450,7 @@ export async function getUserFavoritePlants(userId: number): Promise<Plant[] | u
     return favoritePlants.map((favoritePlant) => ({
         id: favoritePlant.plant_id,
         name: favoritePlant.plants.name,
-        imageUrl: favoritePlant.plants.image_src ?? undefined,
+        imageUrl: favoritePlant.plants.image_src ? STORAGE_PATH.PLANT + favoritePlant.plants.image_src : undefined,
         isFavorite: true,
         isHave: false,
     }));

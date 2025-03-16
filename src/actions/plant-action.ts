@@ -5,6 +5,7 @@ import { Plant } from "../app/types/plant";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { STORAGE_PATH } from "@/lib/const";
+import { generateImageName } from "@/lib/utils";
 
 export async function getPlants(): Promise<Plant[]> {
 
@@ -112,10 +113,13 @@ export async function addPlant(name: string, image: File): Promise<{ success: bo
                 },
             });
 
+            const imageName = generateImageName("plant");
+            const imagePath = `${plant.id.toString()}/${imageName}`;
+
             // 2. 画像をアップロード
             const { error: imageError } = await supabase.storage
                 .from("plants")
-                .upload(plant.id.toString(), image);
+                .upload(imagePath, image);
 
             if (imageError) {
                 throw new Error("画像のアップロードに失敗しました。");
@@ -124,7 +128,7 @@ export async function addPlant(name: string, image: File): Promise<{ success: bo
             // 4. 植物のレコードに画像のURLを保存
             const newPlant = await prisma.plants.update({
                 where: { id: plant.id },
-                data: { image_src: plant.id.toString() }
+                data: { image_src: imagePath }
             });
 
             newPlantId = newPlant.id
@@ -165,11 +169,14 @@ export async function updatePlant(id: number, plant: { name: string, image?: Fil
 
         await prisma.$transaction(async (prisma) => {
 
+            const imageName = generateImageName("plant");
+            const imagePath = `${id.toString()}/${imageName}`;
+
             // 1. 画像をアップロード
             if (plant.image) {
                 const { error: imageError } = await supabase.storage
                     .from("plants")
-                    .update(id.toString(), plant.image, {
+                    .update(imagePath, plant.image, {
                         upsert: true
                     });
 
@@ -183,7 +190,7 @@ export async function updatePlant(id: number, plant: { name: string, image?: Fil
                 where: { id: id },
                 data: {
                     name: plant.name,
-                    image_src: id.toString(),
+                    image_src: imagePath,
                 },
             });
 
@@ -191,7 +198,6 @@ export async function updatePlant(id: number, plant: { name: string, image?: Fil
 
         return { success: true, plantId: id };
     } catch (error) {
-        console.log("error", error);
         return { success: false, message: error instanceof Error ? error.message : "植物の更新に失敗しました。" };
     }
 }

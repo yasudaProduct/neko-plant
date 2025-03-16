@@ -38,3 +38,8 @@ export const formatDateyyyymmdd = (dateString: string): string | undefined => {
   const day = (`0${date.getDate()}`).slice(-2);
   return `${year}/${month}/${day}`;
 };
+
+export const generateImageName = (prefix?: string): string => {
+  const currentDate = new Date().toISOString().replace(/[:.]/g, '-');
+  return prefix ? `${prefix}_${currentDate}` : currentDate;
+};

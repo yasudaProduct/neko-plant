@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { Leaf } from "lucide-react";
+import { Leaf, PawPrint } from "lucide-react";
 import { DropdownMenu } from "./HeaderDropMenu";
 import { createClient } from "@/lib/supabase/server";
 import { getUserProfileByAuthId } from "@/actions/user-action";
@@ -18,6 +18,7 @@ export default async function Header() {
     <header className="bg-[#2d5a27] text-primary-foreground p-4">
       <div className="max-w-6xl mx-auto flex justify-between items-center">
         <Link href="/" className="flex items-center gap-2 text-xl font-medium">
+          <PawPrint className="w-6 h-6" />
           <Leaf className="w-6 h-6" />
           猫と植物
         </Link>

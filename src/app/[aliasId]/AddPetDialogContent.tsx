@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import {
+  Dialog,
   DialogClose,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +37,7 @@ import { getImageData } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Image from "next/image";
 import { DatePicker } from "@/components/ui/datepicker";
+import { PetCard } from "./CardContent";
 interface AddPetModalProps {
   pet?: Pet;
   nekoSpecies: NekoSpecies[];
@@ -96,6 +99,7 @@ export default function AddPetDialogContent({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [preview, setPreview] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: pet
@@ -127,6 +131,7 @@ export default function AddPetDialogContent({
       success({
         title: "飼い猫を削除しました",
       });
+      setIsOpen(false);
     } catch {
       error({
         title: "飼い猫の削除に失敗しました",
@@ -180,6 +185,7 @@ export default function AddPetDialogContent({
           title: "飼い猫を追加しました",
         });
       }
+      setIsOpen(false);
     } catch {
       error({
         title: pet
@@ -194,190 +200,212 @@ export default function AddPetDialogContent({
   };
 
   return (
-    <DialogContent>
-      <Form {...form}>
-        <DialogHeader>
-          <DialogTitle>
-            {pet ? "飼い猫を更新する" : "飼い猫を追加する"}
-          </DialogTitle>
-          {pet && (
-            <div className="flex items-center gap-2">
-              <Avatar className="w-24 h-24">
-                <Image
-                  src={pet.imageSrc ?? "/images/cat_default.png"}
-                  alt="プロフィール画像"
-                  width={96}
-                  height={96}
-                />
-                <AvatarFallback className="bg-muted"></AvatarFallback>
-              </Avatar>
-              <div>
-                <h2 className="text-xl font-semibold">{pet.name}</h2>
-                <p className="text-gray-500">{pet.neko.name}</p>
-              </div>
-            </div>
-          )}
-        </DialogHeader>
-
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>飼い猫の名前</FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      id="name"
-                      type="text"
-                      placeholder="例：ミケ"
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="species"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>猫種</FormLabel>
-                  <Select
-                    {...field}
-                    value={field.value.toString()}
-                    onValueChange={(value) => field.onChange(Number(value))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="猫種を選択" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {nekoSpecies.map((nekoSpecies) => (
-                        <SelectItem
-                          key={nekoSpecies.id}
-                          value={nekoSpecies.id.toString()}
-                        >
-                          {nekoSpecies.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <label htmlFor="image" className="block text-sm font-medium">
-              新しいプロフィール画像
-            </label>
-            <Input
-              id="image"
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-            />
-            {form.formState.errors.image && (
-              <p className="text-red-500 text-sm">
-                {form.formState.errors.image.message as string}
-              </p>
-            )}
-
-            <div className="aspect-video max-w-[560px] flex justify-center items-center">
-              {preview ? (
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+      <DialogTrigger asChild>
+        {pet ? (
+          <button type="button">
+            <PetCard pet={pet} authFlg={true} />
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-green-500 transition-colors flex items-center justify-center"
+          >
+            <span className="text-gray-500">+ 新しい飼い猫を追加</span>
+          </button>
+        )}
+      </DialogTrigger>
+      <DialogContent>
+        <Form {...form}>
+          <DialogHeader>
+            <DialogTitle>
+              {pet ? "飼い猫を更新する" : "飼い猫を追加する"}
+            </DialogTitle>
+            {pet && (
+              <div className="flex items-center gap-2">
                 <Avatar className="w-24 h-24">
-                  <AvatarImage
-                    src={preview}
+                  <Image
+                    src={pet.imageSrc ?? "/images/cat_default.png"}
                     alt="プロフィール画像"
                     width={96}
                     height={96}
                   />
                   <AvatarFallback className="bg-muted"></AvatarFallback>
                 </Avatar>
-              ) : (
-                <div className="w-full h-full bg-background/70 rounded-lg border flex justify-center items-center"></div>
-              )}
-            </div>
+                <div>
+                  <h2 className="text-xl font-semibold">{pet.name}</h2>
+                  <p className="text-gray-500">{pet.neko.name}</p>
+                </div>
+              </div>
+            )}
+          </DialogHeader>
 
-            <div className="flex flex-col gap-2">
+          <form onSubmit={form.handleSubmit(onSubmit)}>
+            <div className="space-y-4">
               <FormField
                 control={form.control}
-                name="sex"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>性別</FormLabel>
+                    <FormLabel>飼い猫の名前</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        id="name"
+                        type="text"
+                        placeholder="例：ミケ"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="species"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>猫種</FormLabel>
                     <Select
                       {...field}
-                      value={field.value?.toString() ?? ""}
-                      onValueChange={(value) => field.onChange(value)}
+                      value={field.value.toString()}
+                      onValueChange={(value) => field.onChange(Number(value))}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="性別を選択" />
+                        <SelectValue placeholder="猫種を選択" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value={SexType.MALE}>おとこのこ</SelectItem>
-                        <SelectItem value={SexType.FEMALE}>
-                          おんなのこ
-                        </SelectItem>
+                        {nekoSpecies.map((nekoSpecies) => (
+                          <SelectItem
+                            key={nekoSpecies.id}
+                            value={nekoSpecies.id.toString()}
+                          >
+                            {nekoSpecies.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="age"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>年齢</FormLabel>
-                    <Input {...field} type="number" placeholder="例：3" />
-                    <FormMessage />
-                  </FormItem>
-                )}
+
+              <label htmlFor="image" className="block text-sm font-medium">
+                新しいプロフィール画像
+              </label>
+              <Input
+                id="image"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
               />
-              <FormField
-                control={form.control}
-                name="birthday"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>誕生日</FormLabel>
-                    <DatePicker field={field} />
-                    <FormMessage />
-                  </FormItem>
+              {form.formState.errors.image && (
+                <p className="text-red-500 text-sm">
+                  {form.formState.errors.image.message as string}
+                </p>
+              )}
+
+              <div className="aspect-video max-w-[560px] flex justify-center items-center">
+                {preview ? (
+                  <Avatar className="w-24 h-24">
+                    <AvatarImage
+                      src={preview}
+                      alt="プロフィール画像"
+                      width={96}
+                      height={96}
+                    />
+                    <AvatarFallback className="bg-muted"></AvatarFallback>
+                  </Avatar>
+                ) : (
+                  <div className="w-full h-full bg-background/70 rounded-lg border flex justify-center items-center"></div>
                 )}
-              />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <FormField
+                  control={form.control}
+                  name="sex"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>性別</FormLabel>
+                      <Select
+                        {...field}
+                        value={field.value?.toString() ?? ""}
+                        onValueChange={(value) => field.onChange(value)}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="性別を選択" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value={SexType.MALE}>
+                            おとこのこ
+                          </SelectItem>
+                          <SelectItem value={SexType.FEMALE}>
+                            おんなのこ
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="age"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>年齢</FormLabel>
+                      <Input {...field} type="number" placeholder="例：3" />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="birthday"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>誕生日</FormLabel>
+                      <DatePicker field={field} />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
-          </div>
-          <DialogFooter className="flex justify-end mt-4">
-            <DialogClose asChild>
-              <Button variant="secondary" onClick={handleClose}>
-                キャンセル
-              </Button>
-            </DialogClose>
-            {!pet ? (
-              <Button type="submit" variant="default" disabled={isSubmitting}>
-                {isSubmitting ? "保存中..." : "保存"}
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant={"destructive"}
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                >
-                  {isDeleting ? "削除中..." : "削除"}
+            <DialogFooter className="flex justify-end mt-4">
+              <DialogClose asChild>
+                <Button variant="secondary" onClick={handleClose}>
+                  キャンセル
                 </Button>
+              </DialogClose>
+              {!pet ? (
                 <Button type="submit" variant="default" disabled={isSubmitting}>
-                  {isSubmitting ? "更新中..." : "更新"}
+                  {isSubmitting ? "保存中..." : "保存"}
                 </Button>
-              </>
-            )}
-          </DialogFooter>
-        </form>
-      </Form>
-    </DialogContent>
+              ) : (
+                <>
+                  <Button
+                    variant={"destructive"}
+                    onClick={handleDelete}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? "削除中..." : "削除"}
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="default"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting ? "更新中..." : "更新"}
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 }

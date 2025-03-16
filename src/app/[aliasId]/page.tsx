@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Dialog, DialogTrigger } from "@/components/ui/dialog";
 import Image from "next/image";
 import AddPetDialogContent from "./AddPetDialogContent";
 import {
@@ -21,8 +20,7 @@ import {
   getUserProfile,
 } from "@/actions/user-action";
 import { getNekoSpecies } from "@/actions/neko-action";
-import { Pet } from "../types/neko";
-import PlantContent, { FavoriteContent } from "./CardContent";
+import PlantContent, { FavoriteContent, PetCard } from "./CardContent";
 
 export default async function ProfilePage({
   params,
@@ -101,15 +99,11 @@ export default async function ProfilePage({
               {user && userProfile.authId === user.id
                 ? pets &&
                   pets.map((pet) => (
-                    <Dialog key={pet.id}>
-                      <DialogTrigger asChild>
-                        <PetCard pet={pet} authFlg={true} />
-                      </DialogTrigger>
-                      <AddPetDialogContent
-                        pet={pet}
-                        nekoSpecies={neko_species || []}
-                      />
-                    </Dialog>
+                    <AddPetDialogContent
+                      key={pet.id}
+                      pet={pet}
+                      nekoSpecies={neko_species || []}
+                    />
                   ))
                 : pets &&
                   pets.map((pet) => (
@@ -117,17 +111,7 @@ export default async function ProfilePage({
                   ))}
 
               {user && userProfile.authId === user.id && (
-                <Dialog>
-                  <DialogTrigger asChild>
-                    <button
-                      type="button"
-                      className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-green-500 transition-colors flex items-center justify-center"
-                    >
-                      <span className="text-gray-500">+ 新しい猫を追加</span>
-                    </button>
-                  </DialogTrigger>
-                  <AddPetDialogContent nekoSpecies={neko_species || []} />
-                </Dialog>
+                <AddPetDialogContent nekoSpecies={neko_species || []} />
               )}
             </div>
           </div>
@@ -203,46 +187,6 @@ export default async function ProfilePage({
                   ))}
             </div>
           </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-interface PetCardProp {
-  pet: Pet;
-  authFlg: boolean;
-}
-
-function PetCard({ pet, authFlg }: PetCardProp) {
-  return (
-    <div
-      className={`min-w-full bg-gray-50 rounded-lg p-4 border-2 border-solid border-gray-50 ${
-        authFlg ? "hover:border-green-500" : ""
-      }`}
-    >
-      <div className="flex items-start space-x-4">
-        {pet.imageSrc ? (
-          <Image
-            src={pet.imageSrc}
-            alt={pet.name}
-            width={80}
-            height={80}
-            className="w-20 h-20 rounded-lg object-cover"
-          />
-        ) : (
-          <div className="w-20 h-20 rounded-lg bg-gray-200 flex items-center justify-center">
-            <Cat className="w-10 h-10 text-gray-400" />
-          </div>
-        )}
-        <div>
-          <h3 className="font-medium">{pet.name}</h3>
-          <p className="text-sm text-gray-600">{pet.neko.name}</p>
-          {/* {user && user_profiles.auth_id === user.id && (
-            <button type="button" className="text-red-500 text-sm mt-2">
-              削除
-            </button>
-          )} */}
         </div>
       </div>
     </div>

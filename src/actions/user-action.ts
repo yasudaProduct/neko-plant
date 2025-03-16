@@ -165,10 +165,13 @@ export async function updateUserImage(image: File) {
 
     await prisma.$transaction(async (prisma) => {
 
+        const currentDate = new Date().toISOString().replace(/[:.]/g, '-');
+        const imageName = `profile_image_${currentDate}`;
+
         // 1. 画像をアップロード
         const { error } = await supabase.storage
             .from("user_profiles")
-            .upload(`/${userData.auth_id}/profile_image.png`, image, {
+            .upload(`/${userData.auth_id}/${imageName}`, image, {
                 upsert: true,
             });
 
@@ -182,7 +185,7 @@ export async function updateUserImage(image: File) {
                 id: userData.id,
             },
             data: {
-                image: `${userData.auth_id}/profile_image.png`,
+                image: `${userData.auth_id}/${imageName}`,
             },
         });
     })

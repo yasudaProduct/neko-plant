@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sprout } from "lucide-react";
 import { addHave, deleteHave } from "@/actions/plant-action";
 import { useState } from "react";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface HaveButtonProps {
   plantId: number;
@@ -12,6 +12,7 @@ interface HaveButtonProps {
 }
 
 export default function HaveButton({ plantId, isHave }: HaveButtonProps) {
+  const { success, error } = useToast();
   const [isHaveState, setIsHaveState] = useState(isHave);
 
   const handleClick = async () => {
@@ -19,12 +20,13 @@ export default function HaveButton({ plantId, isHave }: HaveButtonProps) {
       setIsHaveState(false);
       const result = await deleteHave(plantId);
       if (result.success) {
-        toast({
+        success({
           title: "削除しました。",
         });
       } else {
-        toast({
+        error({
           title: "削除に失敗しました。",
+          description: result.message,
         });
         setIsHaveState(true);
       }
@@ -32,12 +34,13 @@ export default function HaveButton({ plantId, isHave }: HaveButtonProps) {
       setIsHaveState(true);
       const result = await addHave(plantId);
       if (result.success) {
-        toast({
+        success({
           title: "追加しました。",
         });
       } else {
-        toast({
+        error({
           title: "追加に失敗しました。",
+          description: result.message,
         });
         setIsHaveState(false);
       }

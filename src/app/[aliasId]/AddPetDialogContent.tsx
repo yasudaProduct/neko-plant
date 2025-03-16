@@ -30,7 +30,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { addPet, deletePet, updatePet } from "@/actions/user-action";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { getImageData } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Image from "next/image";
@@ -92,6 +92,7 @@ export default function AddPetDialogContent({
   pet,
   nekoSpecies,
 }: AddPetModalProps) {
+  const { success, error } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [preview, setPreview] = useState("");
@@ -123,12 +124,14 @@ export default function AddPetDialogContent({
 
     try {
       await deletePet(pet.id);
-      toast({
+      success({
         title: "飼い猫を削除しました",
       });
     } catch {
-      toast({
+      error({
         title: "飼い猫の削除に失敗しました",
+        description:
+          "再度試していただくか、サイト管理者にお問い合わせください。",
       });
     } finally {
       setIsDeleting(false);
@@ -161,7 +164,7 @@ export default function AddPetDialogContent({
           data.birthday,
           data.age
         );
-        toast({
+        success({
           title: "飼い猫を更新しました",
         });
       } else {
@@ -173,15 +176,17 @@ export default function AddPetDialogContent({
           data.birthday,
           data.age
         );
-        toast({
+        success({
           title: "飼い猫を追加しました",
         });
       }
     } catch {
-      toast({
+      error({
         title: pet
           ? "飼い猫の更新に失敗しました"
           : "飼い猫の追加に失敗しました",
+        description:
+          "再度試していただくか、サイト管理者にお問い合わせください。",
       });
     } finally {
       setIsSubmitting(false);

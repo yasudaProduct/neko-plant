@@ -11,7 +11,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SubmitButton } from "@/components/submit-button";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { deletePlant, updatePlant } from "@/actions/plant-action";
 import Link from "next/link";
 import { Plant } from "@/app/types/plant";
@@ -45,6 +45,7 @@ interface PlantEditFormProps {
 }
 
 export default function PlantEditForm({ plant }: PlantEditFormProps) {
+  const { success, error } = useToast();
   const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -70,12 +71,12 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
     const result = await updatePlant(plant.id, editPlant);
 
     if (result.success) {
-      toast({
+      success({
         title: "植物を更新しました",
       });
       router.push(`/plants/${result.plantId}`);
     } else {
-      toast({
+      error({
         title: "植物の更新に失敗しました",
         description: (
           <>
@@ -107,20 +108,21 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
     try {
       const result = await deletePlant(plant.id);
       if (result.success) {
-        toast({
+        success({
           title: "植物を削除しました",
         });
         router.push("/plants");
       } else {
-        toast({
+        error({
           title: "植物の削除に失敗しました",
           description: result.message,
         });
       }
-    } catch (error) {
-      toast({
+    } catch {
+      error({
         title: "植物の削除に失敗しました",
-        description: error instanceof Error ? error.message : "不明なエラー",
+        description:
+          "再度試していただくか、サイト管理者にお問い合わせください。",
       });
     }
   };

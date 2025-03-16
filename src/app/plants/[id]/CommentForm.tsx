@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/form";
 import { useState } from "react";
 import { addEvaluation } from "@/actions/evaluation-action";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   comment: z.string().min(1, {
@@ -29,6 +29,7 @@ const formSchema = z.object({
 });
 
 export default function CommentForm({ plantId }: { plantId: number }) {
+  const { success, error } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -44,12 +45,14 @@ export default function CommentForm({ plantId }: { plantId: number }) {
 
     try {
       await addEvaluation(plantId, values.comment, values.type);
-      toast({
-        title: "評価を投稿しました",
+      success({
+        title: "植物の評価を投稿しました",
       });
     } catch {
-      toast({
+      error({
         title: "評価投稿に失敗しました。",
+        description:
+          "再度試していただくか、サイト管理者にお問い合わせください。",
       });
     } finally {
       setIsSubmitting(false);

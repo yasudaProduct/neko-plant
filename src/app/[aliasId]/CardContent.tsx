@@ -4,7 +4,7 @@ import { Plant } from "../types/plant";
 import Image from "next/image";
 import { X } from "lucide-react";
 import { deleteFavoritePlant, deleteHavePlant } from "@/actions/user-action";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
 interface PlantCardProp {
@@ -13,19 +13,20 @@ interface PlantCardProp {
 }
 
 export default function PlantContent({ plant, authFlg }: PlantCardProp) {
+  const { success, error } = useToast();
   const router = useRouter();
 
   const handleDelete = async () => {
     try {
       await deleteHavePlant(plant.id);
-      toast({
-        title: "削除しました",
-        description: "飼ってる植物から削除しました",
+      success({
+        title: "飼ってる植物リストから削除しました",
       });
-    } catch (error) {
-      console.error(error);
-      toast({
+    } catch {
+      error({
         title: "削除に失敗しました",
+        description:
+          "再度試していただくか、サイト管理者にお問い合わせください。",
       });
     }
   };
@@ -70,18 +71,20 @@ interface FavoriteContentProp {
 }
 
 export function FavoriteContent({ plant, authFlg }: FavoriteContentProp) {
+  const { success, error } = useToast();
   const router = useRouter();
 
   const handleDelete = async () => {
     try {
       await deleteFavoritePlant(plant.id);
-      toast({
+      success({
         title: "削除しました",
-        description: "お気に入りから削除しました",
       });
     } catch {
-      toast({
+      error({
         title: "削除に失敗しました",
+        description:
+          "再度試していただくか、サイト管理者にお問い合わせください。",
       });
     }
   };

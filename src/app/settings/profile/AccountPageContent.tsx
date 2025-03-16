@@ -18,7 +18,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import Image from "next/image";
 import { updateUser } from "@/actions/user-action";
@@ -41,7 +41,7 @@ const userProfileSchema = z.object({
 
 export default function AccountPageContent({ userProfile }: UserProfileProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const { success, error } = useToast();
   const form = useForm<z.infer<typeof userProfileSchema>>({
     resolver: zodResolver(userProfileSchema),
     defaultValues: {
@@ -55,13 +55,14 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
       setIsSubmitting(true);
       await updateUser(formData.name, formData.aliasId);
 
-      toast({
+      success({
         title: "更新しました",
       });
-    } catch (error) {
-      toast({
+    } catch {
+      error({
         title: "更新に失敗しました",
-        description: error instanceof Error ? error.message : "不明なエラー",
+        description:
+          "再度試していただくか、サイト管理者にお問い合わせください。",
       });
     } finally {
       setIsSubmitting(false);

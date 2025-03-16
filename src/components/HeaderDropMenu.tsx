@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import Link from "next/link";
 import { LogOut, Settings, SquareUserRound } from "lucide-react";
 import { signOut } from "@/lib/supabase/auth-google";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 
 interface DropdownMenuProps {
@@ -22,7 +22,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
-
+  const { success, error } = useToast();
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -56,16 +56,15 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
     try {
       await signOut();
 
-      toast({
+      success({
         title: "ログアウトしました",
       });
       router.push("/");
-    } catch (error) {
-      console.error("ログアウトエラー:", error);
-
-      toast({
+    } catch {
+      error({
         title: "ログアウトに失敗しました",
-        description: error instanceof Error ? error.stack : "不明なエラー",
+        description:
+          "再度試していただくか、サイト管理者にお問い合わせください。",
       });
     } finally {
       handleMenuItemClick();

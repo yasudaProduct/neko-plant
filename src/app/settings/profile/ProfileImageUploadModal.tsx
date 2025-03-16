@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { updateUserImage } from "@/actions/user-action";
 
 const profileImageUploadSchema = z.object({
@@ -56,7 +56,7 @@ type ProfileImageUploadFormData = z.infer<typeof profileImageUploadSchema>;
 export default function ProfileImageUploadModal({}: ProfileImageUploadModalProps) {
   const [preview, setPreview] = useState("");
   const [isSubmiting, setIsSubmiting] = useState(false);
-
+  const { success, error } = useToast();
   const {
     handleSubmit,
     formState: { errors },
@@ -71,12 +71,14 @@ export default function ProfileImageUploadModal({}: ProfileImageUploadModalProps
 
     try {
       await updateUserImage(values.image);
-      toast({
+      success({
         title: "プロフィール画像を変更しました。",
       });
     } catch {
-      toast({
+      error({
         title: "画像のアップロードに失敗しました。",
+        description:
+          "再度試していただくか、サイト管理者にお問い合わせください。",
       });
     } finally {
       setIsSubmiting(false);

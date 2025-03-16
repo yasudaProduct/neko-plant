@@ -12,7 +12,7 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { SubmitButton } from "@/components/submit-button";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { addPlant } from "@/actions/plant-action";
 import Link from "next/link";
 
@@ -38,6 +38,7 @@ const plantSchema = z.object({
 type PlantFormData = z.infer<typeof plantSchema>;
 
 export default function RegisterPlant() {
+  const { success, error } = useToast();
   const router = useRouter();
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -59,12 +60,12 @@ export default function RegisterPlant() {
     const result = await addPlant(newPlant.name, newPlant.image);
 
     if (result.success) {
-      toast({
+      success({
         title: "植物を登録しました",
       });
       router.push(`/plants/${result.plantId}`);
     } else {
-      toast({
+      error({
         title: "植物を登録に失敗しました",
         description: (
           <>

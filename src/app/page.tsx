@@ -3,7 +3,7 @@
 import PlantCard, { PlantCardProps } from "@/components/PlantCard";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { Plant } from "./types/plant";
 import { getPlants, searchPlants } from "@/actions/plant-action";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -25,7 +25,8 @@ import { Pagination } from "@/components/ui/pagination";
 // 1ページあたりの表示件数
 const PAGE_SIZE = 6;
 
-export default function Home() {
+// 検索パラメータを使用するコンポーネント
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
@@ -293,5 +294,64 @@ export default function Home() {
         )}
       </main>
     </div>
+  );
+}
+
+// ローディング状態を表示するコンポーネント
+function HomeLoading() {
+  return (
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1 py-12 px-4 bg-gradient-to-b from-background to-secondary/30">
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-4xl font-bold text-primary mb-4">
+            植物は猫に安全？
+          </h1>
+          <p className="text-muted-foreground mb-8">
+            猫と暮らす飼い主さんの実体験をもとに、植物の安全性を確認できます
+          </p>
+        </div>
+
+        <div className="relative max-w-2xl mx-auto mb-12">
+          <div className="relative">
+            <Skeleton className="w-full h-14" />
+          </div>
+        </div>
+
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-xl font-semibold">
+            <Skeleton className="w-[150px] h-[28px]" />
+          </h2>
+          <div className="flex items-center gap-2">
+            <Skeleton className="w-[180px] h-[40px]" />
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {Array.from({ length: PAGE_SIZE }).map((_, index) => (
+            <Card key={`skeleton-${index}`} className="w-full h-full">
+              <CardHeader>
+                <Skeleton className="w-full h-48" />
+              </CardHeader>
+              <CardContent>
+                <Skeleton className="w-[200px] h-[20px] rounded-full mb-2" />
+                <div className="flex gap-2">
+                  <Skeleton className="w-[50px] h-[16px] rounded-full" />
+                  <Skeleton className="w-[50px] h-[16px] rounded-full" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+// メインのエクスポートコンポーネント
+export default function Home() {
+  return (
+    <Suspense fallback={<HomeLoading />}>
+      <HomeContent />
+    </Suspense>
   );
 }

@@ -2,7 +2,7 @@
 
 import { Plant } from "../types/plant";
 import Image from "next/image";
-import { X } from "lucide-react";
+import { Leaf, X } from "lucide-react";
 import { deleteFavoritePlant, deleteHavePlant } from "@/actions/user-action";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -41,13 +41,19 @@ export default function PlantContent({ plant, authFlg }: PlantCardProp) {
       }}
     >
       <div className="flex items-start space-x-4">
-        <Image
-          src={plant.imageUrl || "/images/cat_default.png"}
-          alt={plant.name}
-          width={80}
-          height={80}
-          className="w-20 h-20 rounded-lg object-cover"
-        />
+        {plant.imageUrl ? (
+          <Image
+            src={plant.imageUrl}
+            alt={plant.name}
+            width={80}
+            height={80}
+            className="w-20 h-20 rounded-lg object-cover"
+          />
+        ) : (
+          <div className="min-w-[80px] min-h-[80px] rounded-lg bg-gray-200 flex items-center justify-center">
+            <Leaf className="w-10 h-10 text-gray-400" />
+          </div>
+        )}
         <div className="flex items-center justify-between w-full">
           <h3 className="font-medium">{plant.name}</h3>
           {authFlg && (
@@ -99,13 +105,19 @@ export function FavoriteContent({ plant, authFlg }: FavoriteContentProp) {
       }}
     >
       <div className="flex items-start space-x-4">
-        <Image
-          src={plant.imageUrl || "/images/cat_default.png"}
-          alt={plant.name}
-          width={80}
-          height={80}
-          className="w-20 h-20 rounded-lg object-cover"
-        />
+        {plant.imageUrl ? (
+          <Image
+            src={plant.imageUrl}
+            alt={plant.name}
+            width={80}
+            height={80}
+            className="w-20 h-20 rounded-lg object-cover"
+          />
+        ) : (
+          <div className="min-w-[80px] min-h-[80px] rounded-lg bg-gray-200 flex items-center justify-center">
+            <Leaf className="w-10 h-10 text-gray-400" />
+          </div>
+        )}
         <div className="flex items-center justify-between w-full">
           <h3 className="font-medium">{plant.name}</h3>
           {authFlg && (

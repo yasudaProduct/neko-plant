@@ -1,4 +1,4 @@
-import { Heart, Skull } from "lucide-react";
+import { Heart, Leaf, Skull } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -31,7 +31,8 @@ export default function PlantCard({
           <Image src={imageSrc} alt={name} fill className="object-cover" />
         ) : (
           <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-            <span className="text-gray-400">No image</span>
+            <Leaf className="w-10 h-10 text-gray-400" />
+            <span className="text-gray-400 ml-2">No image</span>
           </div>
         )}
       </div>

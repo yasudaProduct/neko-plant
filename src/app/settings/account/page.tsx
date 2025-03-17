@@ -6,6 +6,7 @@ import EmailChangeModal from "./EmailChangeModal";
 import WithdrawalModal from "./WithdrawalModal";
 import PasswordChangeModal from "./PasswordChangeModal";
 import { getUserProfileByAuthId } from "@/actions/user-action";
+import { FcGoogle } from "react-icons/fc";
 
 export default async function AccountPage() {
   const supabase = await createClient();
@@ -29,12 +30,15 @@ export default async function AccountPage() {
           <div>
             <div className="flex items-center gap-2 mb-2">
               <h2 className="font-medium">メールアドレス</h2>
-              <Info className="h-4 w-4 text-muted-foreground" />
+              {/* <Info className="h-4 w-4 text-muted-foreground" /> */}
             </div>
             <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
           {user.app_metadata.provider === "google" ? (
-            <p className="text-sm text-muted-foreground">Google</p>
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <FcGoogle className="w-4 h-4" />
+              Google
+            </p>
           ) : (
             <EmailChangeModal currentEmail={user.email || ""} />
           )}

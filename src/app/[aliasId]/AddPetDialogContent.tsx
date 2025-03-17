@@ -38,6 +38,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import Image from "next/image";
 import { DatePicker } from "@/components/ui/datepicker";
 import { PetCard } from "./CardContent";
+import { Cat } from "lucide-react";
 interface AddPetModalProps {
   pet?: Pet;
   nekoSpecies: NekoSpecies[];
@@ -223,15 +224,20 @@ export default function AddPetDialogContent({
             </DialogTitle>
             {pet && (
               <div className="flex items-center gap-2">
-                <Avatar className="w-24 h-24">
-                  <Image
-                    src={pet.imageSrc ?? "/images/cat_default.png"}
-                    alt="プロフィール画像"
-                    width={96}
-                    height={96}
-                  />
-                  <AvatarFallback className="bg-muted"></AvatarFallback>
-                </Avatar>
+                {pet.imageSrc ? (
+                  <Avatar className="w-24 h-24">
+                    <Image
+                      src={pet.imageSrc}
+                      alt="プロフィール画像"
+                      width={96}
+                      height={96}
+                    />
+                  </Avatar>
+                ) : (
+                  <div className="w-20 h-20 rounded-lg bg-gray-200 flex items-center justify-center">
+                    <Cat className="w-10 h-10 text-gray-400" />
+                  </div>
+                )}
                 <div>
                   <h2 className="text-xl font-semibold">{pet.name}</h2>
                   <p className="text-gray-500">{pet.neko.name}</p>

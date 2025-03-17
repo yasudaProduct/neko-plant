@@ -199,7 +199,7 @@ function HomeContent() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6">
+        <div className="grid md:grid-cols-4 gap-6">
           {isSearching ? (
             // 検索中はスケルトンUIを表示
             <>

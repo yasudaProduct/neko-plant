@@ -82,7 +82,13 @@ export default function CommentForm({ plantId }: { plantId: number }) {
                       }
                       onClick={() => field.onChange(EvaluationType.GOOD)}
                     >
-                      <Heart className="w-4 h-4 text-red-500" />
+                      <Heart
+                        className={`w-4 h-4 ${
+                          field.value === EvaluationType.GOOD
+                            ? "text-white"
+                            : "text-red-500"
+                        }`}
+                      />
                       Good
                     </Button>
                     <Button

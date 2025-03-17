@@ -13,28 +13,34 @@ export default function RatingBar({
   return (
     <div className="flex items-center gap-2 mb-6">
       <div className="flex items-center gap-1">
-        <Heart className="w-4 h-4 text-red-500" />
-        <span className="text-sm">{likes}</span>
+        <Heart className="w-8 h-8 text-red-500" />
+        <span className="text-md">{likes}</span>
       </div>
-      <div className="flex-1 h-2 rounded-full overflow-hidden flex">
-        <div
-          className="h-full"
-          style={{
-            width: `${likePercent}%`,
-            backgroundColor: "#56c577",
-          }}
-        />
-        <div
-          className="h-full"
-          style={{
-            width: `${dislikePercent}%`,
-            backgroundColor: "#ff8b81",
-          }}
-        />
-      </div>
+      {total > 0 ? (
+        <div className="flex-1 h-2 rounded-full overflow-hidden flex">
+          <div
+            className="h-full"
+            style={{
+              width: `${likePercent}%`,
+              backgroundColor: "#56c577",
+            }}
+          />
+          <div
+            className="h-full"
+            style={{
+              width: `${dislikePercent}%`,
+              backgroundColor: "#ff8b81",
+            }}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 h-5 overflow-hidden flex items-center justify-center">
+          <div className="text-sm text-gray-500">評価がまだありません</div>
+        </div>
+      )}
       <div className="flex items-center gap-1">
-        <Skull className="w-4 h-4 text-indigo-500" />
-        <span className="text-sm">{dislikes}</span>
+        <Skull className="w-8 h-8 text-indigo-500" />
+        <span className="text-md">{dislikes}</span>
       </div>
     </div>
   );

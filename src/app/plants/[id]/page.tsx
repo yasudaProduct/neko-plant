@@ -9,7 +9,7 @@ import { Plant } from "@/app/types/plant";
 import { notFound } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { Leaf, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import FavoriteButton from "./FavoriteButton";
 import HaveButton from "./HaveButton";
@@ -46,13 +46,22 @@ export default async function PlantPage({
       <div className="p-4">
         <Card className="overflow-hidden">
           <CardHeader className="p-0 relative">
-            <Image
-              src={plant.imageUrl ?? "/images/400x400.png"}
-              alt="Monstera plant"
-              width={600}
-              height={400}
-              className="w-full h-[300px] object-cover bg-gray-200"
-            />
+            {plant.imageUrl ? (
+              <Image
+                src={plant.imageUrl}
+                alt={plant.name}
+                width={600}
+                height={400}
+                className="w-full h-[300px] object-contain bg-gray-100"
+                quality={90}
+                priority
+              />
+            ) : (
+              <div className="w-full h-[300px] bg-gray-100 flex items-center justify-center">
+                <Leaf className="w-10 h-10 text-gray-400" />
+                <span className="text-gray-400 ml-2">No image</span>
+              </div>
+            )}
             {user?.id && (
               <div className="absolute top-2 right-2">
                 <Link href={`/plants/${plant.id}/edit`}>
@@ -99,7 +108,7 @@ export default async function PlantPage({
                 </div>
               </div>
               <div>
-                <h3 className="text-lg font-semibold text-red-600 mb-2">
+                <h3 className="text-lg font-semibold text-indigo-500 mb-2">
                   悪い評価
                 </h3>
                 <div className="space-y-4 max-h-[300px] md:max-h-[500px] overflow-y-auto">

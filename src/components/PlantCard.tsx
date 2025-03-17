@@ -28,7 +28,22 @@ export default function PlantCard({
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
       <div className="relative h-48 w-full">
         {imageSrc ? (
-          <Image src={imageSrc} alt={name} fill className="object-cover" />
+          <div className="relative h-full w-full">
+            <Image
+              src={imageSrc}
+              alt={name}
+              fill
+              className="object-cover blur-md"
+              quality={90}
+            />
+            <Image
+              src={imageSrc}
+              alt={name}
+              fill
+              className="object-contain absolute top-0 left-0"
+              quality={90}
+            />
+          </div>
         ) : (
           <div className="w-full h-full bg-gray-200 flex items-center justify-center">
             <Leaf className="w-10 h-10 text-gray-400" />

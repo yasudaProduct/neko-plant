@@ -23,7 +23,7 @@ import {
 import { Pagination } from "@/components/ui/pagination";
 
 // 1ページあたりの表示件数
-const PAGE_SIZE = 6;
+const PAGE_SIZE = 8;
 
 // 検索パラメータを使用するコンポーネント
 function HomeContent() {
@@ -199,7 +199,7 @@ function HomeContent() {
           </div>
         </div>
 
-        <div className="grid md:grid-cols-4 gap-6">
+        <div className="grid md:grid-cols-4 max-md:grid-cols-2 gap-6">
           {isSearching ? (
             // 検索中はスケルトンUIを表示
             <>
@@ -227,32 +227,18 @@ function HomeContent() {
               </div>
             ) : (
               <>
-                <Card className="w-full h-full">
-                  <CardContent>
-                    <CardHeader>
-                      <Skeleton className="w-full h-48" />
-                    </CardHeader>
+                {Array.from({ length: PAGE_SIZE }).map((_, index) => (
+                  <Card key={`skeleton-${index}`} className="w-full h-full">
                     <CardContent>
-                      <Skeleton className="w-[200px] h-[20px] rounded-full" />
+                      <CardHeader>
+                        <Skeleton className="w-full h-48" />
+                      </CardHeader>
+                      <CardContent>
+                        <Skeleton className="w-[200px] h-[20px] rounded-full" />
+                      </CardContent>
                     </CardContent>
-                  </CardContent>
-                </Card>
-                <Card className="w-full h-full">
-                  <CardHeader>
-                    <Skeleton className="w-full h-48" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="w-[200px] h-[20px] rounded-full" />
-                  </CardContent>
-                </Card>
-                <Card className="w-full h-full">
-                  <CardHeader>
-                    <Skeleton className="w-full h-48" />
-                  </CardHeader>
-                  <CardContent>
-                    <Skeleton className="w-[200px] h-[20px] rounded-full" />
-                  </CardContent>
-                </Card>
+                  </Card>
+                ))}
               </>
             )
           ) : (

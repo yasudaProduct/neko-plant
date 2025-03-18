@@ -2,11 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import {
   BookHeart,
   Cat,
+  Heart,
   Pencil,
+  Skull,
   Sprout,
   Star,
-  ThumbsDown,
-  ThumbsUp,
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -145,20 +145,25 @@ export default async function ProfilePage({
               <Star className="text-yellow-500" />
               評価一覧
             </h2>
-            {evaluations &&
-              evaluations.map((evaluation) => (
-                <div
-                  key={evaluation.id}
-                  className="flex items-center gap-2 bg-gray-50 p-4 rounded-lg"
-                >
-                  {evaluation.type === "good" ? (
-                    <ThumbsUp className="w-4 h-4" />
-                  ) : (
-                    <ThumbsDown className="w-4 h-4" />
-                  )}
-                  <p>{evaluation.comment}</p>
-                </div>
-              ))}
+            <div className="overflow-y-auto max-h-[300px]">
+              {evaluations &&
+                evaluations.map((evaluation) => (
+                  <div
+                    key={evaluation.id}
+                    className="flex items-center gap-2 bg-gray-50 p-4 rounded-lg mb-4 hover:bg-gray-100 transition-colors"
+                  >
+                    {evaluation.type === "good" ? (
+                      <Heart className="w-4 h-4 text-red-500" />
+                    ) : (
+                      <Skull className="w-4 h-4 text-indigo-500" />
+                    )}
+                    <p>{evaluation.comment}</p>
+                    <Link href={`/plants/${evaluation.plant.id}`}>
+                      <p>{evaluation.plant.name}</p>
+                    </Link>
+                  </div>
+                ))}
+            </div>
           </div>
 
           {/* お気に入り一覧 */}

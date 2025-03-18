@@ -17,11 +17,17 @@ export default async function Header() {
   return (
     <header className="bg-[#2d5a27] text-primary-foreground p-4">
       <div className="max-w-6xl mx-auto flex justify-between items-center">
-        <Link href="/" className="flex items-center gap-2 text-xl font-medium">
-          <PawPrint className="w-6 h-6" />
-          猫と植物
-          <Leaf className="w-6 h-6" />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            className="flex items-center gap-2 text-xl font-medium"
+          >
+            <PawPrint className="w-6 h-6" />
+            猫と植物
+            <Leaf className="w-6 h-6" />
+          </Link>
+          <span className="text-sm text-gray-100">Beta Version</span>
+        </div>
         <div className="flex items-center gap-2">
           {!session || !user ? (
             <Button className="bg-accent text-accent-foreground hover:bg-accent/90">

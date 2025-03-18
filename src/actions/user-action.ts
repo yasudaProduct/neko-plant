@@ -407,7 +407,7 @@ export async function deleteHavePlant(plantId: number) {
     revalidatePath(`/${userData.alias_id}`);
 }
 
-export async function getUserEvaluations(userId: number): Promise<Evaluation[] | undefined> {
+export async function getUserEvaluations(userId: number): Promise<(Evaluation & { plant: Plant })[] | undefined> {
     const evaluations = await prisma.evaluations.findMany({
         where: {
             user_id: userId,
@@ -430,6 +430,13 @@ export async function getUserEvaluations(userId: number): Promise<Evaluation[] |
             aliasId: evaluation.users?.alias_id ?? "",
             name: evaluation.users?.name ?? "",
             imageSrc: evaluation.users?.image ? STORAGE_PATH.USER_PROFILE + evaluation.users.image : undefined,
+        },
+        plant: {
+            id: evaluation.plants?.id,
+            name: evaluation.plants?.name,
+            imageUrl: evaluation.plants?.image_src ? STORAGE_PATH.PLANT + evaluation.plants.image_src : undefined,
+            isFavorite: false,
+            isHave: false,
         },
     }));
 }

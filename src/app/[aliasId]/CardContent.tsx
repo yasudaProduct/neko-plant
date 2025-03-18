@@ -63,7 +63,7 @@ export default function PlantContent({ plant, authFlg }: PlantCardProp) {
               className="p-1 text-red-500 hover:text-red-600 hover:border-red-500 hover:bg-red-500 rounded-md"
               onClick={handleDelete}
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 hover:text-white" />
             </button>
           )}
         </div>
@@ -127,7 +127,7 @@ export function FavoriteContent({ plant, authFlg }: FavoriteContentProp) {
               className="p-1 text-red-500 hover:text-red-600 hover:border-red-500 hover:bg-red-500 rounded-md"
               onClick={handleDelete}
             >
-              <X className="w-4 h-4" />
+              <X className="w-4 h-4 hover:text-white" />
             </button>
           )}
         </div>

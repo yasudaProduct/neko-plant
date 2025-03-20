@@ -1,7 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Input } from "./ui/input";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "./ui/button";
@@ -140,7 +140,7 @@ export default function PlantSearch() {
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
   return (
-    <Suspense fallback={<div>読み込み中...</div>}>
+    <>
       <div className="relative max-w-2xl mx-auto mb-12">
         <form onSubmit={handleSearch} className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
@@ -268,6 +268,6 @@ export default function PlantSearch() {
           createPageURL={createPageURL}
         />
       )}
-    </Suspense>
+    </>
   );
 }

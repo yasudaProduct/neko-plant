@@ -84,10 +84,14 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
           <AvatarImage src={userImage || undefined} alt={userName || "User"} />
           <AvatarFallback>{userName.charAt(0) || "U"}</AvatarFallback>
         </Avatar>
-        <span className="text-sm">{userName}</span>
+        <span className="text-sm max-sm:hidden">{userName}</span>
       </button>
       {isOpen && (
         <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 text-gray-700">
+          <div className="flex items-center gap-2 space-x-2 px-4 py-2">
+            <span className="sm:hidden">{userName}</span>
+          </div>
+          <hr className="sm:hidden" />
           <Link
             href={`/${aliasId}`}
             className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-100"

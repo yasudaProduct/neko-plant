@@ -42,7 +42,7 @@ export default async function PlantPage({
   );
 
   return (
-    <div className="container mx-auto w-3/5">
+    <div className="container mx-auto w-full 2xl:w-3/5">
       <div className="p-4">
         <Card className="overflow-hidden">
           <CardHeader className="p-0 relative">

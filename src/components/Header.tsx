@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { Leaf, PawPrint } from "lucide-react";
+import { Leaf, PawPrint, Sprout } from "lucide-react";
 import { DropdownMenu } from "./HeaderDropMenu";
 import { createClient } from "@/lib/supabase/server";
 import { getUserProfileByAuthId } from "@/actions/user-action";
@@ -20,7 +20,7 @@ export default async function Header() {
         <div className="flex items-center gap-2">
           <Link
             href="/"
-            className="flex items-center gap-2 text-xl font-medium"
+            className="flex items-center gap-2 text-xl max-sm:text-lg font-medium"
           >
             <PawPrint className="w-6 h-6" />
             猫と植物
@@ -37,7 +37,14 @@ export default async function Header() {
             </Button>
           ) : (
             <>
-              <Button variant="outline">
+              <Button variant="outline" className="w-10 h-10 sm:hidden">
+                <Link href="/plants/new" className="text-accent-foreground">
+                  <div className="flex items-center gap-2">
+                    <Sprout className="w-6 h-6 text-green-500" />
+                  </div>
+                </Link>
+              </Button>
+              <Button variant="outline" className="hidden sm:block">
                 <Link href="/plants/new" className="text-accent-foreground">
                   植物を追加
                 </Link>

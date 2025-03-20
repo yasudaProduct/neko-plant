@@ -19,17 +19,15 @@ export default function RatingBar({
       {total > 0 ? (
         <div className="flex-1 h-2 rounded-full overflow-hidden flex">
           <div
-            className="h-full"
+            className="h-full bg-red-500"
             style={{
               width: `${likePercent}%`,
-              backgroundColor: "#56c577",
             }}
           />
           <div
-            className="h-full"
+            className="h-full bg-indigo-500"
             style={{
               width: `${dislikePercent}%`,
-              backgroundColor: "#ff8b81",
             }}
           />
         </div>

@@ -35,7 +35,7 @@ export default function RootLayout({
         <div className="flex flex-col min-h-screen bg-green-50">
           <ProgressBar>
             <Header />
-            {children}
+            <div className="h-full flex-1">{children}</div>
             <Footer />
             <Toaster />
           </ProgressBar>

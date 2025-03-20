@@ -44,9 +44,12 @@ export default async function Header() {
                   </div>
                 </Link>
               </Button>
-              <Button variant="outline" className="hidden sm:block">
+              <Button variant="outline" className="hidden sm:block mr-2">
                 <Link href="/plants/new" className="text-accent-foreground">
-                  植物を追加
+                  <div className="flex items-center gap-2">
+                    <Sprout className="w-6 h-6 text-green-500" />
+                    <span className="text-sm">植物を追加</span>
+                  </div>
                 </Link>
               </Button>
               <DropdownMenu

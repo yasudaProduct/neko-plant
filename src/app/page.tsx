@@ -1,6 +1,7 @@
 "use client";
 
 import PlantSearch from "@/components/PlantSearch";
+import { Suspense } from "react";
 
 // 検索パラメータを使用するコンポーネント
 export default function Home() {
@@ -15,7 +16,11 @@ export default function Home() {
             猫と暮らす飼い主さんの実体験をもとに、植物の安全性を確認できます
           </p>
         </div>
-        <PlantSearch />
+        <Suspense
+          fallback={<div className="text-center mt-8">読み込み中...</div>}
+        >
+          <PlantSearch />
+        </Suspense>
       </main>
     </div>
   );

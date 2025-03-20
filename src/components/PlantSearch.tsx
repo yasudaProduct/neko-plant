@@ -13,9 +13,9 @@ import {
   SelectValue,
 } from "./ui/select";
 import { getPlants, searchPlants } from "@/actions/plant-action";
-import { Plant } from "@/app/types/plant";
+import { Plant } from "@/types/plant";
 import PlantCard, { PlantCardProps } from "./PlantCard";
-import { Evaluation, EvaluationType } from "@/app/types/evaluation";
+import { Evaluation, EvaluationType } from "@/types/evaluation";
 import { getEvaluations } from "@/actions/evaluation-action";
 import Link from "next/link";
 import { Card, CardContent, CardHeader } from "./ui/card";

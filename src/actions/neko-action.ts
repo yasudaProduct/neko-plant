@@ -1,8 +1,8 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { Plant } from "../app/types/plant";
-import { NekoSpecies } from "@/app/types/neko";
+import { Plant } from "../types/plant";
+import { NekoSpecies } from "@/types/neko";
 
 export async function getPlants(): Promise<Plant[]> {
 

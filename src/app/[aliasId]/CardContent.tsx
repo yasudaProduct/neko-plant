@@ -1,12 +1,12 @@
 "use client";
 
-import { Plant } from "../types/plant";
+import { Plant } from "../../types/plant";
 import Image from "next/image";
 import { Cat, Leaf, X } from "lucide-react";
 import { deleteFavoritePlant, deleteHavePlant } from "@/actions/user-action";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
-import { Pet } from "../types/neko";
+import { Pet } from "../../types/neko";
 
 interface PlantCardProp {
   plant: Plant;

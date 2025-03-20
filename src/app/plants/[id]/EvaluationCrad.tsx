@@ -5,8 +5,8 @@ import {
   Evaluation,
   EvaluationReAction,
   EvaluationReActionType,
-} from "@/app/types/evaluation";
-import { Pet } from "@/app/types/neko";
+} from "@/types/evaluation";
+import { Pet } from "@/types/neko";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import Link from "next/link";

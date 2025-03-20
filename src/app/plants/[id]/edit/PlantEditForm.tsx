@@ -14,7 +14,7 @@ import { SubmitButton } from "@/components/submit-button";
 import { useToast } from "@/hooks/use-toast";
 import { deletePlant, updatePlant } from "@/actions/plant-action";
 import Link from "next/link";
-import { Plant } from "@/app/types/plant";
+import { Plant } from "@/types/plant";
 
 const plantSchema = z.object({
   name: z

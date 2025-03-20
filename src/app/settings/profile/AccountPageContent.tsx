@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import ProfileImageUploadModal from "./ProfileImageUploadModal";
-import { UserProfile } from "@/app/types/user";
+import { UserProfile } from "@/types/user";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

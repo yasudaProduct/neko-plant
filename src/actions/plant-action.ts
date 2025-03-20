@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { Plant } from "../app/types/plant";
+import { Plant } from "../types/plant";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { STORAGE_PATH } from "@/lib/const";

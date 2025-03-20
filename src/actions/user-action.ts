@@ -1,9 +1,9 @@
 "use server";
 
-import { Evaluation, EvaluationType } from "@/app/types/evaluation";
-import { Pet, SexType } from "@/app/types/neko";
-import { Plant } from "@/app/types/plant";
-import { UserProfile } from "@/app/types/user";
+import { Evaluation, EvaluationType } from "@/types/evaluation";
+import { Pet, SexType } from "@/types/neko";
+import { Plant } from "@/types/plant";
+import { UserProfile } from "@/types/user";
 import { STORAGE_PATH } from "@/lib/const";
 import prisma from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";

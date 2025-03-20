@@ -1,7 +1,7 @@
 "use server";
 
 import prisma from "@/lib/prisma";
-import { Evaluation, EvaluationReAction, EvaluationReActionType, EvaluationType } from "../app/types/evaluation";
+import { Evaluation, EvaluationReAction, EvaluationReActionType, EvaluationType } from "../types/evaluation";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { STORAGE_PATH } from "@/lib/const";

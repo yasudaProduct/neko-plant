@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { NekoSpecies, Pet, SexType } from "../types/neko";
+import { NekoSpecies, Pet, SexType } from "../../types/neko";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";

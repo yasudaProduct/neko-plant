@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProgressBar from "@/components/ProgressBar";
 import { Toaster } from "@/components/ui/toaster";
+import { AuthDialogProvider } from "@/contexts/AuthDialogContext";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -34,10 +35,12 @@ export default function RootLayout({
       >
         <div className="flex flex-col min-h-screen bg-green-50">
           <ProgressBar>
-            <Header />
-            <div className="h-full flex-1">{children}</div>
-            <Footer />
-            <Toaster />
+            <AuthDialogProvider>
+              <Header />
+              <div className="h-full flex-1">{children}</div>
+              <Footer />
+              <Toaster />
+            </AuthDialogProvider>
           </ProgressBar>
         </div>
       </body>

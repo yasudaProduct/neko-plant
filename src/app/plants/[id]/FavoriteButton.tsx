@@ -5,6 +5,7 @@ import { BookHeart } from "lucide-react";
 import { addFavorite, deleteFavorite } from "@/actions/plant-action";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuthDialog } from "@/contexts/AuthDialogContext";
 
 interface FavoriteButtonProps {
   plantId: number;
@@ -15,6 +16,7 @@ export default function FavoriteButton({
   plantId,
   isFavorite,
 }: FavoriteButtonProps) {
+  const { showLoginDialog } = useAuthDialog();
   const { success, error } = useToast();
   const [isFavoriteState, setIsFavoriteState] = useState(isFavorite);
 
@@ -40,9 +42,13 @@ export default function FavoriteButton({
           title: "お気に入りに追加しました。",
         });
       } else {
-        error({
-          title: "お気に入りに追加に失敗しました。",
-        });
+        if (result.errCode === "UNAUTHORIZED") {
+          showLoginDialog();
+        } else {
+          error({
+            title: "お気に入りに追加に失敗しました。",
+          });
+        }
         setIsFavoriteState(false);
       }
     }

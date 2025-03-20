@@ -292,13 +292,13 @@ export async function deletePlant(id: number): Promise<{ success: boolean, messa
     }
 }
 
-export async function addFavorite(plantId: number): Promise<{ success: boolean, message?: string }> {
+export async function addFavorite(plantId: number): Promise<{ success: boolean, errCode?: string, message?: string }> {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user == null) {
-        return { success: false, message: "ログインしてください。" };
+        return { success: false, errCode: "UNAUTHORIZED", message: "ログインしてください。" };
     }
 
     const publicUser = await prisma.public_users.findFirst({
@@ -308,7 +308,7 @@ export async function addFavorite(plantId: number): Promise<{ success: boolean, 
     });
 
     if (!publicUser) {
-        return { success: false, message: "ユーザーが見つかりません。" };
+        return { success: false, errCode: "UNAUTHORIZED", message: "ユーザーが見つかりません。" };
     }
 
     // すでに登録してあったらあったら終了

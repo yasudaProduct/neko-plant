@@ -45,6 +45,7 @@ export async function updateSession(request: NextRequest) {
 }
 
 const protectedPaths = [
-  '/private',
-  '/settings',
-]
+  "/private",
+  "/settings/profile",
+  "/settings/account",
+];

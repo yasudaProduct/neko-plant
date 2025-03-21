@@ -8,7 +8,7 @@ type Props = ComponentProps<typeof Button> & {
   pendingText?: string;
 };
 
-export function SubmitButton({
+export function SubmitButton2({
   children,
   pendingText = "送信中...",
   ...props

@@ -3,7 +3,8 @@
 import { Sprout } from "lucide-react";
 import { addHave, deleteHave } from "@/actions/plant-action";
 import { useState } from "react";
-import AuthProtectedButton from "@/components/Button";
+import SubmitButton from "@/components/Button";
+import { useAction } from "@/hooks/useAction";
 
 interface HaveButtonProps {
   plantId: number;
@@ -12,35 +13,27 @@ interface HaveButtonProps {
 
 export default function HaveButton({ plantId, isHave }: HaveButtonProps) {
   const [isHaveState, setIsHaveState] = useState(isHave);
+  const { execute: executeDeleteHave } = useAction(deleteHave);
+  const { execute: executeAddHave } = useAction(addHave);
+
+  const handleClick = async () => {
+    setIsHaveState(!isHaveState);
+
+    if (isHaveState) {
+      const result = await executeDeleteHave({ params: { plantId } });
+      if (!result?.success) {
+        setIsHaveState(true);
+      }
+    } else {
+      const result = await executeAddHave({ params: { plantId } });
+      if (!result?.success) {
+        setIsHaveState(false);
+      }
+    }
+  };
 
   return (
-    // <Button
-    //   variant="outline"
-    //   className="flex items-center"
-    //   onClick={handleClick}
-    // >
-    //   {isHaveState ? (
-    //     <>
-    //       <Sprout className="w-4 h-4 text-green-500" />
-    //     </>
-    //   ) : (
-    //     <>
-    //       <Sprout className="w-4 h-4" />
-    //     </>
-    //   )}
-    // </Button>
-    <AuthProtectedButton
-      action={() => {
-        if (isHaveState) {
-          return deleteHave({ params: { plantId } });
-        } else {
-          return addHave({ params: { plantId } });
-        }
-      }}
-      onClick={() => {
-        setIsHaveState(!isHaveState);
-      }}
-    >
+    <SubmitButton onClick={handleClick}>
       {isHaveState ? (
         <>
           <Sprout className="w-4 h-4 text-green-500" />
@@ -50,6 +43,6 @@ export default function HaveButton({ plantId, isHave }: HaveButtonProps) {
           <Sprout className="w-4 h-4" />
         </>
       )}
-    </AuthProtectedButton>
+    </SubmitButton>
   );
 }

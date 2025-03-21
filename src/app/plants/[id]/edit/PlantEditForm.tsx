@@ -10,7 +10,7 @@ import { getImageData } from "@/lib/utils";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SubmitButton } from "@/components/submit-button";
+import { SubmitButton2 } from "@/components/submit-button";
 import { useToast } from "@/hooks/use-toast";
 import { deletePlant, updatePlant } from "@/actions/plant-action";
 import Link from "next/link";
@@ -171,7 +171,7 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
       )}
 
       <div className="flex gap-4">
-        <SubmitButton pendingText="更新中...">更新</SubmitButton>
+        <SubmitButton2 pendingText="更新中...">更新</SubmitButton2>
         <Button variant="destructive" onClick={handleDelete}>
           削除
         </Button>

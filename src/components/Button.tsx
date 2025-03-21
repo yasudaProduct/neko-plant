@@ -1,12 +1,10 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useAction } from "@/hooks/useAction";
-import { ActionResult } from "@/types/common";
+import { useState } from "react";
 
 interface AuthProtectedButtonProps {
-  action: () => Promise<ActionResult>;
-  onClick?: () => void;
+  onClick?: () => void | Promise<void>;
   text?: string;
   pendingText?: string;
   variant?: "default" | "outline" | "ghost" | "link";
@@ -14,21 +12,24 @@ interface AuthProtectedButtonProps {
   children?: React.ReactNode;
 }
 
-export default function AuthProtectedButton({
+export default function SubmitButton({
   text = "実行",
   pendingText = "送信中...",
-  action,
   onClick,
   variant = "outline",
   className,
   children,
 }: AuthProtectedButtonProps) {
-  const { execute, isLoading } = useAction(action);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleClick = async () => {
-    if (onClick) {
-      await onClick();
-      await execute();
+    setIsLoading(true);
+    try {
+      if (onClick) {
+        await onClick();
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 

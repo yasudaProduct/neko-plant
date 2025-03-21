@@ -13,12 +13,10 @@ export function useAction<T extends unknown[], R>(
     actionFn: (...args: T) => Promise<ActionResult<R>>
 ) {
     const { showLoginDialog } = useAuthDialog();
-    const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<Error | null>(null);
 
     const execute = useCallback(
         async (...args: T): Promise<ActionResult<R> | undefined> => {
-            setIsLoading(true);
             setError(null);
 
             try {
@@ -42,6 +40,7 @@ export function useAction<T extends unknown[], R>(
                 }
                 return result;
             } catch (err) {
+                setError(err as Error);
                 if (err instanceof Error) {
                     toast({
                         title: "エラーが発生しました",
@@ -57,8 +56,6 @@ export function useAction<T extends unknown[], R>(
                     });
                 }
                 return undefined;
-            } finally {
-                setIsLoading(false);
             }
         },
         [actionFn, showLoginDialog]
@@ -66,7 +63,6 @@ export function useAction<T extends unknown[], R>(
 
     return {
         execute,
-        isLoading,
         error,
     };
 }

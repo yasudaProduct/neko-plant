@@ -11,7 +11,7 @@ import { getImageData } from "@/lib/utils";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SubmitButton } from "@/components/submit-button";
+import { SubmitButton2 } from "@/components/submit-button";
 import { useToast } from "@/hooks/use-toast";
 import { addPlant } from "@/actions/plant-action";
 import Link from "next/link";
@@ -177,9 +177,9 @@ export default function RegisterPlant() {
             )}
 
             <div className="flex gap-4">
-              <SubmitButton pendingText="登録中..." className="flex-1">
+              <SubmitButton2 pendingText="登録中..." className="flex-1">
                 登録
-              </SubmitButton>
+              </SubmitButton2>
               <Button
                 type="button"
                 variant="outline"

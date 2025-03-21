@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { PawPrint } from "lucide-react";
 import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
+import { FcGoogle } from "react-icons/fc";
 
 interface LoginDialogProps {
   isOpen: boolean;
@@ -22,7 +24,7 @@ interface LoginDialogProps {
 export default function LoginDialog({
   isOpen,
   onClose,
-  message = "この機能を利用するにはログインが必要です",
+  message = "",
 }: LoginDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
 
@@ -30,8 +32,12 @@ export default function LoginDialog({
     try {
       setIsLoading(true);
       await signInWithGoogle();
-    } catch (error) {
-      console.error("ログインエラー:", error);
+    } catch {
+      toast({
+        title: "ログインに失敗しました。",
+        description: "ログインに失敗しました。",
+        variant: "error",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -53,12 +59,14 @@ export default function LoginDialog({
         <DialogFooter className="sm:justify-center">
           <Button
             onClick={handleLogin}
-            className="w-full bg-accent hover:bg-accent/90"
+            className="w-full hover:bg-accent/90"
+            variant="outline"
             disabled={isLoading}
           >
+            <FcGoogle className="w-4 h-4 mr-2" />
             {isLoading ? "ログイン中..." : "Googleでログイン"}
           </Button>
-          <Button variant="outline" onClick={onClose} className="w-full mt-2">
+          <Button variant="outline" onClick={onClose} className="w-full">
             キャンセル
           </Button>
         </DialogFooter>

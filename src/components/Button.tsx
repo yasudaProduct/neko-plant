@@ -2,28 +2,34 @@
 
 import { Button } from "@/components/ui/button";
 import { useAction } from "@/hooks/useAction";
-import { withAuth } from "@/lib/action-helpers";
+import { ActionResult } from "@/types/common";
 
 interface AuthProtectedButtonProps {
-  onClick<Args extends unknown[]>(...args: Args): () => Promise<void>;
+  action: () => Promise<ActionResult>;
+  onClick?: () => void;
   text?: string;
   pendingText?: string;
   variant?: "default" | "outline" | "ghost" | "link";
   className?: string;
+  children?: React.ReactNode;
 }
 
 export default function AuthProtectedButton({
   text = "実行",
   pendingText = "送信中...",
+  action,
   onClick,
-  variant = "default",
+  variant = "outline",
   className,
+  children,
 }: AuthProtectedButtonProps) {
-  // useAuthActionフックを使用して認証エラーをハンドリング
-  const { execute, isLoading } = useAction(withAuth(onClick()));
+  const { execute, isLoading } = useAction(action);
 
   const handleClick = async () => {
-    await execute();
+    if (onClick) {
+      await onClick();
+      await execute();
+    }
   };
 
   return (
@@ -33,7 +39,7 @@ export default function AuthProtectedButton({
       className={className}
       variant={variant}
     >
-      {isLoading ? pendingText : text}
+      {children ? children : isLoading ? pendingText : text}
     </Button>
   );
 }

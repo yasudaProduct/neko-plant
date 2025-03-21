@@ -3,7 +3,6 @@
 import prisma from "@/lib/prisma";
 import { Plant } from "../types/plant";
 import { createClient } from "@/lib/supabase/server";
-import { revalidatePath } from "next/cache";
 import { STORAGE_PATH } from "@/lib/const";
 import { generateImageName } from "@/lib/utils";
 import { ActionErrorCode, ActionParams, ActionResult } from "@/types/common";
@@ -293,13 +292,13 @@ export async function deletePlant(id: number): Promise<{ success: boolean, messa
     }
 }
 
-export async function addFavorite(plantId: number): Promise<{ success: boolean, errCode?: string, message?: string }> {
+export async function addFavorite({ params }: ActionParams<{ plantId: number }>): Promise<ActionResult> {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user == null) {
-        return { success: false, errCode: "UNAUTHORIZED", message: "ログインしてください。" };
+        return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
     }
 
     const publicUser = await prisma.public_users.findFirst({
@@ -309,28 +308,26 @@ export async function addFavorite(plantId: number): Promise<{ success: boolean, 
     });
 
     if (!publicUser) {
-        return { success: false, errCode: "UNAUTHORIZED", message: "ユーザーが見つかりません。" };
+        return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
     }
-
-    // すでに登録してあったらあったら終了
 
     await prisma.plant_favorites.create({
         data: {
             user_id: publicUser.id,
-            plant_id: plantId,
+            plant_id: params.plantId,
         },
     });
 
-    return { success: true };
+    return { success: true, title: "追加しました。" };
 }
 
-export async function deleteFavorite(plantId: number): Promise<{ success: boolean, message?: string }> {
+export async function deleteFavorite({ params }: ActionParams<{ plantId: number }>): Promise<ActionResult> {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user == null) {
-        return { success: false, message: "ログインしてください。" };
+        return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
     }
 
     const publicUser = await prisma.public_users.findFirst({
@@ -340,19 +337,17 @@ export async function deleteFavorite(plantId: number): Promise<{ success: boolea
     });
 
     if (!publicUser) {
-        return { success: false, message: "ユーザーが見つかりません。" };
+        return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
     }
 
     await prisma.plant_favorites.deleteMany({
         where: {
             user_id: publicUser.id,
-            plant_id: plantId,
+            plant_id: params.plantId,
         },
     });
 
-    revalidatePath(`/plants/${plantId}`);
-
-    return { success: true };
+    return { success: true, title: "削除しました。" };
 }
 
 export async function addHave({ params }: ActionParams<{ plantId: number }>): Promise<ActionResult> {

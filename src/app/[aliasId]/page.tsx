@@ -75,7 +75,7 @@ export default async function ProfilePage({
         <div className="space-y-6">
           <div className="flex items-center space-x-4">
             <Image
-              src={userProfile?.imageSrc || "/images/cat_default.png"}
+              src={userProfile?.imageSrc || "/images/logo.jpg"}
               alt="プロフィール画像"
               width={96}
               height={96}

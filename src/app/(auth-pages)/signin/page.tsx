@@ -1,8 +1,8 @@
 "use client";
 
-import { Leaf } from "lucide-react";
 import { signInWithGoogle } from "@/lib/supabase/auth-google";
 import { FcGoogle } from "react-icons/fc";
+import Image from "next/image";
 
 export default function LoginPage() {
   // const [email, setEmail] = useState("");
@@ -66,8 +66,14 @@ export default function LoginPage() {
     <div className="min-h-[80vh] flex items-center justify-center">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
-            <Leaf className="w-8 h-8 text-green-600" />
+          <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-100 mb-4">
+            <Image
+              src="/images/logo.jpg"
+              alt="logo"
+              width={152}
+              height={152}
+              className="w-24 h-24 rounded-full"
+            />
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">ログイン</h1>
           <p className="text-gray-600">

@@ -66,7 +66,7 @@ export default function EvaluationCard({
         {evaluation.pets?.map((pet: Pet) => (
           <Image
             key={pet.id}
-            src={pet.imageSrc ?? "/images/cat_default.png"}
+            src={pet.imageSrc ?? "/images/logo.jpg"}
             alt={pet.name}
             width={60}
             height={60}

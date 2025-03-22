@@ -1,4 +1,4 @@
-import { Heart, Leaf, Skull } from "lucide-react";
+import { Heart, Leaf, MessageSquare, Skull } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -51,21 +51,10 @@ export default function PlantCard({
           </div>
         )}
       </div>
-      <CardHeader className="relative pb-0">
-        {/* <Badge
-          className={`absolute top-4 right-4 ${
-            isSafe
-              ? "bg-success text-success-foreground"
-              : "bg-destructive text-destructive-foreground"
-          }`}
-        >
-          {isSafe ? "安全" : "危険"}
-        </Badge> */}
-      </CardHeader>
+      <CardHeader className="relative pb-0"></CardHeader>
       <CardContent className="pt-4">
         <CardTitle className="text-xl mb-2">{name}</CardTitle>
         <CardDescription className="flex items-center justify-between text-sm">
-          {/* <div className="flex gap-4"> */}
           <span className="flex items-center gap-1">
             <Heart className="h-4 w-4 text-red-600" />
             {likes}
@@ -74,8 +63,13 @@ export default function PlantCard({
             <Skull className="h-4 w-4 text-indigo-600" />
             {dislikes}
           </span>
-          {/* </div> */}
-          <span>レビュー {reviewCount}件</span>
+          <div className="flex items-center gap-1">
+            <span className="hidden sm:block">レビュー {reviewCount}件</span>
+            <span className="block sm:hidden flex items-center gap-1">
+              <MessageSquare className="h-4 w-4 text-gray-600" />
+              {reviewCount}
+            </span>
+          </div>
         </CardDescription>
       </CardContent>
     </Card>

@@ -10,11 +10,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { PawPrint } from "lucide-react";
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { FcGoogle } from "react-icons/fc";
-
+import Image from "next/image";
 interface LoginDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -45,18 +44,24 @@ export default function LoginDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-md sm:max-w-sm">
         <DialogHeader>
-          <DialogTitle>ログインが必要です</DialogTitle>
+          <DialogTitle className="text-center">ログインが必要です</DialogTitle>
           <DialogDescription>{message}</DialogDescription>
         </DialogHeader>
         <div className="flex flex-col items-center justify-center py-6">
-          <PawPrint className="w-16 h-16 text-green-500 mb-4" />
-          <p className="text-center text-sm text-muted-foreground mb-4">
+          <Image
+            src="/images/logo.jpg"
+            alt="logo"
+            width={64}
+            height={64}
+            className="w-16 h-16 rounded-full"
+          />
+          <p className="text-center text-sm text-muted-foreground mt-4 mb-4">
             ログインすると、植物の評価や飼育情報の共有など、より多くの機能を利用できます。
           </p>
         </div>
-        <DialogFooter className="sm:justify-center">
+        <DialogFooter className="flex flex-col items-center justify-center">
           <Button
             onClick={handleLogin}
             className="w-full hover:bg-accent/90"

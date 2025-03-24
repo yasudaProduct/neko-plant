@@ -26,7 +26,7 @@ export default function PlantCard({
 }: PlantCardProps) {
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow">
-      <div className="relative h-48 w-full">
+      <div className="relative w-full h-48 max-md:h-32">
         {imageSrc ? (
           <div className="relative h-full w-full">
             <Image

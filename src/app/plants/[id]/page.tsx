@@ -47,15 +47,24 @@ export default async function PlantPage({
         <Card className="overflow-hidden">
           <CardHeader className="p-0 relative">
             {plant.imageUrl ? (
-              <Image
-                src={plant.imageUrl}
-                alt={plant.name}
-                width={600}
-                height={400}
-                className="w-full h-[300px] object-contain bg-gray-100"
-                quality={90}
-                priority
-              />
+              <div className="w-full h-[300px] relative">
+                <Image
+                  src={plant.imageUrl}
+                  alt={plant.name}
+                  fill
+                  className="object-cover blur-md"
+                  quality={90}
+                />
+                <Image
+                  src={plant.imageUrl}
+                  alt={plant.name}
+                  width={600}
+                  height={400}
+                  className="h-full w-full object-contain absolute top-0 left-0"
+                  quality={90}
+                  priority
+                />
+              </div>
             ) : (
               <div className="w-full h-[300px] bg-gray-100 flex items-center justify-center">
                 <Leaf className="w-10 h-10 text-gray-400" />

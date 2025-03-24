@@ -1,11 +1,5 @@
 import { Heart, Leaf, MessageSquare, Skull } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "./ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import Image from "next/image";
 
 export interface PlantCardProps {
@@ -54,7 +48,7 @@ export default function PlantCard({
       <CardHeader className="relative pb-0"></CardHeader>
       <CardContent className="pt-4">
         <CardTitle className="text-xl mb-2">{name}</CardTitle>
-        <CardDescription className="flex items-center justify-between text-sm">
+        <div className="flex items-center justify-between text-sm">
           <span className="flex items-center gap-1">
             <Heart className="h-4 w-4 text-red-600" />
             {likes}
@@ -70,7 +64,7 @@ export default function PlantCard({
               {reviewCount}
             </span>
           </div>
-        </CardDescription>
+        </div>
       </CardContent>
     </Card>
   );

@@ -27,6 +27,7 @@ export default function EvaluationCard({
     EvaluationReActionType | undefined
   >(undefined);
   useEffect(() => {
+    console.log(evaluation);
     fetchReActions();
   }, []);
 
@@ -62,18 +63,30 @@ export default function EvaluationCard({
       key={evaluation.id}
       className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
     >
-      <Avatar className="w-10 h-10">
-        {evaluation.pets?.map((pet: Pet) => (
+      {evaluation.pets && evaluation.pets.length > 0 ? (
+        evaluation.pets?.slice(0, 1).map((pet: Pet) => (
+          <Avatar key={pet.id} className="w-10 h-10">
+            <Image
+              src={pet.imageSrc ?? "/images/logo.jpg"}
+              alt={pet.name}
+              width={60}
+              height={60}
+              className="rounded-full"
+            />
+          </Avatar>
+        ))
+      ) : (
+        <Avatar className="w-10 h-10">
           <Image
-            key={pet.id}
-            src={pet.imageSrc ?? "/images/logo.jpg"}
-            alt={pet.name}
+            src="/images/logo.jpg"
+            alt="ロゴ"
             width={60}
             height={60}
             className="rounded-full"
           />
-        ))}
-      </Avatar>
+        </Avatar>
+      )}
+
       <div className="flex flex-col gap-2 w-full">
         <div className="text-sm text-gray-500 hover:text-gray-700">
           <Link href={`/${evaluation.user.aliasId}`}>

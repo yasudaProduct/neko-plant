@@ -58,6 +58,8 @@ export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
         },
     }));
 
+    console.log(evaluations);
+
     return evaluations
 
 }

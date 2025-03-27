@@ -174,6 +174,25 @@ describe('Plant Actions', () => {
                 take: 10,
             });
         });
+
+        it('ソート順 評価が多い順', async () => {
+            const sortBy = 'evaluation_desc';
+            vi.mocked(prisma.plants.count).mockResolvedValue(2);
+            vi.mocked(prisma.plants.findMany).mockResolvedValue(mockPlants);
+
+            await getPlants(sortBy, 1, 10);
+
+            expect(prisma.plants.findMany).toHaveBeenCalledWith({
+                select: {
+                    id: true,
+                    name: true,
+                    image_src: true,
+                },
+                orderBy: { evaluations: { _count: 'desc' } },
+                skip: 0,
+                take: 10,
+            });
+        });
     });
 
     describe('searchPlants', () => {

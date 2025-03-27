@@ -417,6 +417,8 @@ function getSortOption(sortBy: string) {
             return { created_at: 'asc' as const };
         case 'created_at_desc':
             return { created_at: 'desc' as const };
+        case 'evaluation_desc':
+            return { evaluations: { _count: 'desc' as const } };
         case 'name':
         default:
             return { name: 'asc' as const };

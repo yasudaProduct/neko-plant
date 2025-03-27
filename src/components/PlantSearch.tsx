@@ -184,6 +184,7 @@ export default function PlantSearch() {
               <SelectItem value="created_at_desc">
                 登録日（新しい順）
               </SelectItem>
+              <SelectItem value="evaluation_desc">評価数（多い順）</SelectItem>
             </SelectContent>
           </Select>
         </div>

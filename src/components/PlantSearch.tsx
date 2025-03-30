@@ -33,7 +33,7 @@ export default function PlantSearch() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
-  const sortBy = searchParams.get("sort") || "name";
+  const sortBy = searchParams.get("sort") || "evaluation_desc";
   const currentPage = Number(searchParams.get("page") || "1");
 
   const [plants, setPlants] = useState<Plant[]>([]);

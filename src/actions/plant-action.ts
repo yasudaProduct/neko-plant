@@ -87,6 +87,22 @@ export async function searchPlants(
     return { plants, totalCount };
 }
 
+export async function searchPlantName(name: string): Promise<{ id: number, name: string }[]> {
+    const plants = await prisma.plants.findMany({
+        where: {
+            name: {
+                contains: name,
+            },
+        },
+        select: {
+            id: true,
+            name: true,
+        },
+    });
+
+    return plants.map((plant) => ({ id: plant.id, name: plant.name }));
+}
+
 export async function getPlant(id: number): Promise<Plant | undefined> {
     const supabase = await createClient();
 

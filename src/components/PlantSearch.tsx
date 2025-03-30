@@ -1,7 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Input } from "./ui/input";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "./ui/button";
@@ -12,7 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import { getPlants, searchPlants } from "@/actions/plant-action";
+import {
+  getPlants,
+  searchPlantName,
+  searchPlants,
+} from "@/actions/plant-action";
 import { Plant } from "@/types/plant";
 import PlantCard, { PlantCardProps } from "./PlantCard";
 import { Evaluation, EvaluationType } from "@/types/evaluation";
@@ -34,9 +38,13 @@ export default function PlantSearch() {
 
   const [plants, setPlants] = useState<Plant[]>([]);
   const [plantCards, setPlantCards] = useState<PlantCardProps[]>([]);
-
+  const [plantSuggest, setPlantSuggest] = useState<
+    { id: number; name: string }[]
+  >([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [isSuggestOpen, setIsSuggestOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [currentSort, setCurrentSort] = useState<string>(sortBy);
   const [totalCount, setTotalCount] = useState<number>(0);
@@ -90,9 +98,21 @@ export default function PlantSearch() {
     fetchEvaluations();
   }, [plants]);
 
+  useEffect(() => {
+    const fetchPlantName = async () => {
+      const names = await searchPlantName(searchQuery);
+      setPlantSuggest(names);
+    };
+
+    if (searchQuery) {
+      fetchPlantName();
+    }
+  }, [searchQuery]);
+
   // 検索処理
   const handleSearch = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsSuggestOpen(false);
 
     // URLのクエリパラメータを更新
     const params = new URLSearchParams();
@@ -139,25 +159,58 @@ export default function PlantSearch() {
   // 総ページ数を計算
   const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
+  // クリックアウト時の処理
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchInputRef.current &&
+        !searchInputRef.current.contains(event.target as Node) &&
+        !(event.target instanceof HTMLAnchorElement) // リンクがクリックされた場合はサジェストを閉じない
+      ) {
+        setIsSuggestOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   return (
     <>
       <div className="relative max-w-2xl mx-auto mb-12">
         <form onSubmit={handleSearch} className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
           <Input
+            ref={searchInputRef}
             type="search"
-            placeholder="植物名を検索..."
+            placeholder="植物名を検索する"
             className="w-full pl-10 py-6 text-lg bg-background border-input pr-24"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onFocus={() => setIsSuggestOpen(true)}
           />
           <Button
             type="submit"
-            className="absolute right-2 top-1/2 transform -translate-y-1/2"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-100"
+            variant="outline"
           >
-            検索
+            <Search />
           </Button>
         </form>
+        {isSuggestOpen && plantSuggest.length > 0 && (
+          <div className="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-md shadow-md z-50">
+            {plantSuggest.map((name) => (
+              <Link
+                key={name.id}
+                href={`/plants/${name.id}`}
+                className="block w-full bg-white rounded-md p-2 hover:bg-gray-100 cursor-pointer"
+                // onClick={() => setIsSuggestOpen(false)}
+              >
+                {name.name}
+              </Link>
+            ))}
+          </div>
+        )}
+
         {isSearching && (
           <p className="text-sm text-muted-foreground mt-2">検索中...</p>
         )}

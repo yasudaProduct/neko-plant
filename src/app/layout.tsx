@@ -9,7 +9,7 @@ import { M_PLUS_Rounded_1c } from "next/font/google";
 
 const RampartOneFont = M_PLUS_Rounded_1c({
   subsets: ["latin"],
-  weight: ["100", "900"],
+  weight: ["400", "700"],
 });
 
 export const metadata: Metadata = {

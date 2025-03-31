@@ -1,21 +1,15 @@
 import type { Metadata } from "next";
-import localFont from "next/font/local";
 import "./globals.css";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ProgressBar from "@/components/ProgressBar";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthDialogProvider } from "@/contexts/AuthDialogContext";
+import { M_PLUS_Rounded_1c } from "next/font/google";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
-});
-const geistMono = localFont({
-  src: "./fonts/GeistMonoVF.woff",
-  variable: "--font-geist-mono",
-  weight: "100 900",
+const RampartOneFont = M_PLUS_Rounded_1c({
+  subsets: ["latin"],
+  weight: ["100", "900"],
 });
 
 export const metadata: Metadata = {
@@ -31,9 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${RampartOneFont.className} antialiased`}>
         <div className="flex flex-col min-h-screen bg-green-50">
           <ProgressBar>
             <AuthDialogProvider>

@@ -119,6 +119,7 @@ export default function ProfileImageUploadModal({}: ProfileImageUploadModalProps
               type="file"
               accept="image/*"
               onChange={handleImageChange}
+              className="hover:cursor-pointer"
             />
             {errors.image && (
               <p className="text-red-500 text-sm">{errors.image.message}</p>
@@ -139,13 +140,18 @@ export default function ProfileImageUploadModal({}: ProfileImageUploadModalProps
               <div className="w-full h-full bg-background/70 rounded-lg border flex justify-center items-center"></div>
             )}
           </div>
-          <DialogFooter>
+          <DialogFooter className="mt-4">
             <DialogClose asChild>
-              <Button variant="secondary" onClick={handleClose}>
+              <Button variant="outline" onClick={handleClose}>
                 キャンセル
               </Button>
             </DialogClose>
-            <Button type="submit" variant="default" disabled={isSubmiting}>
+            <Button
+              type="submit"
+              variant="default"
+              disabled={isSubmiting}
+              className="bg-green-500 hover:bg-green-600"
+            >
               {isSubmiting ? "保存中..." : "保存"}
             </Button>
           </DialogFooter>

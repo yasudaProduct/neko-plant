@@ -154,7 +154,11 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
           </div>
 
           <div className="flex justify-end mt-4">
-            <Button type="submit" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-green-500 hover:bg-green-600"
+            >
               {isSubmitting ? "保存中..." : "保存"}
             </Button>
           </div>

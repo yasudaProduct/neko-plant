@@ -157,6 +157,7 @@ export default function RegisterPlant() {
                 accept="image/*"
                 // value={imageUrl}
                 onChange={handleImageChange}
+                className="hover:cursor-pointer"
               />
               {errors.image && (
                 <p className="text-red-500 text-sm">{errors.image.message}</p>
@@ -177,7 +178,10 @@ export default function RegisterPlant() {
             )}
 
             <div className="flex gap-4">
-              <SubmitButton2 pendingText="登録中..." className="flex-1">
+              <SubmitButton2
+                pendingText="登録中..."
+                className="flex-1 bg-green-500 hover:bg-green-600"
+              >
                 登録
               </SubmitButton2>
               <Button

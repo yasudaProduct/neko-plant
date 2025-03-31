@@ -149,6 +149,7 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
           type="file"
           accept="image/*"
           onChange={handleImageChange}
+          className="hover:cursor-pointer"
         />
         {errors.image && (
           <p className="text-red-500 text-sm">
@@ -171,12 +172,21 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
       )}
 
       <div className="flex gap-4">
-        <SubmitButton2 pendingText="更新中...">更新</SubmitButton2>
-        <Button variant="destructive" onClick={handleDelete}>
-          削除
-        </Button>
+        <SubmitButton2
+          pendingText="更新中..."
+          className="bg-green-500 hover:bg-green-600"
+        >
+          更新
+        </SubmitButton2>
         <Button type="button" variant="outline" onClick={() => router.back()}>
           キャンセル
+        </Button>
+        <Button
+          variant="destructive"
+          onClick={handleDelete}
+          className="bg-red-500 hover:bg-red-600 ml-auto"
+        >
+          削除
         </Button>
       </div>
     </form>

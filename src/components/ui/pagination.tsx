@@ -89,7 +89,10 @@ export function Pagination({
               key={pageNumber}
               variant={isActive ? "default" : "outline"}
               size="icon"
-              className={cn("w-9 h-9", isActive && "pointer-events-none")}
+              className={cn(
+                "w-9 h-9",
+                isActive && "pointer-events-none bg-green-500"
+              )}
               asChild={!isActive}
             >
               {isActive ? (

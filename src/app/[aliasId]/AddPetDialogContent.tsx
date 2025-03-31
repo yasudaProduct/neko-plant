@@ -305,6 +305,7 @@ export default function AddPetDialogContent({
                 type="file"
                 accept="image/*"
                 onChange={handleImageChange}
+                className="hover:cursor-pointer"
               />
               {form.formState.errors.image && (
                 <p className="text-red-500 text-sm">
@@ -382,12 +383,17 @@ export default function AddPetDialogContent({
             </div>
             <DialogFooter className="flex justify-end mt-4">
               <DialogClose asChild>
-                <Button variant="secondary" onClick={handleClose}>
+                <Button variant="outline" onClick={handleClose}>
                   キャンセル
                 </Button>
               </DialogClose>
               {!pet ? (
-                <Button type="submit" variant="default" disabled={isSubmitting}>
+                <Button
+                  type="submit"
+                  variant="default"
+                  disabled={isSubmitting}
+                  className="bg-green-500 hover:bg-green-600"
+                >
                   {isSubmitting ? "保存中..." : "保存"}
                 </Button>
               ) : (

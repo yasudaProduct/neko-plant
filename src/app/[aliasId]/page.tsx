@@ -159,7 +159,9 @@ export default async function ProfilePage({
                     )}
                     <p>{evaluation.comment}</p>
                     <Link href={`/plants/${evaluation.plant.id}`}>
-                      <p>{evaluation.plant.name}</p>
+                      <p className="text-sm hover:cursor-pointer">
+                        {"[" + evaluation.plant.name + "]"}
+                      </p>
                     </Link>
                   </div>
                 ))}

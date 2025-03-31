@@ -190,10 +190,10 @@ export default function PlantSearch() {
           />
           <Button
             type="submit"
-            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-gray-100"
+            className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-green-500 hover:bg-green-600"
             variant="outline"
           >
-            <Search />
+            <Search className="text-white" />
           </Button>
         </form>
         {isSuggestOpen && plantSuggest.length > 0 && (
@@ -276,7 +276,7 @@ export default function PlantSearch() {
                       <Skeleton className="w-full h-48" />
                     </CardHeader>
                     <CardContent>
-                      <Skeleton className="w-[200px] h-[20px] rounded-full" />
+                      <Skeleton className="h-[20px] rounded-full" />
                     </CardContent>
                   </CardContent>
                 </Card>

@@ -7,6 +7,8 @@ export default function Footer() {
         <div className="flex justify-center gap-4 mb-4">
           <Link href="/contact">お問い合わせ</Link>
           <Link href="/news">お知らせ</Link>
+          <Link href="/terms">利用規約</Link>
+          <Link href="/privacy">プライバシーポリシー</Link>
         </div>
         <p className="text-sm text-primary-foreground/60">
           © 2025 猫と植物 neko and plants

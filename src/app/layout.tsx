@@ -13,9 +13,60 @@ const RampartOneFont = M_PLUS_Rounded_1c({
 });
 
 export const metadata: Metadata = {
-  title: "猫と植物",
-  description: "猫にとって安全な植物を探すためのサイトです。",
-  appleWebApp: true,
+  title: "猫と植物 | 猫にとって安全な植物を探す",
+  description:
+    "猫にとって安全な植物を探すためのサイトです。猫と暮らす方々が安心して植物を育てられるように、猫に安全な植物の情報を提供しています。",
+  keywords: "猫,植物,安全,ペット,観葉植物,猫と暮らす,猫のいる暮らし",
+  authors: [{ name: "猫と植物" }],
+  creator: "猫と植物",
+  publisher: "猫と植物",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  openGraph: {
+    type: "website",
+    locale: "ja_JP",
+    url: "https://neko-plant.vercel.app",
+    siteName: "猫と植物",
+    title: "猫と植物 | 猫にとって安全な植物を探す",
+    description:
+      "猫にとって安全な植物を探すためのサイトです。猫と暮らす方々が安心して植物を育てられるように、猫に安全な植物の情報を提供しています。",
+    images: [
+      {
+        url: "/ogp.png",
+        width: 1200,
+        height: 630,
+        alt: "猫と植物",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "猫と植物 | 猫にとって安全な植物を探す",
+    description:
+      "猫にとって安全な植物を探すためのサイトです。猫と暮らす方々が安心して植物を育てられるように、猫に安全な植物の情報を提供しています。",
+    images: ["/ogp.png"],
+    creator: "@neko_plant",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  verification: {
+    google: "google-site-verification-code", // Google Search Consoleの検証コード
+  },
+  alternates: {
+    canonical: "https://neko-plant.vercel.app",
+  },
 };
 
 export default function RootLayout({

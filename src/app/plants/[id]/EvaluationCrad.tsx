@@ -67,7 +67,7 @@ export default function EvaluationCard({
         evaluation.pets?.slice(0, 1).map((pet: Pet) => (
           <Avatar key={pet.id} className="w-10 h-10">
             <Image
-              src={pet.imageSrc ?? "/images/logo.jpg"}
+              src={pet.imageSrc ?? "/images/logo.png"}
               alt={pet.name}
               width={60}
               height={60}
@@ -78,7 +78,7 @@ export default function EvaluationCard({
       ) : (
         <Avatar className="w-10 h-10">
           <Image
-            src="/images/logo.jpg"
+            src="/images/logo.png"
             alt="ロゴ"
             width={60}
             height={60}

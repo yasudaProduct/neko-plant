@@ -289,7 +289,7 @@ export default function PlantSearch() {
               <Link key={plant.id} href={`/plants/${plant.id}`}>
                 <PlantCard
                   name={plant.name}
-                  imageSrc={plant.imageUrl || undefined}
+                  imageSrc={plant.imageUrl || "/images/plant_default.png"}
                   isSafe={
                     plantCards.find((card) => card.name === plant.name)
                       ?.isSafe || false

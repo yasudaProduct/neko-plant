@@ -53,7 +53,7 @@ export default async function Header() {
                 </Link>
               </Button>
               <DropdownMenu
-                userImage={user.imageSrc || "/images/logo.jpg"}
+                userImage={user.imageSrc || "/images/logo.png"}
                 aliasId={user.aliasId || ""}
                 userName={user.name || ""}
               />

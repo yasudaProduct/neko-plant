@@ -51,7 +51,7 @@ export default function LoginDialog({
         </DialogHeader>
         <div className="flex flex-col items-center justify-center py-6">
           <Image
-            src="/images/logo.jpg"
+            src="/images/logo.png"
             alt="logo"
             width={64}
             height={64}

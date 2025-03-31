@@ -74,7 +74,7 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
       <div className="flex flex-col items-center gap-2">
         <Avatar className="w-24 h-24">
           <Image
-            src={userProfile.imageSrc ?? "/images/logo.jpg"}
+            src={userProfile.imageSrc ?? "/images/logo.png"}
             alt="プロフィール画像"
             width={96}
             height={96}

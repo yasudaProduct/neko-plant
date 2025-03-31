@@ -68,7 +68,7 @@ export default function LoginPage() {
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-100 mb-4">
             <Image
-              src="/images/logo.jpg"
+              src="/images/logo.png"
               alt="logo"
               width={152}
               height={152}

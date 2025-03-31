@@ -47,7 +47,9 @@ export default function PlantCard({
       </div>
       <CardHeader className="relative pb-0"></CardHeader>
       <CardContent className="pt-4">
-        <CardTitle className="text-xl mb-2">{name}</CardTitle>
+        <CardTitle className="text-md mb-2 sm:text-lg md:text-xl">
+          {name}
+        </CardTitle>
         <div className="flex items-center justify-between text-sm">
           <span className="flex items-center gap-1">
             <Heart className="h-4 w-4 text-red-600" />

@@ -203,7 +203,6 @@ export default function PlantSearch() {
                 key={name.id}
                 href={`/plants/${name.id}`}
                 className="block w-full bg-white rounded-md p-2 hover:bg-gray-100 cursor-pointer"
-                // onClick={() => setIsSuggestOpen(false)}
               >
                 {name.name}
               </Link>
@@ -227,25 +226,24 @@ export default function PlantSearch() {
         <div className="flex items-center gap-2">
           <span className="text-sm text-muted-foreground">並び順:</span>
           <Select value={currentSort} onValueChange={handleSortChange}>
-            <SelectTrigger className="w-[180px]">
+            <SelectTrigger className="w-[180px] rounded-full">
               <SelectValue placeholder="並び順を選択" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="evaluation_desc">評価数（多い順）</SelectItem>
               <SelectItem value="name">名前（昇順）</SelectItem>
               <SelectItem value="name_desc">名前（降順）</SelectItem>
               <SelectItem value="created_at">登録日（古い順）</SelectItem>
               <SelectItem value="created_at_desc">
                 登録日（新しい順）
               </SelectItem>
-              <SelectItem value="evaluation_desc">評価数（多い順）</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
-      <div className="grid md:grid-cols-4 max-md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {isSearching ? (
-          // 検索中はスケルトンUIを表示
           <>
             {Array.from({ length: PAGE_SIZE }).map((_, index) => (
               <Card key={`skeleton-${index}`} className="w-full h-full">
@@ -253,10 +251,10 @@ export default function PlantSearch() {
                   <Skeleton className="w-full h-48" />
                 </CardHeader>
                 <CardContent>
-                  <Skeleton className="w-[200px] h-[20px] rounded-full mb-2" />
+                  <Skeleton className="h-[20px] rounded-full mb-2" />
                   <div className="flex gap-2">
-                    <Skeleton className="w-[50px] h-[16px] rounded-full" />
-                    <Skeleton className="w-[50px] h-[16px] rounded-full" />
+                    <Skeleton className="h-[16px] rounded-full" />
+                    <Skeleton className="h-[16px] rounded-full" />
                   </div>
                 </CardContent>
               </Card>

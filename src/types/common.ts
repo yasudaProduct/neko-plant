@@ -13,6 +13,8 @@ export type ActionResult<T = undefined> = {
 
 export enum ActionErrorCode {
     AUTH_REQUIRED = "AUTH_REQUIRED",
+    INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
+    ALREADY_EXISTS = "ALREADY_EXISTS",
 }
 
 export type ActionParams<T> = {

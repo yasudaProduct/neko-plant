@@ -340,30 +340,37 @@ export async function addFavorite({ params }: ActionParams<{ plantId: number }>)
 export async function deleteFavorite({ params }: ActionParams<{ plantId: number }>): Promise<ActionResult> {
     const supabase = await createClient();
 
-    const { data: { user } } = await supabase.auth.getUser();
+    try {
 
-    if (user == null) {
-        return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (user == null) {
+            return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
+        }
+
+        const publicUser = await prisma.public_users.findFirst({
+            where: {
+                auth_id: user.id,
+            },
+        });
+
+        if (!publicUser) {
+            return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
+        }
+
+        await prisma.plant_favorites.deleteMany({
+            where: {
+                user_id: publicUser.id,
+                plant_id: params.plantId,
+            },
+        });
+
+        return { success: true, title: "削除しました。" };
+
+    } catch (error) {
+        console.log("error", error);
+        return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR };
     }
-
-    const publicUser = await prisma.public_users.findFirst({
-        where: {
-            auth_id: user.id,
-        },
-    });
-
-    if (!publicUser) {
-        return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
-    }
-
-    await prisma.plant_favorites.deleteMany({
-        where: {
-            user_id: publicUser.id,
-            plant_id: params.plantId,
-        },
-    });
-
-    return { success: true, title: "削除しました。" };
 }
 
 export async function addHave({ params }: ActionParams<{ plantId: number }>): Promise<ActionResult> {
@@ -383,6 +390,17 @@ export async function addHave({ params }: ActionParams<{ plantId: number }>): Pr
 
     if (!publicUser) {
         return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
+    }
+
+    const existingHave = await prisma.plant_have.findFirst({
+        where: {
+            user_id: publicUser.id,
+            plant_id: params.plantId,
+        },
+    });
+
+    if (existingHave) {
+        return { success: false, code: ActionErrorCode.ALREADY_EXISTS };
     }
 
     await prisma.plant_have.create({

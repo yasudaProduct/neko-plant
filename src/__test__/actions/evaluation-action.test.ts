@@ -34,6 +34,10 @@ vi.mock('@/lib/supabase/server', () => ({
     createClient: vi.fn(),
 }));
 
+vi.mock('next/cache', () => ({
+    revalidatePath: vi.fn(),
+}));
+
 describe('Evaluation Actions', () => {
     const mockUser = { id: 'test-user-id' };
     const mockPublicUser = {
@@ -185,6 +189,7 @@ describe('Evaluation Actions', () => {
                     type: EvaluationType.GOOD,
                 },
             });
+
         });
 
         it('未ログインの場合はエラーを返すこと', async () => {
@@ -210,14 +215,7 @@ describe('Evaluation Actions', () => {
 
             vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
             vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-            vi.mocked(prisma.evaluations.create).mockResolvedValue({
-                id: 1,
-                plant_id: 1,
-                user_id: 1,
-                comment: 'テストコメント',
-                type: EvaluationType.GOOD,
-                created_at: new Date(),
-            });
+            vi.mocked(prisma.evaluations.create).mockRejectedValue(null);
 
             await expect(addEvaluation(1, 'テストコメント', EvaluationType.GOOD))
                 .rejects
@@ -239,16 +237,20 @@ describe('Evaluation Actions', () => {
                 {
                     id: 1,
                     type: EvaluationReActionType.GOOD,
-                    user_id: 1,
                     created_at: new Date(),
                     evaluation_id: 1,
+                    users: {
+                        id: 1,
+                    },
                 },
                 {
                     id: 2,
                     type: EvaluationReActionType.BAD,
-                    user_id: 2,
                     created_at: new Date(),
                     evaluation_id: 1,
+                    users: {
+                        id: 2,
+                    },
                 },
             ]);
 
@@ -290,9 +292,11 @@ describe('Evaluation Actions', () => {
                 {
                     id: 1,
                     type: EvaluationReActionType.GOOD,
-                    user_id: 1,
                     created_at: new Date(),
                     evaluation_id: 1,
+                    users: {
+                        id: 2,
+                    },
                 },
             ]);
 

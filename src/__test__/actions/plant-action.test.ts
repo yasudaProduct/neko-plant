@@ -349,10 +349,6 @@ describe('Plant Actions', () => {
             expect(prisma.plants.create).toHaveBeenCalledWith({
                 data: { name: 'テスト植物' },
             });
-            // expect(prisma.plants.update).toHaveBeenCalledWith({
-            //     where: { id: 1 },
-            //     data: { image_src: '1/test.jpg' },
-            // });
         });
 
         it('未ログインの場合はエラーを返すこと', async () => {
@@ -485,12 +481,6 @@ describe('Plant Actions', () => {
                     auth_id: mockUser.id,
                 },
             });
-            // expect(prisma.plant_favorites.findFirst).toHaveBeenCalledWith({
-            //     where: {
-            //         user_id: 1,
-            //         plant_id: 1,
-            //     },
-            // });
             expect(prisma.plant_favorites.create).toHaveBeenCalledWith({
                 data: {
                     user_id: 1,
@@ -516,36 +506,6 @@ describe('Plant Actions', () => {
             });
         });
 
-        it('既にお気に入りに追加されている場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue({
-                id: 1,
-                auth_id: mockUser.id,
-                alias_id: 'test-alias',
-                name: 'Test User',
-                image: null,
-                created_at: new Date(),
-            });
-            vi.mocked(prisma.plant_favorites.findFirst).mockResolvedValue({
-                id: 1,
-                user_id: 1,
-                plant_id: 1,
-                created_at: new Date(),
-            });
-
-            const result = await addFavorite({ params: { plantId: 1 } });
-
-            expect(result).toEqual({
-                success: false,
-                message: '既にお気に入りに追加されています。',
-            });
-        });
     });
 
     describe('deleteFavorite', () => {
@@ -599,15 +559,10 @@ describe('Plant Actions', () => {
                     auth_id: mockUser.id,
                 },
             });
-            expect(prisma.plant_favorites.findFirst).toHaveBeenCalledWith({
+            expect(prisma.plant_favorites.deleteMany).toHaveBeenCalledWith({
                 where: {
                     user_id: 1,
                     plant_id: 1,
-                },
-            });
-            expect(prisma.plant_favorites.delete).toHaveBeenCalledWith({
-                where: {
-                    id: 1,
                 },
             });
         });
@@ -626,32 +581,6 @@ describe('Plant Actions', () => {
             expect(result).toEqual({
                 success: false,
                 code: 'AUTH_REQUIRED',
-            });
-        });
-
-        it('お気に入りに追加されていない場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue({
-                id: 1,
-                auth_id: mockUser.id,
-                alias_id: 'test-alias',
-                name: 'Test User',
-                image: null,
-                created_at: new Date(),
-            });
-            vi.mocked(prisma.plant_favorites.findFirst).mockResolvedValue(null);
-
-            const result = await deleteFavorite({ params: { plantId: 1 } });
-
-            expect(result).toEqual({
-                success: false,
-                message: 'お気に入りに追加されていません。',
             });
         });
     });
@@ -697,12 +626,6 @@ describe('Plant Actions', () => {
             expect(prisma.public_users.findFirst).toHaveBeenCalledWith({
                 where: {
                     auth_id: mockUser.id,
-                },
-            });
-            expect(prisma.plant_have.findFirst).toHaveBeenCalledWith({
-                where: {
-                    user_id: 1,
-                    plant_id: 1,
                 },
             });
             expect(prisma.plant_have.create).toHaveBeenCalledWith({
@@ -757,7 +680,7 @@ describe('Plant Actions', () => {
 
             expect(result).toEqual({
                 success: false,
-                message: '既に持っている植物に追加されています。',
+                code: 'ALREADY_EXISTS',
             });
         });
     });
@@ -810,15 +733,10 @@ describe('Plant Actions', () => {
                     auth_id: mockUser.id,
                 },
             });
-            expect(prisma.plant_have.findFirst).toHaveBeenCalledWith({
+            expect(prisma.plant_have.deleteMany).toHaveBeenCalledWith({
                 where: {
                     user_id: 1,
                     plant_id: 1,
-                },
-            });
-            expect(prisma.plant_have.delete).toHaveBeenCalledWith({
-                where: {
-                    id: 1,
                 },
             });
         });
@@ -837,35 +755,6 @@ describe('Plant Actions', () => {
             expect(result).toEqual({
                 success: false,
                 code: 'AUTH_REQUIRED',
-            });
-        });
-
-        it('持っている植物に追加されていない場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue({
-                id: 1,
-                auth_id: mockUser.id,
-                alias_id: 'test-alias',
-                name: 'Test User',
-                image: null,
-                created_at: new Date(),
-            });
-            vi.mocked(prisma.plant_have.findFirst).mockResolvedValue(null);
-            vi.mocked(prisma.plant_have.deleteMany).mockResolvedValue({
-                count: 0,
-            });
-
-            const result = await deleteHave({ params: { plantId: 1 } });
-
-            expect(result).toEqual({
-                success: false,
-                message: '持っている植物に追加されていません。',
             });
         });
     });

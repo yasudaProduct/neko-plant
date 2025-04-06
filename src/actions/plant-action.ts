@@ -151,18 +151,17 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
     };
 }
 
-export async function addPlant(name: string, image: File): Promise<{ success: boolean, message?: string, plantId?: number }> {
+export async function addPlant(name: string, image?: File): Promise<{ success: boolean, message?: string, plantId?: number }> {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user == null) {
         return { success: false, message: "ログインしてください。" };
-        // TODO ログイン画面にリダイレクト
     }
 
-    if (!name || !image) {
-        return { success: false, message: "植物の名前と画像は必須です。" };
+    if (!name) {
+        return { success: false, message: "植物の名前は必須です。" };
     }
 
     // チェック
@@ -188,16 +187,17 @@ export async function addPlant(name: string, image: File): Promise<{ success: bo
                 },
             });
 
-            const imageName = generateImageName("plant");
-            const imagePath = `${plant.id.toString()}/${imageName}`;
+            const imagePath = image ? `${plant.id.toString()}/${generateImageName("plant")}` : undefined;
 
             // 2. 画像をアップロード
-            const { error: imageError } = await supabase.storage
-                .from("plants")
-                .upload(imagePath, image);
+            if (image) {
+                const { error: imageError } = await supabase.storage
+                    .from("plants")
+                    .upload(imagePath!, image);
 
-            if (imageError) {
-                throw new Error("画像のアップロードに失敗しました。");
+                if (imageError) {
+                    throw new Error("画像のアップロードに失敗しました。");
+                }
             }
 
             // 4. 植物のレコードに画像のURLを保存

@@ -20,6 +20,7 @@ export const metadata: Metadata = {
   authors: [{ name: "猫と植物" }],
   creator: "猫と植物",
   publisher: "猫と植物",
+  metadataBase: new URL("https://neko-and-plant.com"),
   formatDetection: {
     email: false,
     address: false,
@@ -35,7 +36,7 @@ export const metadata: Metadata = {
       "猫にとって安全な植物を探すためのサイトです。猫と暮らす方々が安心して植物を育てられるように、猫に安全な植物の情報を提供しています。",
     images: [
       {
-        url: "/logo.png",
+        url: "images/logo.png",
         width: 1200,
         height: 630,
         alt: "猫と植物",
@@ -47,7 +48,7 @@ export const metadata: Metadata = {
     title: "猫と植物 | 猫にとって安全な植物を探す",
     description:
       "猫にとって安全な植物を探すためのサイトです。猫と暮らす方々が安心して植物を育てられるように、猫に安全な植物の情報を提供しています。",
-    images: ["/logo.png"],
+    images: ["images/logo.png"],
     creator: "@neko_plant",
   },
   robots: {

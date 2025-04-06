@@ -7,7 +7,4 @@ Allow: /
 User-agent: Yahoo!bot
 Allow: /
 
-User-agent: *
-Disallow: /
-
 Sitemap: https://neko-and-plant.com/sitemap.xml

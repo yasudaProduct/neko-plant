@@ -151,6 +151,21 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
     };
 }
 
+export async function getPlantImages(id: number): Promise<string[] | undefined> {
+    const supabase = await createClient();
+
+    const { data } = await supabase.storage.from('plants').list(
+        id.toString(), {
+        limit: 5,
+        offset: 0,
+        sortBy: { column: 'name', order: 'desc' },
+    }
+    )
+
+    return data ? data.map((image) => STORAGE_PATH.PLANT + `${id}/${image.name}`) : undefined;
+
+}
+
 export async function addPlant(name: string, image?: File): Promise<{ success: boolean, message?: string, plantId?: number }> {
     const supabase = await createClient();
 

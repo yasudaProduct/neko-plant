@@ -19,7 +19,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-
+import PlantImageUploadDialog from "./PlantImageUploadDialog";
 export default async function PlantPage({
   params,
 }: {
@@ -99,7 +99,14 @@ export default async function PlantPage({
               <h1 className="text-2xl font-bold items-center justify-center">
                 {plant.name}
               </h1>
-              {user?.id && <CommentFormDialog plantId={plant.id} />}
+              {user?.id && (
+                <>
+                  <div className="flex gap-2">
+                    <CommentFormDialog plantId={plant.id} />
+                    <PlantImageUploadDialog plantId={plant.id} />
+                  </div>
+                </>
+              )}
               <div className="ml-auto flex items-center gap-2">
                 <FavoriteButton
                   plantId={plant.id}

@@ -231,6 +231,39 @@ export async function addPlant(name: string, image?: File): Promise<{ success: b
     }
 }
 
+export async function addPlantImage(id: number, image: File): Promise<{ success: boolean, message?: string, plantId?: number }> {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user == null) {
+        return { success: false, message: "ログインしてください。" };
+    }
+
+    const publicUser = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!publicUser) {
+        return { success: false, message: "ログインしてください。" };
+    }
+
+    const imagePath = `${id.toString()}/${generateImageName("plant")}`;
+
+    const { error: imageError } = await supabase.storage
+        .from("plants")
+        .upload(imagePath, image);
+
+    if (imageError) {
+        return { success: false, message: "画像のアップロードに失敗しました。" };
+    }
+
+    return { success: true };
+}
+
+
 export async function updatePlant(id: number, plant: { name: string, image?: File }): Promise<{ success: boolean, message?: string, plantId?: number }> {
     const supabase = await createClient();
 

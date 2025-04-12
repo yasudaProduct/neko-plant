@@ -156,6 +156,7 @@ export default function EvaluationCard({
             </div>
           </div>
         </div>
+
         {/* 画像 */}
         {evaluation.imageUrls && evaluation.imageUrls.length > 0 && (
           <div className="flex flex-col gap-2 w-full">
@@ -163,7 +164,7 @@ export default function EvaluationCard({
               <Image
                 key={imageUrl}
                 src={imageUrl}
-                alt="評価画像"
+                alt="写真"
                 width={50}
                 height={50}
                 className="rounded-sm"

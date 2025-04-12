@@ -20,12 +20,12 @@ export default function CommentFormDialog({ plantId }: { plantId: number }) {
       <DialogTrigger asChild>
         <Button variant="outline">
           <Pencil className="w-4 h-4" />
-          投稿する
+          評価を投稿する
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>投稿する</DialogTitle>
+          <DialogTitle>評価を投稿する</DialogTitle>
         </DialogHeader>
         <DialogDescription>
           <CommentForm plantId={plantId} />

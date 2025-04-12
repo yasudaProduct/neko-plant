@@ -118,7 +118,7 @@ export default async function PlantPage({
             <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
               <div>
                 <h3 className="text-lg font-semibold text-green-600 mb-2">
-                  良い評価
+                  良い評価 {"(" + goodEvaluations.length + ")"}
                 </h3>
                 <div className="space-y-4 max-h-[300px] md:max-h-[500px] overflow-y-auto">
                   {goodEvaluations
@@ -133,7 +133,7 @@ export default async function PlantPage({
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-indigo-500 mb-2">
-                  悪い評価
+                  悪い評価 {"(" + badEvaluations.length + ")"}
                 </h3>
                 <div className="space-y-4 max-h-[300px] md:max-h-[500px] overflow-y-auto">
                   {badEvaluations

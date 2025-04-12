@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Input } from "./ui/input";
 import Image from "next/image";
 import { getImageData } from "@/lib/utils";
+import { Image as ImageIcon } from "lucide-react";
 
 export default function ImageUpload({
   onImageChange,
@@ -22,14 +22,23 @@ export default function ImageUpload({
 
   return (
     <>
-      <div className="space-y-2">
-        <Input
-          id="image"
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          className="hover:cursor-pointer"
-        />
+      <div>
+        <div
+          className="border-2 border-dashed border-gray-300 rounded-lg p-4 hover:border-green-500 transition-colors flex items-center justify-center hover:cursor-pointer"
+          onClick={() => {
+            document.getElementById("image")?.click();
+          }}
+        >
+          <ImageIcon className="w-4 h-4" />
+          写真を追加する +
+          <input
+            id="image"
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="hidden"
+          />
+        </div>
       </div>
 
       {preview && selectedFile && (

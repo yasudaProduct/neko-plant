@@ -3,7 +3,6 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Heart, Skull } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { EvaluationType } from "@/types/evaluation";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -13,6 +12,7 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { useState } from "react";
@@ -81,72 +81,71 @@ export default function CommentForm({ plantId }: { plantId: number }) {
   };
 
   return (
-    <Card className="mb-8">
-      <CardHeader>
-        <CardTitle>評価を投稿</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="type"
-              render={({ field }) => (
-                <>
-                  <div className="flex gap-4">
-                    <Button
-                      type="button"
-                      variant={
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <div className="flex gap-4 items-center">
+          <FormLabel className="">評価を選択</FormLabel>
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <>
+                <div className="flex gap-4">
+                  <Button
+                    type="button"
+                    variant={
+                      field.value === EvaluationType.GOOD
+                        ? "destructive"
+                        : "outline"
+                    }
+                    onClick={() => field.onChange(EvaluationType.GOOD)}
+                  >
+                    <Heart
+                      className={`w-4 h-4 ${
                         field.value === EvaluationType.GOOD
-                          ? "destructive"
-                          : "outline"
-                      }
-                      onClick={() => field.onChange(EvaluationType.GOOD)}
-                    >
-                      <Heart
-                        className={`w-4 h-4 ${
-                          field.value === EvaluationType.GOOD
-                            ? "text-white"
-                            : "text-red-500"
-                        }`}
-                      />
-                      Good
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={
-                        field.value === EvaluationType.BAD
-                          ? "default"
-                          : "outline"
-                      }
-                      onClick={() => field.onChange(EvaluationType.BAD)}
-                    >
-                      <Skull className="w-4 h-4 text-indigo-500" />
-                      Bad
-                    </Button>
-                  </div>
-                  <FormMessage />
-                </>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="comment"
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Textarea
-                      {...field}
-                      placeholder="コメントを入力してください"
+                          ? "text-white"
+                          : "text-red-500"
+                      }`}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                    Good
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={
+                      field.value === EvaluationType.BAD ? "default" : "outline"
+                    }
+                    onClick={() => field.onChange(EvaluationType.BAD)}
+                  >
+                    <Skull className="w-4 h-4 text-indigo-500" />
+                    Bad
+                  </Button>
+                </div>
+                <FormMessage />
+              </>
+            )}
+          />
+        </div>
 
-            {/* {currentUser.pets.length > 0 && (
+        <div className="mt-8">
+          <FormField
+            control={form.control}
+            name="comment"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    placeholder="コメントを入力してください"
+                    className="h-32"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* {currentUser.pets.length > 0 && (
             <div>
               <Select
                 value={selectedPetIds[0]}
@@ -166,18 +165,18 @@ export default function CommentForm({ plantId }: { plantId: number }) {
             </div>
           )} */}
 
-            <ImageUpload onImageChange={handleImageChange} />
+        <div className="mt-8">
+          <ImageUpload onImageChange={handleImageChange} />
+        </div>
 
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              {isSubmitting ? "投稿中..." : "投稿"}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+        <Button
+          type="submit"
+          disabled={isSubmitting}
+          className="bg-green-600 hover:bg-green-700"
+        >
+          {isSubmitting ? "投稿中..." : "投稿"}
+        </Button>
+      </form>
+    </Form>
   );
 }

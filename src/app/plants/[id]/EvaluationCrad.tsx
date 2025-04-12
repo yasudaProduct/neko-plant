@@ -16,6 +16,7 @@ import {
   upsertReAction,
 } from "@/actions/evaluation-action";
 import { ThumbsDown, ThumbsUp } from "lucide-react";
+
 export default function EvaluationCard({
   evaluation,
 }: {
@@ -155,6 +156,21 @@ export default function EvaluationCard({
             </div>
           </div>
         </div>
+        {/* 画像 */}
+        {evaluation.imageUrls && evaluation.imageUrls.length > 0 && (
+          <div className="flex flex-col gap-2 w-full">
+            {evaluation.imageUrls.map((imageUrl) => (
+              <Image
+                key={imageUrl}
+                src={imageUrl}
+                alt="評価画像"
+                width={50}
+                height={50}
+                className="rounded-sm"
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

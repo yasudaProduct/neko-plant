@@ -4,4 +4,5 @@ export const STORAGE_PATH = {
     USER_PROFILE: STORAGE_PATH_URL + "user_profiles/",
     USER_PET: STORAGE_PATH_URL + "user_pets/",
     PLANT: STORAGE_PATH_URL + "plants/",
+    EVALUATION: STORAGE_PATH_URL + "evaluations/",
 };

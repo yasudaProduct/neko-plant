@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { STORAGE_PATH } from "@/lib/const";
 
 export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
+    const supabase = await createClient();
 
     // TODO includeを使ってpetまで辿れなかった
     // 評価を取得
@@ -40,7 +41,7 @@ export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
         },
     });
 
-    const evaluations: Evaluation[] = evaluationsData.map((evaluation) => ({
+    const evaluations = await Promise.all(evaluationsData.map(async (evaluation) => ({
         id: evaluation.id,
         type: evaluation.type as EvaluationType,
         comment: evaluation.comment ?? "",
@@ -51,15 +52,20 @@ export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
             imageSrc: pet.image ? STORAGE_PATH.USER_PET + pet.image : undefined,
             neko: pet.neko,
         })) : undefined,
+        imageUrls: (await supabase.storage.from("evaluations").list(
+            `${evaluation.id}`, {
+            limit: 5,
+            offset: 0,
+            sortBy: { column: 'name', order: 'desc' },
+        })).data?.map(file => STORAGE_PATH.EVALUATION + `${evaluation.id}/${file.name}`),
         user: {
             aliasId: evaluation.users?.alias_id ?? "",
             name: evaluation.users?.name ?? "",
             imageSrc: evaluation.users?.image ? STORAGE_PATH.USER_PROFILE + evaluation.users.image : undefined,
         },
-    }));
+    })));
 
-    return evaluations
-
+    return evaluations;
 }
 
 export async function addEvaluation(plantId: number, comment: string, type: EvaluationType, image: File | undefined): Promise<void> {

@@ -6,6 +6,7 @@ export type Evaluation = {
     comment: string;
     createdAt: Date;
     pets?: Pet[];
+    imageUrls?: string[];
     user: {
         aliasId: string;
         name: string;

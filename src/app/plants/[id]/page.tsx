@@ -1,19 +1,17 @@
 import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import RatingBar from "@/components/RatingBar";
-import CommentForm from "./CommentForm";
 import { getPlant } from "@/actions/plant-action";
 import { getEvaluations } from "@/actions/evaluation-action";
 import { Evaluation, EvaluationType } from "@/types/evaluation";
 import { Plant } from "@/types/plant";
 import { notFound } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import Link from "next/link";
-import { Leaf, Pencil } from "lucide-react";
+import { Leaf } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import FavoriteButton from "./FavoriteButton";
 import HaveButton from "./HaveButton";
 import EvaluationCard from "./EvaluationCrad";
+import CommentFormDialog from "./CommentFormDialog";
 
 export default async function PlantPage({
   params,
@@ -73,18 +71,20 @@ export default async function PlantPage({
             )}
             {user?.id && (
               <div className="absolute top-2 right-2">
-                <Link href={`/plants/${plant.id}/edit`}>
+                {/* <Link href={`/plants/${plant.id}/edit`}>
                   <Button variant="outline">
                     <Pencil className="w-4 h-4" />
                   </Button>
-                </Link>
+                </Link> */}
               </div>
             )}
           </CardHeader>
           <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold mb-4">{plant.name}</h1>
-              {/* <div className="text-sm text-gray-500">{"test"}</div> */}
+            <div className="flex items-center gap-2 mb-4">
+              <h1 className="text-2xl font-bold items-center justify-center">
+                {plant.name}
+              </h1>
+              {user?.id && <CommentFormDialog plantId={plant.id} />}
               <div className="ml-auto flex items-center gap-2">
                 <FavoriteButton
                   plantId={plant.id}
@@ -134,13 +134,6 @@ export default async function PlantPage({
             </div>
           </CardContent>
         </Card>
-
-        {/* Add comment form */}
-        {user?.id && (
-          <div className="mt-8">
-            <CommentForm plantId={plant.id} />
-          </div>
-        )}
       </div>
     </div>
   );

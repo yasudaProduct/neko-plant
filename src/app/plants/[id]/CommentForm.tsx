@@ -18,6 +18,7 @@ import {
 import { useState } from "react";
 import { addEvaluation } from "@/actions/evaluation-action";
 import { useToast } from "@/hooks/use-toast";
+import ImageUpload from "@/components/ImageUpload";
 
 const formSchema = z.object({
   comment: z.string().min(1, {
@@ -26,6 +27,21 @@ const formSchema = z.object({
   type: z.nativeEnum(EvaluationType, {
     required_error: "評価を選択してください",
   }),
+  image: z
+    .any()
+    .refine((file) => !file || file instanceof File, {
+      message: "有効な画像ファイルをアップロードしてください",
+    })
+    .refine(
+      (file) =>
+        !file || (file && ["image/jpeg", "image/png"].includes(file.type)),
+      {
+        message: "サポートされていないファイル形式です",
+      }
+    )
+    .refine((file) => !file || (file && file.size <= 5 * 1024 * 1024), {
+      message: "ファイルサイズは5MB以下にしてください",
+    }),
 });
 
 export default function CommentForm({ plantId }: { plantId: number }) {
@@ -37,6 +53,7 @@ export default function CommentForm({ plantId }: { plantId: number }) {
     defaultValues: {
       comment: "",
       type: undefined,
+      image: undefined,
     },
   });
 
@@ -44,7 +61,7 @@ export default function CommentForm({ plantId }: { plantId: number }) {
     setIsSubmitting(true);
 
     try {
-      await addEvaluation(plantId, values.comment, values.type);
+      await addEvaluation(plantId, values.comment, values.type, values.image);
       success({
         title: "植物の評価を投稿しました",
       });
@@ -58,6 +75,10 @@ export default function CommentForm({ plantId }: { plantId: number }) {
       setIsSubmitting(false);
     }
   }
+
+  const handleImageChange = (file: File) => {
+    form.setValue("image", file);
+  };
 
   return (
     <Card className="mb-8">
@@ -144,6 +165,8 @@ export default function CommentForm({ plantId }: { plantId: number }) {
               </Select>
             </div>
           )} */}
+
+            <ImageUpload onImageChange={handleImageChange} />
 
             <Button
               type="submit"

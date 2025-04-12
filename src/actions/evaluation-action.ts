@@ -58,13 +58,11 @@ export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
         },
     }));
 
-    console.log(evaluations);
-
     return evaluations
 
 }
 
-export async function addEvaluation(plantId: number, comment: string, type: EvaluationType): Promise<void> {
+export async function addEvaluation(plantId: number, comment: string, type: EvaluationType, image: File | undefined): Promise<void> {
     try {
         const supabase = await createClient();
 
@@ -85,18 +83,41 @@ export async function addEvaluation(plantId: number, comment: string, type: Eval
             throw new Error("ユーザーが見つかりません");
         }
 
-        const evaluation = await prisma.evaluations.create({
-            data: {
-                plant_id: plantId,
-                user_id: userData.id,
-                comment: comment,
-                type: type,
-            },
-        });
+        prisma.$transaction(async (tx) => {
 
-        if (!evaluation) {
-            throw new Error("評価投稿に失敗しました。");
-        }
+            // 評価を作成
+            const evaluation = await tx.evaluations.create({
+                data: {
+                    plant_id: plantId,
+                    user_id: userData.id,
+                    comment: comment,
+                    type: type,
+                },
+            });
+
+            if (!evaluation) {
+                throw new Error("評価投稿に失敗しました。");
+            }
+
+            // evaluationsフォルダ内の画像リストを取得
+            const { data } = await supabase.storage.from("evaluations")
+                .list(
+                    // `${evaluation.id}`, {
+                    '38', {
+                    limit: 5,
+                    offset: 0,
+                    sortBy: { column: 'name', order: 'desc' },
+                }
+                );
+
+            const imageName = data ? (data.length + 1).toString() : "1";
+
+            // 画像をアップロード
+            if (image) {
+                const data = await supabase.storage.from("evaluations").upload(`${evaluation.id}/${imageName}`, image);
+                console.log("path:", data.data?.path);
+            }
+        });
 
         revalidatePath(`/plants/${plantId}`);
 

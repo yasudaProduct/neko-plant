@@ -21,7 +21,7 @@ import { z } from "zod";
 const formSchema = z.object({
   image: z
     .any()
-    .refine((file) => !file || file instanceof File, {
+    .refine((file) => file instanceof File, {
       message: "有効な画像ファイルをアップロードしてください",
     })
     .refine(
@@ -91,13 +91,21 @@ export default function PlantImageUploadDialog({
         </DialogHeader>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
           <ImageUpload onImageChange={handleImageChange} />
-          <Button
-            type="submit"
-            disabled={isSubmitting}
-            className="bg-green-600 hover:bg-green-700"
-          >
-            {isSubmitting ? "アップロード中..." : "アップロード"}
-          </Button>
+          <span className="text-sm text-red-500">
+            {form.formState.errors.image?.message}
+          </span>
+          <div className="flex items-center gap-2">
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              {isSubmitting ? "アップロード中..." : "アップロード"}
+            </Button>
+            <span className="text-sm text-gray-500">
+              {form.watch("image")?.name}
+            </span>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

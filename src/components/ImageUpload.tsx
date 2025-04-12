@@ -43,7 +43,6 @@ export default function ImageUpload({
 
       {preview && selectedFile && (
         <div className="mt-4">
-          <p>画像プレビュー：{selectedFile?.name}</p>
           <Image
             src={preview}
             alt="画像プレビュー"

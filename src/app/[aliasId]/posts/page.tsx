@@ -1,4 +1,4 @@
-import { Heart, Skull, Star } from "lucide-react";
+import { Heart, Skull, Star, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 import { getUserEvaluations, getUserProfile } from "@/actions/user-action";
 import { notFound } from "next/navigation";
@@ -50,6 +50,27 @@ export default async function ProfilePage({
                 </Link>
               </div>
             ))}
+        </div>
+      </div>
+
+      {/* 投稿一覧 */}
+      <div className="lg:min-w-[500px] pt-6">
+        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+          <ImageIcon className="text-green-500" />
+          投稿一覧
+        </h2>
+        <div className="overflow-y-auto max-h-[300px]">
+          {/* {evaluations &&
+            evaluations.map((evaluation) => (
+              <div key={evaluation.id}>
+                <Image
+                  src={evaluation.plant.image}
+                  alt="投稿画像"
+                  width={100}
+                  height={100}
+                />
+              </div>
+            ))} */}
         </div>
       </div>
     </div>

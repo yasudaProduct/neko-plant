@@ -12,7 +12,8 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:ui": "vitest --ui",
-    "generate-sitemap": "tsx scripts/generate-sitemap.ts"
+    "generate-sitemap": "tsx scripts/generate-sitemap.ts",
+    "postinstall": "prisma generate"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

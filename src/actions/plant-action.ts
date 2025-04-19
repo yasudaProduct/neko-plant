@@ -17,35 +17,23 @@ export async function getPlants(
 
     // ページングを適用してデータを取得
     const plantsData = await prisma.plants.findMany({
-        select: {
-            id: true,
-            name: true,
+        include: {
+            plant_images: {
+                orderBy: {
+                    order: 'asc',
+                },
+                take: 1,
+            },
         },
         orderBy: getSortOption(sortBy),
         skip: (page - 1) * pageSize,
         take: pageSize,
     });
 
-    const plantImages = await prisma.plant_images.findMany({
-        select: {
-            image_url: true,
-            plant_id: true,
-        },
-        where: {
-            plant_id: {
-                in: plantsData.map((plant) => plant.id),
-            },
-        },
-        orderBy: {
-            order: 'asc',
-        },
-        take: 1,
-    });
-
     const plants: Plant[] = plantsData.map((plant) => ({
         id: plant.id,
         name: plant.name,
-        imageUrl: plantImages.find((image: { image_url: string, plant_id: number }) => image.plant_id === plant.id)?.image_url ? STORAGE_PATH.PLANT + plantImages.find((image: { image_url: string, plant_id: number }) => image.plant_id === plant.id)?.image_url : undefined,
+        imageUrl: plant.plant_images && plant.plant_images.length > 0 ? STORAGE_PATH.PLANT + plant.plant_images[0].image_url : undefined,
         isFavorite: false,
         isHave: false,
     }));
@@ -81,15 +69,8 @@ export async function searchPlants(
                 mode: 'insensitive', // 大文字小文字を区別しない
             },
         },
-        select: {
-            id: true,
-            name: true,
-        },
         include: {
             plant_images: {
-                select: {
-                    image_url: true,
-                },
                 orderBy: {
                     order: 'asc',
                 },
@@ -177,7 +158,6 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
 }
 
 export async function getPlantImages(id: number): Promise<string[] | undefined> {
-    const supabase = await createClient();
 
     const plant_images = await prisma.plant_images.findMany({
         select: {
@@ -286,7 +266,7 @@ export async function addPlantImage(id: number, image: File): Promise<{ success:
 
             const imagePath = `${id.toString()}/${generateImageName("plant")}`;
 
-            const plant_images = await prisma.plant_images.create(
+            await prisma.plant_images.create(
                 {
                     data: {
                         plant_id: id,

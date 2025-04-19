@@ -1,7 +1,12 @@
 import { Heart, Skull, Star, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
-import { getUserEvaluations, getUserProfile } from "@/actions/user-action";
+import {
+  getUserEvaluations,
+  getUserPostImages,
+  getUserProfile,
+} from "@/actions/user-action";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 
 export default async function ProfilePage({
   params,
@@ -20,7 +25,7 @@ export default async function ProfilePage({
   const evaluations = await getUserEvaluations(userProfile.id);
 
   // 投稿画像一覧取得
-  //   const posts = await getUserPosts(userProfile.id);
+  const postImages = await getUserPostImages(userProfile.id);
 
   return (
     <div className="space-y-6">
@@ -60,17 +65,17 @@ export default async function ProfilePage({
           投稿一覧
         </h2>
         <div className="overflow-y-auto max-h-[300px]">
-          {/* {evaluations &&
-            evaluations.map((evaluation) => (
-              <div key={evaluation.id}>
+          {postImages &&
+            postImages.map((postImage) => (
+              <div key={postImage.plantId}>
                 <Image
-                  src={evaluation.plant.image}
+                  src={postImage.imageUrl}
                   alt="投稿画像"
                   width={100}
                   height={100}
                 />
               </div>
-            ))} */}
+            ))}
         </div>
       </div>
     </div>

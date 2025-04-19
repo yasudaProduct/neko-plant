@@ -491,3 +491,43 @@ export async function deleteFavoritePlant(plantId: number) {
 
     revalidatePath(`/${userData.alias_id}`);
 }
+
+export async function getUserPostImages(userId: number): Promise<({ plantId: number, plantName: string, imageUrl: string, createdAt: Date })[] | undefined> {
+    const supabase = await createClient();
+    const {
+        data: { user }
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    const userData = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!userData) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    const plantImages = await prisma.plant_images.findMany({
+        where: {
+            user_id: userId,
+        },
+        include: {
+            plants: true,
+        },
+        orderBy: {
+            id: "asc",
+        },
+    });
+
+    return plantImages.map((plantImage: { image_url: string, plant_id: number, created_at: Date, plants: { id: number, name: string } }) => ({
+        plantId: plantImage.plants.id,
+        plantName: plantImage.plants.name,
+        imageUrl: STORAGE_PATH.PLANT + plantImage.image_url,
+        createdAt: plantImage.created_at,
+    }));
+}

@@ -1,7 +1,7 @@
 export type Plant = {
     id: number;
     name: string;
-    imageUrl?: string;
+    mainImageUrl?: string;
     isFavorite: boolean;
     isHave: boolean;
 };

@@ -362,7 +362,16 @@ export async function getUserPlants(userId: number): Promise<Plant[] | undefined
             user_id: userId,
         },
         include: {
-            plants: true,
+            plants: {
+                include: {
+                    plant_images: {
+                        orderBy: {
+                            created_at: "asc",
+                        },
+                        take: 1,
+                    },
+                },
+            },
         },
         orderBy: {
             id: "asc",
@@ -372,7 +381,7 @@ export async function getUserPlants(userId: number): Promise<Plant[] | undefined
     return plants.map((plant) => ({
         id: plant.plant_id,
         name: plant.plants.name,
-        imageUrl: plant.plants.image_src ? STORAGE_PATH.PLANT + plant.plants.image_src : undefined,
+        imageUrl: plant.plants.plant_images && plant.plants.plant_images.length > 0 ? STORAGE_PATH.PLANT + plant.plants.plant_images[0].image_url : undefined,
         isFavorite: false,
         isHave: true,
     }));
@@ -447,7 +456,16 @@ export async function getUserFavoritePlants(userId: number): Promise<Plant[] | u
             user_id: userId,
         },
         include: {
-            plants: true,
+            plants: {
+                include: {
+                    plant_images: {
+                        orderBy: {
+                            created_at: "asc",
+                        },
+                        take: 1,
+                    },
+                },
+            },
         },
         orderBy: {
             id: "asc",
@@ -457,7 +475,7 @@ export async function getUserFavoritePlants(userId: number): Promise<Plant[] | u
     return favoritePlants.map((favoritePlant) => ({
         id: favoritePlant.plant_id,
         name: favoritePlant.plants.name,
-        imageUrl: favoritePlant.plants.image_src ? STORAGE_PATH.PLANT + favoritePlant.plants.image_src : undefined,
+        mainImageUrl: favoritePlant.plants.plant_images && favoritePlant.plants.plant_images.length > 0 ? STORAGE_PATH.PLANT + favoritePlant.plants.plant_images[0].image_url : undefined,
         isFavorite: true,
         isHave: false,
     }));

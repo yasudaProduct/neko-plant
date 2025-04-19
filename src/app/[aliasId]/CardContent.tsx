@@ -42,9 +42,9 @@ export default function PlantContent({ plant, authFlg }: PlantCardProp) {
       }}
     >
       <div className="flex items-start space-x-4">
-        {plant.imageUrl ? (
+        {plant.mainImageUrl ? (
           <Image
-            src={plant.imageUrl}
+            src={plant.mainImageUrl}
             alt={plant.name}
             width={80}
             height={80}
@@ -106,9 +106,9 @@ export function FavoriteContent({ plant, authFlg }: FavoriteContentProp) {
       }}
     >
       <div className="flex items-start space-x-4">
-        {plant.imageUrl ? (
+        {plant.mainImageUrl ? (
           <Image
-            src={plant.imageUrl}
+            src={plant.mainImageUrl}
             alt={plant.name}
             width={80}
             height={80}

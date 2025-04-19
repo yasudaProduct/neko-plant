@@ -30,9 +30,9 @@ export default async function EditPlant({
         <Card className="max-w-2xl mx-auto p-6">
           <h1 className="text-2xl font-bold text-center mb-6">植物を編集</h1>
           <CardHeader>
-            {plant.imageUrl ? (
+            {plant.mainImageUrl ? (
               <Image
-                src={plant.imageUrl}
+                src={plant.mainImageUrl}
                 alt={plant.name}
                 width={600}
                 height={400}

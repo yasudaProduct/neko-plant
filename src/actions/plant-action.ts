@@ -152,7 +152,7 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
     return {
         id: plant.id,
         name: plant.name,
-        imageUrl: plant.image_src ? STORAGE_PATH.PLANT + plant.image_src : undefined,
+        mainImageUrl: plant.image_src ? STORAGE_PATH.PLANT + plant.image_src : undefined,
         isFavorite: isFavorite,
         isHave: isHave,
     };

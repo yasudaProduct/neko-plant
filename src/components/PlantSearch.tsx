@@ -79,7 +79,7 @@ export default function PlantSearch() {
             const evaluations: Evaluation[] = await getEvaluations(plant.id);
             return {
               name: plant.name,
-              imageSrc: plant.imageUrl || undefined,
+              imageSrc: plant.mainImageUrl || undefined,
               isSafe: evaluations.length > 0, // TODO: Safeは必要？
               likes: evaluations.filter(
                 (evaluation) => evaluation.type === EvaluationType.GOOD
@@ -289,7 +289,7 @@ export default function PlantSearch() {
               <Link key={plant.id} href={`/plants/${plant.id}`}>
                 <PlantCard
                   name={plant.name}
-                  imageSrc={plant.imageUrl || "/images/plant_default.png"}
+                  imageSrc={plant.mainImageUrl || "/images/plant_default.png"}
                   isSafe={
                     plantCards.find((card) => card.name === plant.name)
                       ?.isSafe || false

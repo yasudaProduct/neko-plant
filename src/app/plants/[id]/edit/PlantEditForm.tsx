@@ -18,21 +18,6 @@ const plantSchema = z.object({
     .string()
     .min(1, "植物の名前は必須です")
     .max(50, "植物の名前は50文字以内で入力してください"),
-  // image: z
-  //   .any()
-  //   .refine((file) => !file || file instanceof File, {
-  //     message: "有効な画像ファイルをアップロードしてください",
-  //   })
-  //   .refine(
-  //     (file) =>
-  //       !file || (file && ["image/jpeg", "image/png"].includes(file.type)),
-  //     {
-  //       message: "サポートされていないファイル形式です",
-  //     }
-  //   )
-  //   .refine((file) => !file || (file && file.size <= 5 * 1024 * 1024), {
-  //     message: "ファイルサイズは5MB以下にしてください",
-  //   }),
 });
 
 type PlantFormData = z.infer<typeof plantSchema>;
@@ -44,25 +29,20 @@ interface PlantEditFormProps {
 export default function PlantEditForm({ plant }: PlantEditFormProps) {
   const { success, error } = useToast();
   const router = useRouter();
-  // const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  // const [preview, setPreview] = useState<string | null>(null);
   const {
     register,
     handleSubmit,
     formState: { errors },
-    // setValue,
   } = useForm<PlantFormData>({
     resolver: zodResolver(plantSchema),
     defaultValues: {
       name: plant.name,
-      // image: undefined,
     },
   });
 
   const onSubmit = async (data: PlantFormData) => {
     const editPlant = {
       name: data.name,
-      // image: data.image,
     };
 
     const result = await updatePlant(plant.id, editPlant);
@@ -71,16 +51,16 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
       success({
         title: "植物を更新しました",
       });
-      router.push(`/plants/${result.plantId}`);
+      router.push(`/plants/${result.data?.plantId}`);
     } else {
       error({
         title: "植物の更新に失敗しました",
         description: (
           <>
             {result.message}{" "}
-            {result.plantId && (
+            {result.data?.plantId && (
               <Link
-                href={`/plants/${result.plantId}`}
+                href={`/plants/${result.data?.plantId}`}
                 className="text-blue-500 underline"
               >
                 こちら
@@ -91,15 +71,6 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
       });
     }
   };
-
-  // const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   const { files, displayUrl } = getImageData(e);
-  //   if (files && files[0]) {
-  //     setValue("image", files[0], { shouldValidate: true });
-  //     setSelectedFile(files[0]);
-  //     setPreview(displayUrl);
-  //   }
-  // };
 
   const handleDelete = async () => {
     try {
@@ -138,35 +109,6 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
           <p className="text-red-500 text-sm">{errors.name.message}</p>
         )}
       </div>
-
-      {/* <div className="space-y-2">
-        <Label htmlFor="image">植物の画像</Label>
-        <Input
-          id="image"
-          type="file"
-          accept="image/*"
-          onChange={handleImageChange}
-          className="hover:cursor-pointer"
-        />
-        {errors.image && (
-          <p className="text-red-500 text-sm">
-            {errors.image.message as string}
-          </p>
-        )}
-      </div> */}
-
-      {/* {preview && selectedFile && (
-        <div className="mt-4">
-          <p>画像プレビュー：{selectedFile?.name}</p>
-          <Image
-            src={preview}
-            alt="画像プレビュー"
-            width={200}
-            height={200}
-            className="mx-auto"
-          />
-        </div>
-      )} */}
 
       <div className="flex gap-4">
         <SubmitButton2

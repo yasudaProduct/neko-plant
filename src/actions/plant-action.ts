@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { STORAGE_PATH } from "@/lib/const";
 import { generateImageName } from "@/lib/utils";
 import { ActionErrorCode, ActionParams, ActionResult } from "@/types/common";
+import { revalidatePath } from "next/cache";
 
 export async function getPlants(
     sortBy: string = 'name',
@@ -176,17 +177,21 @@ export async function getPlantImages(id: number): Promise<string[] | undefined> 
         : undefined;
 }
 
-export async function addPlant(name: string, image?: File): Promise<{ success: boolean, message?: string, plantId?: number }> {
+export async function addPlant(name: string, image?: File): Promise<ActionResult<{ plantId: number }>> {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user == null) {
-        return { success: false, message: "ログインしてください。" };
+        return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
     }
 
     if (!name) {
-        return { success: false, message: "植物の名前は必須です。" };
+        return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "植物の名前は必須です。" };
+    }
+
+    if (name.length > 50) {
+        return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "植物の名前は50文字以内で入力してください。" };
     }
 
     // チェック
@@ -197,12 +202,11 @@ export async function addPlant(name: string, image?: File): Promise<{ success: b
         },
     });
     if (existingPlant) {
-        return { success: false, message: "植物名が重複しています。", plantId: existingPlant.id };
+        return { success: false, code: ActionErrorCode.ALREADY_EXISTS, message: "植物名が重複しています。", data: { plantId: existingPlant.id } };
     }
 
-    // prismaでトランザクションを実行
     try {
-        let newPlantId
+        let newPlantId: number = 0;
         await prisma.$transaction(async (prisma) => {
 
             // 1. 植物を登録
@@ -234,20 +238,20 @@ export async function addPlant(name: string, image?: File): Promise<{ success: b
             newPlantId = newPlant.id
         });
 
-        return { success: true, plantId: newPlantId };
+        return { success: true, data: { plantId: newPlantId } };
     } catch (error) {
-        console.log("error", error);
-        return { success: false, message: error instanceof Error ? error.message : "植物の追加に失敗しました。" };
+        console.error("error", error);
+        return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "植物の追加に失敗しました。" };
     }
 }
 
-export async function addPlantImage(id: number, image: File): Promise<{ success: boolean, message?: string, plantId?: number }> {
+export async function addPlantImage(id: number, image: File): Promise<ActionResult> {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user == null) {
-        return { success: false, message: "ログインしてください。" };
+        return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
     }
 
     const publicUser = await prisma.public_users.findFirst({
@@ -257,7 +261,7 @@ export async function addPlantImage(id: number, image: File): Promise<{ success:
     });
 
     if (!publicUser) {
-        return { success: false, message: "ログインしてください。" };
+        return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
     }
 
     try {
@@ -279,33 +283,33 @@ export async function addPlantImage(id: number, image: File): Promise<{ success:
             const { error: imageError } = await supabase.storage
                 .from("plants")
                 .upload(imagePath, image);
-            console.log("imageError", imageError);
-            console.log("imagePath", imagePath);
 
             if (imageError) {
-                return { success: false, message: "画像のアップロードに失敗しました。" };
+                throw new Error("画像のアップロードに失敗しました。");
             }
         });
+
+        revalidatePath(`/plants/${id}`);
+
         return { success: true };
 
     } catch (error) {
         console.log("error", error);
-        return { success: false, message: error instanceof Error ? error.message : "画像のアップロードに失敗しました。" };
+        return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "画像のアップロードに失敗しました。" };
     }
 }
 
-
-export async function updatePlant(id: number, plant: { name: string, image?: File }): Promise<{ success: boolean, message?: string, plantId?: number }> {
+export async function updatePlant(id: number, plant: { name: string, image?: File }): Promise<ActionResult<{ plantId: number }>> {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user == null) {
-        return { success: false, message: "ログインしてください。" };
+        return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
     }
 
     if (!plant.name) {
-        return { success: false, message: "植物の名前は必須です。" };
+        return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "植物の名前は必須です。" };
     }
 
     // 1. 植物名が重複していないか
@@ -316,7 +320,7 @@ export async function updatePlant(id: number, plant: { name: string, image?: Fil
         },
     });
     if (existingPlant) {
-        return { success: false, message: "植物名が重複しています。", plantId: existingPlant.id };
+        return { success: false, code: ActionErrorCode.ALREADY_EXISTS, message: "植物名が重複しています。", data: { plantId: existingPlant.id } };
     }
 
     try {
@@ -326,7 +330,16 @@ export async function updatePlant(id: number, plant: { name: string, image?: Fil
             const imageName = generateImageName("plant");
             const imagePath = `${id.toString()}/${imageName}`;
 
-            // 1. 画像をアップロード
+            // 1. 植物のレコードを更新
+            await prisma.plants.update({
+                where: { id: id },
+                data: {
+                    name: plant.name,
+                    image_src: imagePath,
+                },
+            });
+
+            // 2. 画像をアップロード
             if (plant.image) {
                 const { error: imageError } = await supabase.storage
                     .from("plants")
@@ -338,31 +351,22 @@ export async function updatePlant(id: number, plant: { name: string, image?: Fil
                     throw new Error("画像のアップロードに失敗しました。");
                 }
             }
-
-            // 2. 植物のレコードを更新
-            await prisma.plants.update({
-                where: { id: id },
-                data: {
-                    name: plant.name,
-                    image_src: imagePath,
-                },
-            });
-
         });
 
-        return { success: true, plantId: id };
+        return { success: true, data: { plantId: id } };
     } catch (error) {
-        return { success: false, message: error instanceof Error ? error.message : "植物の更新に失敗しました。" };
+        console.error("error", error);
+        return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "植物の更新に失敗しました。" };
     }
 }
 
-export async function deletePlant(id: number): Promise<{ success: boolean, message?: string }> {
+export async function deletePlant(id: number): Promise<ActionResult> {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user == null) {
-        return { success: false, message: "ログインしてください。" };
+        return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
     }
 
     try {
@@ -370,20 +374,20 @@ export async function deletePlant(id: number): Promise<{ success: boolean, messa
             where: { id: id },
         });
 
-        const { error: imageError } = await supabase.storage
-            .from("plants")
-            .remove([id.toString()]);
+        // 植物の画像は削除しないでおく
+        // const { error: imageError } = await supabase.storage
+        //     .from("plants")
+        //     .remove([id.toString()]);
 
-        if (imageError) {
-            console.log("imageError", imageError);
-            throw new Error("画像の削除に失敗しました。");
-        }
+        // if (imageError) {
+        //     console.error("imageError", imageError);
+        //     throw new Error("画像の削除に失敗しました。");
+        // }
 
-
-        return { success: true };
+        return { success: true, title: "削除しました。" };
     } catch (error) {
-        console.log("error", error);
-        return { success: false, message: error instanceof Error ? error.message : "植物の削除に失敗しました。" };
+        console.error("error", error);
+        return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "植物の削除に失敗しました。" };
     }
 }
 

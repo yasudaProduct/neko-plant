@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 
 interface AuthProtectedButtonProps {
-  onClick?: () => void | Promise<void>;
+  onClick?: () => void | Promise<void> | Promise<FormData>;
   text?: string;
   pendingText?: string;
   variant?: "default" | "outline" | "ghost" | "link";

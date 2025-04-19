@@ -40,6 +40,6 @@ export const formatDateyyyymmdd = (dateString: string): string | undefined => {
 };
 
 export const generateImageName = (prefix?: string): string => {
-  const currentDate = new Date().toISOString().replace(/[:.]/g, '-');
+  const currentDate = new Date().toISOString().replace(/[:.]/g, '');
   return prefix ? `${prefix}_${currentDate}` : currentDate;
 };

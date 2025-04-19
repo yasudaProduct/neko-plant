@@ -120,8 +120,7 @@ export async function addEvaluation(plantId: number, comment: string, type: Eval
 
             // 画像をアップロード
             if (image) {
-                const data = await supabase.storage.from("evaluations").upload(`${evaluation.id}/${imageName}`, image);
-                console.log("path:", data.data?.path);
+                await supabase.storage.from("evaluations").upload(`${evaluation.id}/${imageName}`, image);
             }
         });
 

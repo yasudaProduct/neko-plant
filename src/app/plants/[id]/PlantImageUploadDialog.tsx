@@ -43,7 +43,7 @@ export default function PlantImageUploadDialog({
 }) {
   const { success, error } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [isOpen, setIsOpen] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -74,6 +74,7 @@ export default function PlantImageUploadDialog({
       });
     } finally {
       setIsSubmitting(false);
+      setIsOpen(false);
     }
   }
 
@@ -82,7 +83,7 @@ export default function PlantImageUploadDialog({
   };
 
   return (
-    <Dialog>
+    <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
         <Button variant="outline">
           <Camera />

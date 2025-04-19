@@ -15,6 +15,7 @@ import CommentForm from "./CommentForm";
 
 export default function CommentFormDialog({ plantId }: { plantId: number }) {
   const [isOpen, setIsOpen] = useState(false);
+
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
@@ -28,7 +29,10 @@ export default function CommentFormDialog({ plantId }: { plantId: number }) {
           <DialogTitle>評価を投稿する</DialogTitle>
         </DialogHeader>
         <DialogDescription>
-          <CommentForm plantId={plantId} />
+          <CommentForm
+            plantId={plantId}
+            onSubmitSuccess={() => setIsOpen(false)}
+          />
         </DialogDescription>
       </DialogContent>
     </Dialog>

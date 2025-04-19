@@ -44,7 +44,13 @@ const formSchema = z.object({
     }),
 });
 
-export default function CommentForm({ plantId }: { plantId: number }) {
+export default function CommentForm({
+  plantId,
+  onSubmitSuccess,
+}: {
+  plantId: number;
+  onSubmitSuccess?: () => void;
+}) {
   const { success, error } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -73,6 +79,7 @@ export default function CommentForm({ plantId }: { plantId: number }) {
       });
     } finally {
       setIsSubmitting(false);
+      onSubmitSuccess?.();
     }
   }
 

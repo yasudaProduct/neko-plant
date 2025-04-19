@@ -5,6 +5,7 @@ import { Evaluation, EvaluationReAction, EvaluationReActionType, EvaluationType 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { STORAGE_PATH } from "@/lib/const";
+import { ActionErrorCode, ActionResult } from "@/types/common";
 
 export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
     const supabase = await createClient();
@@ -129,6 +130,44 @@ export async function addEvaluation(plantId: number, comment: string, type: Eval
     } catch (error) {
         console.error("Error adding evaluation:", error);
         throw error;
+    }
+}
+
+export async function deleteEvaluation(evaluationId: number): Promise<ActionResult> {
+    const supabase = await createClient();
+
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+        return { success: false, code: ActionErrorCode.AUTH_REQUIRED, message: "ユーザーが見つかりません。" };
+    }
+
+    const userData = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!userData) {
+        return { success: false, code: ActionErrorCode.AUTH_REQUIRED, message: "ユーザーが見つかりません。" };
+    }
+
+    try {
+
+        await prisma.evaluations.delete({
+            where: {
+                id: evaluationId,
+                user_id: userData.id,
+            },
+        });
+
+        revalidatePath(`/${userData.alias_id}/posts`);
+
+        return { success: true, message: "評価を削除しました。" };
+
+    } catch (error) {
+        console.error("Error deleting evaluation:", error);
+        return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "評価の削除に失敗しました。" };
     }
 }
 

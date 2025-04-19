@@ -8,6 +8,7 @@ import {
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import PlantImageButtom from "./PlantImageButtom";
+import PlantEvalButtom from "./PlantEvalButtom";
 
 export default async function ProfilePage({
   params,
@@ -54,6 +55,9 @@ export default async function ProfilePage({
                     {"[" + evaluation.plant.name + "]"}
                   </p>
                 </Link>
+                <div className="ml-auto">
+                  <PlantEvalButtom evaluationId={evaluation.id} />
+                </div>
               </div>
             ))}
         </div>

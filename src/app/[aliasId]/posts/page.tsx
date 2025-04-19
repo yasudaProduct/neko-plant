@@ -7,6 +7,7 @@ import {
 } from "@/actions/user-action";
 import { notFound } from "next/navigation";
 import Image from "next/image";
+import PlantImageButtom from "./PlantImageButtom";
 
 export default async function ProfilePage({
   params,
@@ -67,13 +68,25 @@ export default async function ProfilePage({
         <div className="overflow-y-auto max-h-[300px]">
           {postImages &&
             postImages.map((postImage) => (
-              <div key={postImage.plantId}>
-                <Image
-                  src={postImage.imageUrl}
-                  alt="投稿画像"
-                  width={100}
-                  height={100}
-                />
+              <div
+                key={postImage.id}
+                className="flex items-center gap-2 bg-gray-50 p-4 rounded-lg mb-4 hover:bg-gray-100 transition-colors"
+              >
+                <Link href={`/plants/${postImage.plantId}`}>
+                  <Image
+                    src={postImage.imageUrl}
+                    alt="投稿画像"
+                    width={100}
+                    height={100}
+                  />
+                </Link>
+                <div className="flex flex-col gap-2">
+                  <p>{postImage.plantName}</p>
+                  <p>{postImage.createdAt.toLocaleString()}</p>
+                </div>
+                <div className="flex items-center gap-2 ml-auto">
+                  <PlantImageButtom postImageId={postImage.id} />
+                </div>
               </div>
             ))}
         </div>

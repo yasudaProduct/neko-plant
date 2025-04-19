@@ -492,7 +492,7 @@ export async function deleteFavoritePlant(plantId: number) {
     revalidatePath(`/${userData.alias_id}`);
 }
 
-export async function getUserPostImages(userId: number): Promise<({ plantId: number, plantName: string, imageUrl: string, createdAt: Date })[] | undefined> {
+export async function getUserPostImages(userId: number): Promise<({ id: number, plantId: number, plantName: string, imageUrl: string, createdAt: Date })[] | undefined> {
     const supabase = await createClient();
     const {
         data: { user }
@@ -524,10 +524,57 @@ export async function getUserPostImages(userId: number): Promise<({ plantId: num
         },
     });
 
-    return plantImages.map((plantImage: { image_url: string, plant_id: number, created_at: Date, plants: { id: number, name: string } }) => ({
+    return plantImages.map((plantImage: { id: number, image_url: string, plant_id: number, created_at: Date, plants: { id: number, name: string } }) => ({
+        id: plantImage.id,
         plantId: plantImage.plants.id,
         plantName: plantImage.plants.name,
         imageUrl: STORAGE_PATH.PLANT + plantImage.image_url,
         createdAt: plantImage.created_at,
     }));
+}
+
+export async function deletePostImage(postImageId: number): Promise<{ success: boolean }> {
+    const supabase = await createClient();
+    const {
+        data: { user }
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    const userData = await prisma.public_users.findFirst({
+        where: {
+            auth_id: user.id,
+        },
+    });
+
+    if (!userData) {
+        throw new Error("ユーザーが見つかりません");
+    }
+
+    try {
+
+        await prisma.$transaction(async (prisma) => {
+
+            // TODO 存在しなかったらplantImageはどうなる？
+            const plantImage = await prisma.plant_images.delete({
+                where: { id: postImageId },
+            });
+
+            const { error } = await supabase.storage.from("plants").remove([plantImage.image_url]);
+
+            if (error) {
+                throw error;
+            }
+        });
+
+        revalidatePath(`/${userData.alias_id}`);
+
+        return { success: true };
+
+    } catch (error) {
+        console.error(error);
+        return { success: false, };
+    }
 }

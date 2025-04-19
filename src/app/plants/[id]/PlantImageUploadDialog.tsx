@@ -55,10 +55,17 @@ export default function PlantImageUploadDialog({
     setIsSubmitting(true);
 
     try {
-      await addPlantImage(plantId, values.image);
-      success({
-        title: "写真をアップロードしました",
-      });
+      const result = await addPlantImage(plantId, values.image);
+      if (result.success) {
+        success({
+          title: "写真をアップロードしました",
+        });
+      } else {
+        error({
+          title: "写真のアップロードに失敗しました。",
+          description: result.message,
+        });
+      }
     } catch {
       error({
         title: "写真のアップロードに失敗しました。",

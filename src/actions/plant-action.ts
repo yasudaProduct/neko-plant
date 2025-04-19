@@ -20,17 +20,32 @@ export async function getPlants(
         select: {
             id: true,
             name: true,
-            image_src: true,
         },
         orderBy: getSortOption(sortBy),
         skip: (page - 1) * pageSize,
         take: pageSize,
     });
 
+    const plantImages = await prisma.plant_images.findMany({
+        select: {
+            image_url: true,
+            plant_id: true,
+        },
+        where: {
+            plant_id: {
+                in: plantsData.map((plant) => plant.id),
+            },
+        },
+        orderBy: {
+            order: 'asc',
+        },
+        take: 1,
+    });
+
     const plants: Plant[] = plantsData.map((plant) => ({
         id: plant.id,
         name: plant.name,
-        imageUrl: plant.image_src ? STORAGE_PATH.PLANT + plant.image_src : undefined,
+        imageUrl: plantImages.find((image: { image_url: string, plant_id: number }) => image.plant_id === plant.id)?.image_url ? STORAGE_PATH.PLANT + plantImages.find((image: { image_url: string, plant_id: number }) => image.plant_id === plant.id)?.image_url : undefined,
         isFavorite: false,
         isHave: false,
     }));
@@ -69,7 +84,17 @@ export async function searchPlants(
         select: {
             id: true,
             name: true,
-            image_src: true,
+        },
+        include: {
+            plant_images: {
+                select: {
+                    image_url: true,
+                },
+                orderBy: {
+                    order: 'asc',
+                },
+                take: 1,
+            },
         },
         orderBy: getSortOption(sortBy),
         skip: (page - 1) * pageSize,
@@ -79,7 +104,7 @@ export async function searchPlants(
     const plants: Plant[] = plantsData.map((plant) => ({
         id: plant.id,
         name: plant.name,
-        imageUrl: plant.image_src ? STORAGE_PATH.PLANT + plant.image_src : undefined,
+        imageUrl: plant.plant_images && plant.plant_images.length > 0 ? STORAGE_PATH.PLANT + plant.plant_images[0].image_url : undefined,
         isFavorite: false,
         isHave: false,
     }));
@@ -154,16 +179,21 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
 export async function getPlantImages(id: number): Promise<string[] | undefined> {
     const supabase = await createClient();
 
-    const { data } = await supabase.storage.from('plants').list(
-        id.toString(), {
-        limit: 5,
-        offset: 0,
-        sortBy: { column: 'name', order: 'desc' },
-    }
-    )
+    const plant_images = await prisma.plant_images.findMany({
+        select: {
+            image_url: true,
+        },
+        where: {
+            plant_id: id,
+        },
+        orderBy: {
+            order: 'asc'
+        },
+    });
 
-    return data ? data.map((image) => STORAGE_PATH.PLANT + `${id}/${image.name}`) : undefined;
-
+    return plant_images && plant_images.length > 0
+        ? plant_images.map((image: { image_url: string }) => STORAGE_PATH.PLANT + image.image_url)
+        : undefined;
 }
 
 export async function addPlant(name: string, image?: File): Promise<{ success: boolean, message?: string, plantId?: number }> {
@@ -250,17 +280,38 @@ export async function addPlantImage(id: number, image: File): Promise<{ success:
         return { success: false, message: "ログインしてください。" };
     }
 
-    const imagePath = `${id.toString()}/${generateImageName("plant")}`;
+    try {
 
-    const { error: imageError } = await supabase.storage
-        .from("plants")
-        .upload(imagePath, image);
+        await prisma.$transaction(async (prisma) => {
 
-    if (imageError) {
-        return { success: false, message: "画像のアップロードに失敗しました。" };
+            const imagePath = `${id.toString()}/${generateImageName("plant")}`;
+
+            const plant_images = await prisma.plant_images.create(
+                {
+                    data: {
+                        plant_id: id,
+                        user_id: publicUser.id,
+                        image_url: imagePath,
+                    },
+                }
+            )
+
+            const { error: imageError } = await supabase.storage
+                .from("plants")
+                .upload(imagePath, image);
+            console.log("imageError", imageError);
+            console.log("imagePath", imagePath);
+
+            if (imageError) {
+                return { success: false, message: "画像のアップロードに失敗しました。" };
+            }
+        });
+        return { success: true };
+
+    } catch (error) {
+        console.log("error", error);
+        return { success: false, message: error instanceof Error ? error.message : "画像のアップロードに失敗しました。" };
     }
-
-    return { success: true };
 }
 
 

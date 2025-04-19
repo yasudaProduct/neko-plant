@@ -28,7 +28,6 @@ export default function EvaluationCard({
     EvaluationReActionType | undefined
   >(undefined);
   useEffect(() => {
-    console.log(evaluation);
     fetchReActions();
   }, []);
 

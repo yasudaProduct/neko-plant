@@ -521,7 +521,7 @@ export async function deleteFavoritePlant(plantId: number) {
     revalidatePath(`/${userData.alias_id}`);
 }
 
-export async function getUserPostImages(userId: number): Promise<({ id: number, plantId: number, plantName: string, imageUrl?: string, createdAt: Date })[] | undefined> {
+export async function getUserPostImages(userId: number): Promise<({ id: number, plantId: number, plantName: string, imageUrl: string, createdAt: Date })[] | undefined> {
     const supabase = await createClient();
     const {
         data: { user }
@@ -557,7 +557,7 @@ export async function getUserPostImages(userId: number): Promise<({ id: number, 
         id: plantImage.id,
         plantId: plantImage.plants.id,
         plantName: plantImage.plants.name,
-        imageUrl: plantImage.image_url ? STORAGE_PATH.PLANT + plantImage.image_url : undefined,
+        imageUrl: STORAGE_PATH.PLANT + plantImage.image_url,
         createdAt: plantImage.created_at,
     }));
 }

@@ -10,14 +10,19 @@ export async function getPlants(): Promise<Plant[]> {
         select: {
             id: true,
             name: true,
-            image_src: true,
+            plant_images: {
+                orderBy: {
+                    created_at: "asc",
+                },
+                take: 1,
+            },
         },
     });
 
     const plants: Plant[] = plantsData.map((plant) => ({
         id: plant.id,
         name: plant.name,
-        imageUrl: plant.image_src ?? undefined,
+        imageUrl: plant.plant_images?.[0]?.image_url ?? undefined,
         isFavorite: false,
         isHave: false,
     }));

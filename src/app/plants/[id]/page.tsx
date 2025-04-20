@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/carousel";
 import PlantImageUploadDialog from "./PlantImageUploadDialog";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 export default async function PlantPage({
   params,
 }: {
@@ -106,7 +107,9 @@ export default async function PlantPage({
                     <CommentFormDialog plantId={plant.id} />
                     <PlantImageUploadDialog plantId={plant.id} />
                     <Link href={`/plants/${plant.id}/edit`}>
-                      <Pencil className="w-4 h-4" />
+                      <Button variant="outline">
+                        <Pencil className="w-4 h-4" />
+                      </Button>
                     </Link>
                   </div>
                 </>

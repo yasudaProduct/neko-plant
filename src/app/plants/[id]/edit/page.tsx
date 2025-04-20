@@ -28,26 +28,30 @@ export default async function EditPlant({
     <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 py-12">
       <div className="container mx-auto px-4">
         <Card className="max-w-2xl mx-auto p-6">
-          <h1 className="text-2xl font-bold text-center mb-6">植物を編集</h1>
           <CardHeader>
-            {plant.mainImageUrl ? (
-              <Image
-                src={plant.mainImageUrl}
-                alt={plant.name}
-                width={600}
-                height={400}
-                className="w-full h-[300px] object-contain bg-gray-100"
-                quality={90}
-                priority
-              />
-            ) : (
-              <div className="w-full h-[300px] bg-gray-100 flex items-center justify-center">
-                <Leaf className="w-10 h-10 text-gray-400" />
-                <span className="text-gray-400 ml-2">No image</span>
-              </div>
-            )}
+            <h1 className="text-2xl font-bold text-center mb-6">植物を編集</h1>
           </CardHeader>
-          <PlantEditForm plant={plant} />
+          <div className="flex flex-col">
+            <div className="w-full mb-4">
+              {plant.mainImageUrl ? (
+                <Image
+                  src={plant.mainImageUrl}
+                  alt={plant.name}
+                  width={600}
+                  height={400}
+                  className="w-full h-[300px] object-contain bg-gray-100"
+                  quality={90}
+                  priority
+                />
+              ) : (
+                <div className="w-full h-[300px] bg-gray-100 flex items-center justify-center">
+                  <Leaf className="w-10 h-10 text-gray-400" />
+                  <span className="text-gray-400 ml-2">No image</span>
+                </div>
+              )}
+            </div>
+            <PlantEditForm plant={plant} />
+          </div>
         </Card>
       </div>
     </div>

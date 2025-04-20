@@ -299,7 +299,7 @@ export async function addPlantImage(id: number, image: File): Promise<ActionResu
     }
 }
 
-export async function updatePlant(id: number, plant: { name: string, image?: File }): Promise<ActionResult<{ plantId: number }>> {
+export async function updatePlant(id: number, plant: { name: string, scientific_name?: string, english_name?: string, family?: string, genus?: string, species?: string }): Promise<ActionResult<{ plantId: number }>> {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -327,30 +327,18 @@ export async function updatePlant(id: number, plant: { name: string, image?: Fil
 
         await prisma.$transaction(async (prisma) => {
 
-            const imageName = generateImageName("plant");
-            const imagePath = `${id.toString()}/${imageName}`;
-
             // 1. 植物のレコードを更新
             await prisma.plants.update({
                 where: { id: id },
                 data: {
                     name: plant.name,
-                    image_src: imagePath,
+                    scientific_name: plant.scientific_name,
+                    english_name: plant.english_name,
+                    family: plant.family,
+                    genus: plant.genus,
+                    species: plant.species,
                 },
             });
-
-            // 2. 画像をアップロード
-            if (plant.image) {
-                const { error: imageError } = await supabase.storage
-                    .from("plants")
-                    .update(imagePath, plant.image, {
-                        upsert: true
-                    });
-
-                if (imageError) {
-                    throw new Error("画像のアップロードに失敗しました。");
-                }
-            }
         });
 
         return { success: true, data: { plantId: id } };

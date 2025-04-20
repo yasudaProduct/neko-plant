@@ -18,6 +18,11 @@ const plantSchema = z.object({
     .string()
     .min(1, "植物の名前は必須です")
     .max(50, "植物の名前は50文字以内で入力してください"),
+  scientific_name: z.string().optional(),
+  english_name: z.string().optional(),
+  family: z.string().optional(),
+  genus: z.string().optional(),
+  species: z.string().optional(),
 });
 
 type PlantFormData = z.infer<typeof plantSchema>;
@@ -43,6 +48,11 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
   const onSubmit = async (data: PlantFormData) => {
     const editPlant = {
       name: data.name,
+      scientific_name: data.scientific_name,
+      english_name: data.english_name,
+      family: data.family,
+      genus: data.genus,
+      species: data.species,
     };
 
     const result = await updatePlant(plant.id, editPlant);
@@ -98,15 +108,130 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
       <div className="space-y-2">
-        <Label htmlFor="name">植物の名前</Label>
+        <Label htmlFor="name">
+          植物の名前{" "}
+          {plant.name && (
+            <>
+              <span className="text-gray-500 text-sm pl-4">
+                元: {plant.name}
+              </span>
+            </>
+          )}
+        </Label>
         <Input
           id="name"
           {...register("name")}
-          placeholder="例：パキラ"
+          placeholder="例：ガジュマル"
           defaultValue={plant.name}
         />
         {errors.name && (
           <p className="text-red-500 text-sm">{errors.name.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="scientific_name">
+          学名{" "}
+          {plant.scientific_name && (
+            <>
+              <span className="text-gray-500 text-sm pl-4">
+                元: {plant.scientific_name}
+              </span>
+            </>
+          )}
+        </Label>
+        <Input
+          id="scientific_name"
+          {...register("scientific_name")}
+          placeholder="例：Ficus microcarpa"
+          defaultValue={plant.scientific_name}
+        />
+        {errors.scientific_name && (
+          <p className="text-red-500 text-sm">
+            {errors.scientific_name.message}
+          </p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="english_name">
+          英名{" "}
+          {plant.english_name && (
+            <>
+              <span className="text-gray-500 text-sm pl-4">
+                元: {plant.english_name}
+              </span>
+            </>
+          )}
+        </Label>
+        <Input
+          id="english_name"
+          {...register("english_name")}
+          placeholder="例：Ficus microcarpa"
+          defaultValue={plant.english_name}
+        />
+        {errors.english_name && (
+          <p className="text-red-500 text-sm">{errors.english_name.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="family">科</Label>
+        {plant.family && (
+          <>
+            <span className="text-gray-500 text-sm pl-4">
+              元: {plant.family}
+            </span>
+          </>
+        )}
+        <Input
+          id="family"
+          {...register("family")}
+          placeholder="例：クワ科"
+          defaultValue={plant.family}
+        />
+        {errors.family && (
+          <p className="text-red-500 text-sm">{errors.family.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="genus">属</Label>
+        {plant.genus && (
+          <>
+            <span className="text-gray-500 text-sm pl-4">
+              元: {plant.genus}
+            </span>
+          </>
+        )}
+        <Input
+          id="genus"
+          {...register("genus")}
+          placeholder="例：Ficus"
+          defaultValue={plant.genus}
+        />
+        {errors.genus && (
+          <p className="text-red-500 text-sm">{errors.genus.message}</p>
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="species">種</Label>
+        {plant.species && (
+          <>
+            <span className="text-gray-500 text-sm pl-4">
+              元: {plant.species}
+            </span>
+          </>
+        )}
+        <Input
+          id="species"
+          {...register("species")}
+          placeholder="例：microcarpa"
+          defaultValue={plant.species}
+        />
+        {errors.species && (
+          <p className="text-red-500 text-sm">{errors.species.message}</p>
         )}
       </div>
 

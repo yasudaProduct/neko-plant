@@ -6,7 +6,7 @@ import { getEvaluations } from "@/actions/evaluation-action";
 import { Evaluation, EvaluationType } from "@/types/evaluation";
 import { Plant } from "@/types/plant";
 import { notFound } from "next/navigation";
-import { Leaf } from "lucide-react";
+import { Leaf, Pencil } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import FavoriteButton from "./FavoriteButton";
 import HaveButton from "./HaveButton";
@@ -20,6 +20,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import PlantImageUploadDialog from "./PlantImageUploadDialog";
+import Link from "next/link";
 export default async function PlantPage({
   params,
 }: {
@@ -104,6 +105,9 @@ export default async function PlantPage({
                   <div className="flex gap-2">
                     <CommentFormDialog plantId={plant.id} />
                     <PlantImageUploadDialog plantId={plant.id} />
+                    <Link href={`/plants/${plant.id}/edit`}>
+                      <Pencil className="w-4 h-4" />
+                    </Link>
                   </div>
                 </>
               )}

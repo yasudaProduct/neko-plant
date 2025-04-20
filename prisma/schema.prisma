@@ -375,7 +375,13 @@ model pets {
 model plants {
   id              Int               @id(map: "plant_pkey") @default(autoincrement())
   name            String            @db.VarChar
+  scientific_name String?           @db.VarChar(255)
+  english_name    String?           @db.VarChar(255)
+  family          String?           @db.VarChar(100)
+  genus           String?           @db.VarChar(100)
+  species         String?           @db.VarChar(100)
   created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime?         @db.Timestamptz(6)
   image_src       String?           @db.VarChar
   evaluations     evaluations[]
   plant_favorites plant_favorites[]

@@ -58,49 +58,86 @@ export default async function PlantPage({
       <div className="p-4">
         <Card className="overflow-hidden">
           <CardHeader className="p-0">
-            {plantImages && Array.isArray(plantImages) ? (
-              <Carousel>
-                <CarouselContent>
-                  {plantImages.map((imageUrl) => (
-                    <CarouselItem key={imageUrl}>
-                      <div className="w-full h-[300px] relative">
-                        <Image
-                          key={`blur-${imageUrl}`}
-                          src={imageUrl}
-                          alt={plant.name}
-                          fill
-                          className="object-cover blur-md"
-                          quality={90}
-                        />
-                        <Image
-                          key={`main-${imageUrl}`}
-                          src={imageUrl}
-                          alt={plant.name}
-                          width={600}
-                          height={400}
-                          className="h-full w-full object-contain absolute top-0 left-0"
-                          quality={90}
-                          priority
-                        />
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <CarouselPrevious className="absolute top-1/2 left-2" />
-                <CarouselNext className="absolute top-1/2 right-2" />
-              </Carousel>
-            ) : (
-              <div className="w-full h-[300px] bg-gray-100 flex items-center justify-center">
-                <Leaf className="w-10 h-10 text-gray-400" />
-                <span className="text-gray-400 ml-2">No image</span>
+            <div className="flex flex-col md:flex-row">
+              <div className="w-full md:w-1/2 flex flex-col gap-2 p-4">
+                <div className="text-2xl font-bold">
+                  {plant.name}
+                  <span className="text-sm text-gray-500 ml-4">
+                    学名：
+                    {plant.scientific_name
+                      ? ` ${plant.scientific_name}`
+                      : "未設定"}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 ml-4">
+                    科：
+                    {plant.genus ? ` ${plant.genus}` : "未設定"}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 ml-4">
+                    属：
+                    {plant.species ? ` ${plant.species}` : "未設定"}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 ml-4">
+                    種：
+                    {plant.species ? ` ${plant.species}` : "未設定"}
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-2 mt-8">
+                  <span className="text-sm text-gray-500">評価</span>
+                  <RatingBar
+                    likes={goodEvaluations.length}
+                    dislikes={badEvaluations.length}
+                  />
+                </div>
               </div>
-            )}
+              {plantImages && Array.isArray(plantImages) ? (
+                <div className="w-full md:w-1/2 h-[300px] relative">
+                  <Carousel>
+                    <CarouselContent>
+                      {plantImages.map((imageUrl) => (
+                        <CarouselItem key={imageUrl} className="w-full">
+                          <div className="h-[300px] relative">
+                            <Image
+                              key={`blur-${imageUrl}`}
+                              src={imageUrl}
+                              alt={plant.name}
+                              fill
+                              className="object-cover blur-md"
+                              quality={90}
+                            />
+                            <Image
+                              key={`main-${imageUrl}`}
+                              src={imageUrl}
+                              alt={plant.name}
+                              fill
+                              className="h-full w-full md:w-1/2 object-contain absolute top-0 left-0"
+                              quality={90}
+                              priority
+                            />
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="absolute top-1/2 left-2" />
+                    <CarouselNext className="absolute top-1/2 right-2" />
+                  </Carousel>
+                </div>
+              ) : (
+                <div className="w-full md:w-1/2 h-[300px] bg-gray-100 flex items-center justify-center">
+                  <Leaf className="w-10 h-10 text-gray-400" />
+                  <span className="text-gray-400 ml-2">No image</span>
+                </div>
+              )}
+            </div>
           </CardHeader>
           <CardContent className="p-6">
             <div className="flex items-center gap-2 mb-4">
-              <h1 className="text-2xl font-bold items-center justify-center">
-                {plant.name}
-              </h1>
               {user?.id && (
                 <>
                   <div className="flex gap-2">
@@ -122,11 +159,6 @@ export default async function PlantPage({
                 <HaveButton plantId={plant.id} isHave={plant.isHave} />
               </div>
             </div>
-
-            <RatingBar
-              likes={goodEvaluations.length}
-              dislikes={badEvaluations.length}
-            />
 
             {/* Comments Grid */}
             <div className="flex flex-col md:grid md:grid-cols-2 gap-4">

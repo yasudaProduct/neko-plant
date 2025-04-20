@@ -1,39 +1,39 @@
 -- 植物
-INSERT INTO plants (name, image_src) VALUES 
-('ネコマダラ', NULL);
+INSERT INTO plants (name) VALUES 
+('ネコマダラ');
 
-INSERT INTO plants (name, image_src) VALUES 
-('パキラ', 'plants/2/pakira.jpg');
+INSERT INTO plants (name) VALUES 
+('パキラ');
 
-INSERT INTO plants (name, image_src) VALUES 
-('エバーフレッシュ', NULL);
+INSERT INTO plants (name) VALUES 
+('エバーフレッシュ');
 
-INSERT INTO plants (name, image_src) VALUES 
-('モンステラ', NULL);
+INSERT INTO plants (name) VALUES 
+('モンステラ');
 
-INSERT INTO plants (name, image_src) VALUES 
-('マドカズラ', NULL);
+INSERT INTO plants (name) VALUES 
+('マドカズラ');
 
-INSERT INTO plants (name, image_src) VALUES 
-('クワズイモ', NULL);
+INSERT INTO plants (name) VALUES 
+('クワズイモ');
 
-INSERT INTO plants (name, image_src) VALUES 
-('アロエ', NULL);
+INSERT INTO plants (name) VALUES 
+('アロエ');
 
-INSERT INTO plants (name, image_src) VALUES 
-('アグラオネマ', NULL);
+INSERT INTO plants (name) VALUES 
+('アグラオネマ');
 
-INSERT INTO plants (name, image_src) VALUES 
-('ビカクシダ', NULL);
+INSERT INTO plants (name) VALUES 
+('ビカクシダ');
 
-INSERT INTO plants (name, image_src) VALUES 
-('カラテア', NULL);
+INSERT INTO plants (name) VALUES 
+('カラテア');
 
-INSERT INTO plants (name, image_src) VALUES 
-('ペペロミア', NULL);
+INSERT INTO plants (name) VALUES 
+('ペペロミア');
 
-INSERT INTO plants (name, image_src) VALUES 
-('フィカス', NULL);
+INSERT INTO plants (name) VALUES 
+('フィカス');
 
-INSERT INTO plants (name, image_src) VALUES 
-('ガジュマル', NULL);
+INSERT INTO plants (name) VALUES 
+('ガジュマル');

@@ -19,7 +19,6 @@ const plantSchema = z.object({
     .min(1, "植物の名前は必須です")
     .max(50, "植物の名前は50文字以内で入力してください"),
   scientific_name: z.string().optional(),
-  english_name: z.string().optional(),
   family: z.string().optional(),
   genus: z.string().optional(),
   species: z.string().optional(),
@@ -42,6 +41,10 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
     resolver: zodResolver(plantSchema),
     defaultValues: {
       name: plant.name,
+      scientific_name: plant.scientific_name,
+      family: plant.family,
+      genus: plant.genus,
+      species: plant.species,
     },
   });
 
@@ -49,7 +52,6 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
     const editPlant = {
       name: data.name,
       scientific_name: data.scientific_name,
-      english_name: data.english_name,
       family: data.family,
       genus: data.genus,
       species: data.species,
@@ -150,28 +152,6 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
           <p className="text-red-500 text-sm">
             {errors.scientific_name.message}
           </p>
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="english_name">
-          英名{" "}
-          {plant.english_name && (
-            <>
-              <span className="text-gray-500 text-sm pl-4">
-                元: {plant.english_name}
-              </span>
-            </>
-          )}
-        </Label>
-        <Input
-          id="english_name"
-          {...register("english_name")}
-          placeholder="例：Ficus microcarpa"
-          defaultValue={plant.english_name}
-        />
-        {errors.english_name && (
-          <p className="text-red-500 text-sm">{errors.english_name.message}</p>
         )}
       </div>
 

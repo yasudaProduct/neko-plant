@@ -5,7 +5,6 @@ export type Plant = {
     isFavorite: boolean;
     isHave: boolean;
     scientific_name?: string;
-    english_name?: string;
     family?: string;
     genus?: string;
     species?: string;

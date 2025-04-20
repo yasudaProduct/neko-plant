@@ -381,7 +381,7 @@ export async function getUserPlants(userId: number): Promise<Plant[] | undefined
     return plants.map((plant) => ({
         id: plant.plant_id,
         name: plant.plants.name,
-        imageUrl: plant.plants.plant_images && plant.plants.plant_images.length > 0 ? STORAGE_PATH.PLANT + plant.plants.plant_images[0].image_url : undefined,
+        mainImageUrl: plant.plants.plant_images?.[0]?.image_url ? STORAGE_PATH.PLANT + plant.plants.plant_images[0].image_url : undefined,
         isFavorite: false,
         isHave: true,
     }));
@@ -422,7 +422,16 @@ export async function getUserEvaluations(userId: number): Promise<(Evaluation & 
             user_id: userId,
         },
         include: {
-            plants: true,
+            plants: {
+                include: {
+                    plant_images: {
+                        orderBy: {
+                            created_at: "asc",
+                        },
+                        take: 1,
+                    },
+                },
+            },
             users: true,
         },
         orderBy: {
@@ -443,7 +452,9 @@ export async function getUserEvaluations(userId: number): Promise<(Evaluation & 
         plant: {
             id: evaluation.plants?.id,
             name: evaluation.plants?.name,
-            imageUrl: evaluation.plants?.image_src ? STORAGE_PATH.PLANT + evaluation.plants.image_src : undefined,
+            mainImageUrl: evaluation.plants?.plant_images?.[0]?.image_url
+                ? STORAGE_PATH.PLANT + evaluation.plants.plant_images[0].image_url
+                : undefined,
             isFavorite: false,
             isHave: false,
         },
@@ -475,7 +486,7 @@ export async function getUserFavoritePlants(userId: number): Promise<Plant[] | u
     return favoritePlants.map((favoritePlant) => ({
         id: favoritePlant.plant_id,
         name: favoritePlant.plants.name,
-        mainImageUrl: favoritePlant.plants.plant_images && favoritePlant.plants.plant_images.length > 0 ? STORAGE_PATH.PLANT + favoritePlant.plants.plant_images[0].image_url : undefined,
+        mainImageUrl: favoritePlant.plants.plant_images?.[0]?.image_url ? STORAGE_PATH.PLANT + favoritePlant.plants.plant_images[0].image_url : undefined,
         isFavorite: true,
         isHave: false,
     }));
@@ -510,7 +521,7 @@ export async function deleteFavoritePlant(plantId: number) {
     revalidatePath(`/${userData.alias_id}`);
 }
 
-export async function getUserPostImages(userId: number): Promise<({ id: number, plantId: number, plantName: string, imageUrl: string, createdAt: Date })[] | undefined> {
+export async function getUserPostImages(userId: number): Promise<({ id: number, plantId: number, plantName: string, imageUrl?: string, createdAt: Date })[] | undefined> {
     const supabase = await createClient();
     const {
         data: { user }
@@ -546,7 +557,7 @@ export async function getUserPostImages(userId: number): Promise<({ id: number, 
         id: plantImage.id,
         plantId: plantImage.plants.id,
         plantName: plantImage.plants.name,
-        imageUrl: STORAGE_PATH.PLANT + plantImage.image_url,
+        imageUrl: plantImage.image_url ? STORAGE_PATH.PLANT + plantImage.image_url : undefined,
         createdAt: plantImage.created_at,
     }));
 }

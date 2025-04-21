@@ -59,43 +59,6 @@ export default async function PlantPage({
         <Card className="overflow-hidden">
           <CardHeader className="p-0">
             <div className="flex flex-col md:flex-row">
-              <div className="w-full md:w-1/2 flex flex-col gap-2 p-4">
-                <div className="text-2xl font-bold">
-                  {plant.name}
-                  <span className="text-sm text-gray-500 ml-4">
-                    学名：
-                    {plant.scientific_name
-                      ? ` ${plant.scientific_name}`
-                      : "未設定"}
-                  </span>
-                </div>
-                <div className="text-sm text-gray-500">
-                  <span className="text-sm text-gray-500 ml-4">
-                    科：
-                    {plant.genus ? ` ${plant.genus}` : "未設定"}
-                  </span>
-                </div>
-                <div className="text-sm text-gray-500">
-                  <span className="text-sm text-gray-500 ml-4">
-                    属：
-                    {plant.species ? ` ${plant.species}` : "未設定"}
-                  </span>
-                </div>
-                <div className="text-sm text-gray-500">
-                  <span className="text-sm text-gray-500 ml-4">
-                    種：
-                    {plant.species ? ` ${plant.species}` : "未設定"}
-                  </span>
-                </div>
-
-                <div className="flex flex-col gap-2 mt-8">
-                  <span className="text-sm text-gray-500">評価</span>
-                  <RatingBar
-                    likes={goodEvaluations.length}
-                    dislikes={badEvaluations.length}
-                  />
-                </div>
-              </div>
               {plantImages && Array.isArray(plantImages) ? (
                 <div className="w-full md:w-1/2 h-[300px] relative">
                   <Carousel>
@@ -134,6 +97,43 @@ export default async function PlantPage({
                   <span className="text-gray-400 ml-2">No image</span>
                 </div>
               )}
+              <div className="w-full md:w-1/2 flex flex-col gap-2 p-4">
+                <div className="text-2xl font-bold">
+                  {plant.name}
+                  <span className="text-sm text-gray-500 ml-4">
+                    学名：
+                    {plant.scientific_name
+                      ? ` ${plant.scientific_name}`
+                      : "未設定"}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 ml-4">
+                    科：
+                    {plant.genus ? ` ${plant.genus}` : "未設定"}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 ml-4">
+                    属：
+                    {plant.species ? ` ${plant.species}` : "未設定"}
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 ml-4">
+                    種：
+                    {plant.species ? ` ${plant.species}` : "未設定"}
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-2 mt-8">
+                  <span className="text-sm text-gray-500">評価</span>
+                  <RatingBar
+                    likes={goodEvaluations.length}
+                    dislikes={badEvaluations.length}
+                  />
+                </div>
+              </div>
             </div>
           </CardHeader>
           <CardContent className="p-6">

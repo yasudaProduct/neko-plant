@@ -1,4 +1,4 @@
-alter table "public"."plant_have" drop constraint "plant_ have_plant_id_fkey";
+alter table "public"."plant_have" drop constraint "plant_have_plant_id_fkey";
 
 alter table "public"."evaluation_reactions" drop constraint "evaluation_reactions_evaluation_id_fkey";
 

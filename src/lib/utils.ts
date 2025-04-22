@@ -17,17 +17,25 @@ export function generateAliasId(length: number = 6): string {
   return result;
 }
 
-export function getImageData(event: ChangeEvent<HTMLInputElement>) {
+export function getImageData(event: ChangeEvent<HTMLInputElement>): {
+  files: File[];
+  displayUrls: string[];
+} {
   const dataTransfer = new DataTransfer();
+  const displayUrls: string[] = [];
 
   Array.from(event.target.files!).forEach((image) =>
     dataTransfer.items.add(image)
   );
 
-  const files = dataTransfer.files;
-  const displayUrl = URL.createObjectURL(event.target.files![0]);
+  const files = Array.from(dataTransfer.files);
 
-  return { files, displayUrl };
+  for (let i = 0; i < event.target.files!.length; i++) {
+    const displayUrl = URL.createObjectURL(event.target.files![i]);
+    displayUrls.push(displayUrl);
+  }
+
+  return { files, displayUrls };
 }
 
 export const formatDateyyyymmdd = (dateString: string): string | undefined => {

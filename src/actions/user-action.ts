@@ -417,6 +417,8 @@ export async function deleteHavePlant(plantId: number) {
 }
 
 export async function getUserEvaluations(userId: number): Promise<(Evaluation & { plant: Plant })[] | undefined> {
+    const supabase = await createClient();
+
     const evaluations = await prisma.evaluations.findMany({
         where: {
             user_id: userId,
@@ -439,11 +441,15 @@ export async function getUserEvaluations(userId: number): Promise<(Evaluation & 
         },
     });
 
-    return evaluations.map((evaluation) => ({
+    return await Promise.all(evaluations.map(async (evaluation) => ({
         id: evaluation.id,
         type: evaluation.type as EvaluationType,
         comment: evaluation.comment ?? "",
         createdAt: evaluation.created_at,
+        imageUrls: (await supabase.storage.from("evaluations").list(
+            `${evaluation.id}`, {
+            sortBy: { column: 'name', order: 'desc' },
+        })).data?.map(file => STORAGE_PATH.EVALUATION + `${evaluation.id}/${file.name}`),
         user: {
             aliasId: evaluation.users?.alias_id ?? "",
             name: evaluation.users?.name ?? "",
@@ -458,7 +464,7 @@ export async function getUserEvaluations(userId: number): Promise<(Evaluation & 
             isFavorite: false,
             isHave: false,
         },
-    }));
+    })));
 }
 
 export async function getUserFavoritePlants(userId: number): Promise<Plant[] | undefined> {

@@ -5,18 +5,25 @@ import { Image as ImageIcon } from "lucide-react";
 
 export default function ImageUpload({
   onImageChange,
+  maxCount = 1,
 }: {
-  onImageChange: (file: File) => void;
+  onImageChange: (file: File[]) => void;
+  maxCount?: number;
 }) {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [preview, setPreview] = useState<string[]>([]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { files, displayUrl } = getImageData(e);
-    if (files && files[0]) {
-      setSelectedFile(files[0]);
-      setPreview(displayUrl);
-      onImageChange(files[0]);
+    const { files, displayUrls } = getImageData(e);
+    if (files && files.length > 0) {
+      if (selectedFiles.length >= maxCount) {
+        alert(`最大${maxCount}枚までしかアップロードできません。`);
+        return;
+      }
+      const newFiles = [...selectedFiles, ...files];
+      setSelectedFiles(newFiles);
+      setPreview([...preview, ...displayUrls]);
+      onImageChange(newFiles);
     }
   };
 
@@ -37,19 +44,23 @@ export default function ImageUpload({
             accept="image/*"
             onChange={handleImageChange}
             className="hidden"
+            multiple={maxCount > 1}
           />
         </div>
       </div>
 
-      {preview && selectedFile && (
-        <div className="mt-4">
-          <Image
-            src={preview}
-            alt="画像プレビュー"
-            width={200}
-            height={200}
-            className="mx-auto"
-          />
+      {preview && selectedFiles.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {preview.map((url) => (
+            <Image
+              key={url}
+              src={url}
+              alt="画像プレビュー"
+              width={200}
+              height={200}
+              className="mx-auto"
+            />
+          ))}
         </div>
       )}
     </>

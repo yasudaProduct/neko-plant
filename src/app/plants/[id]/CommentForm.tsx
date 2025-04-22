@@ -28,20 +28,26 @@ const formSchema = z.object({
     required_error: "評価を選択してください",
   }),
   image: z
-    .any()
-    .refine((file) => !file || file instanceof File, {
-      message: "有効な画像ファイルをアップロードしてください",
-    })
+    .array(z.instanceof(File))
+    .optional()
     .refine(
-      (file) =>
-        !file || (file && ["image/jpeg", "image/png"].includes(file.type)),
+      (files) =>
+        !files ||
+        files.length === 0 ||
+        files.every((file) => ["image/jpeg", "image/png"].includes(file.type)),
       {
         message: "サポートされていないファイル形式です",
       }
     )
-    .refine((file) => !file || (file && file.size <= 5 * 1024 * 1024), {
-      message: "ファイルサイズは5MB以下にしてください",
-    }),
+    .refine(
+      (files) =>
+        !files ||
+        files.length === 0 ||
+        files.every((file) => file.size <= 5 * 1024 * 1024),
+      {
+        message: "ファイルサイズは5MB以下にしてください",
+      }
+    ),
 });
 
 export default function CommentForm({
@@ -83,8 +89,8 @@ export default function CommentForm({
     }
   }
 
-  const handleImageChange = (file: File) => {
-    form.setValue("image", file);
+  const handleImageChange = (files: File[]) => {
+    form.setValue("image", files);
   };
 
   return (
@@ -152,28 +158,9 @@ export default function CommentForm({
           />
         </div>
 
-        {/* {currentUser.pets.length > 0 && (
-            <div>
-              <Select
-                value={selectedPetIds[0]}
-                onValueChange={(value) => setSelectedPetIds([value])}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="一緒に飼っている猫を選択 (任意)" />
-                </SelectTrigger>
-                <SelectContent>
-                  {currentUser.pets.map((pet) => (
-                    <SelectItem key={pet.id} value={pet.id}>
-                      {pet.name} ({pet.breed})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )} */}
-
         <div className="mt-8">
-          <ImageUpload onImageChange={handleImageChange} />
+          <ImageUpload onImageChange={handleImageChange} maxCount={3} />
+          <FormMessage />
         </div>
 
         <Button

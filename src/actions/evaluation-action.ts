@@ -69,14 +69,14 @@ export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
     return evaluations;
 }
 
-export async function addEvaluation(plantId: number, comment: string, type: EvaluationType, image: File | undefined): Promise<void> {
+export async function addEvaluation(plantId: number, comment: string, type: EvaluationType, images?: File[]): Promise<ActionResult> {
     try {
         const supabase = await createClient();
 
         const { data: { user } } = await supabase.auth.getUser();
 
         if (!user) {
-            throw new Error("ユーザーが見つかりません");
+            return { success: false, code: ActionErrorCode.AUTH_REQUIRED, message: "ユーザーが見つかりません" };
         }
 
         // TODO  auth_id が一意のインデックスとして設定されていないためfindUniqueが使えない
@@ -87,12 +87,15 @@ export async function addEvaluation(plantId: number, comment: string, type: Eval
         });
 
         if (!userData) {
-            throw new Error("ユーザーが見つかりません");
+            return { success: false, code: ActionErrorCode.AUTH_REQUIRED, message: "ユーザーが見つかりません" };
         }
 
-        prisma.$transaction(async (tx) => {
+        if (images && images.length > 3) {
+            return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "最大3枚までしかアップロードできません。" };
+        }
 
-            // 評価を作成
+        await prisma.$transaction(async (tx) => {
+
             const evaluation = await tx.evaluations.create({
                 data: {
                     plant_id: plantId,
@@ -106,34 +109,31 @@ export async function addEvaluation(plantId: number, comment: string, type: Eval
                 throw new Error("評価投稿に失敗しました。");
             }
 
-            // evaluationsフォルダ内の画像リストを取得
-            const { data } = await supabase.storage.from("evaluations")
-                .list(
-                    // `${evaluation.id}`, {
-                    '38', {
-                    limit: 5,
-                    offset: 0,
-                    sortBy: { column: 'name', order: 'desc' },
+            // 画像をアップロード（必要な場合のみ）
+            if (images && images.length > 0) {
+                for (let i = 0; i < images.length; i++) {
+                    // インデックスを画像名として使用
+                    const imageName = `${i + 1}`;
+                    await supabase.storage.from("evaluations").upload(
+                        `${evaluation.id}/${imageName}`,
+                        images[i]
+                    );
                 }
-                );
-
-            const imageName = data ? (data.length + 1).toString() : "1";
-
-            // 画像をアップロード
-            if (image) {
-                await supabase.storage.from("evaluations").upload(`${evaluation.id}/${imageName}`, image);
             }
         });
 
         revalidatePath(`/plants/${plantId}`);
 
+        return { success: true, message: "評価を投稿しました。" };
+
     } catch (error) {
         console.error("Error adding evaluation:", error);
-        throw error;
+        return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "評価の投稿に失敗しました。" };
     }
 }
 
 export async function deleteEvaluation(evaluationId: number): Promise<ActionResult> {
+    console.log(`evaluationId: ${evaluationId}`);
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -160,6 +160,18 @@ export async function deleteEvaluation(evaluationId: number): Promise<ActionResu
                 user_id: userData.id,
             },
         });
+
+        const { data: files } = await supabase.storage.from("evaluations")
+            .list(`${evaluationId}`);
+
+        if (files) {
+            for (const file of files) {
+                const { error } = await supabase.storage.from("evaluations").remove([`${evaluationId}/${file.name}`]);
+                if (error) {
+                    console.error("Error deleting evaluation:", error);
+                }
+            }
+        }
 
         revalidatePath(`/${userData.alias_id}/posts`);
 

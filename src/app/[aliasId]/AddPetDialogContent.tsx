@@ -149,10 +149,14 @@ export default function AddPetDialogContent({
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { files, displayUrl } = getImageData(e);
-    if (files && files[0]) {
+    const { files, displayUrls } = getImageData(e);
+    if (files && files.length > 0) {
+      if (files.length >= 1) {
+        alert(`最大1枚までしかアップロードできません。`);
+        return;
+      }
       form.setValue("image", files[0], { shouldValidate: true });
-      setPreview(displayUrl);
+      setPreview(displayUrls[0]);
     }
   };
 

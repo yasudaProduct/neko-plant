@@ -44,17 +44,34 @@ export default async function ProfilePage({
                 key={evaluation.id}
                 className="flex items-center gap-2 bg-gray-50 p-4 rounded-lg mb-4 hover:bg-gray-100 transition-colors"
               >
-                {evaluation.type === "good" ? (
-                  <Heart className="w-4 h-4 text-red-500" />
-                ) : (
-                  <Skull className="w-4 h-4 text-indigo-500" />
-                )}
-                <p>{evaluation.comment}</p>
-                <Link href={`/plants/${evaluation.plant.id}`}>
-                  <p className="text-sm hover:cursor-pointer">
-                    {"[" + evaluation.plant.name + "]"}
-                  </p>
-                </Link>
+                <div className="flex flex-col gap-2">
+                  <div className="flex flex-row gap-2">
+                    {evaluation.type === "good" ? (
+                      <Heart className="w-4 h-4 text-red-500" />
+                    ) : (
+                      <Skull className="w-4 h-4 text-indigo-500" />
+                    )}
+                    <p>{evaluation.comment}</p>
+                    <Link href={`/plants/${evaluation.plant.id}`}>
+                      <p className="text-sm hover:cursor-pointer">
+                        {"[" + evaluation.plant.name + "]"}
+                      </p>
+                    </Link>
+                  </div>
+                  {evaluation.imageUrls && evaluation.imageUrls.length > 0 && (
+                    <div className="flex flex-row gap-2">
+                      {evaluation.imageUrls.map((imageUrl) => (
+                        <Image
+                          key={imageUrl}
+                          src={imageUrl}
+                          alt="評価画像"
+                          width={50}
+                          height={50}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <div className="ml-auto">
                   <PlantEvalButtom evaluationId={evaluation.id} />
                 </div>

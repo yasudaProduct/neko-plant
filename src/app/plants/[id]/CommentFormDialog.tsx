@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -28,12 +27,10 @@ export default function CommentFormDialog({ plantId }: { plantId: number }) {
         <DialogHeader>
           <DialogTitle>評価を投稿する</DialogTitle>
         </DialogHeader>
-        <DialogDescription>
-          <CommentForm
-            plantId={plantId}
-            onSubmitSuccess={() => setIsOpen(false)}
-          />
-        </DialogDescription>
+        <CommentForm
+          plantId={plantId}
+          onSubmitSuccess={() => setIsOpen(false)}
+        />
       </DialogContent>
     </Dialog>
   );

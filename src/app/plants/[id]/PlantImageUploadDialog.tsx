@@ -78,8 +78,8 @@ export default function PlantImageUploadDialog({
     }
   }
 
-  const handleImageChange = (file: File) => {
-    form.setValue("image", file);
+  const handleImageChange = (files: File[]) => {
+    form.setValue("image", files[0]);
   };
 
   return (

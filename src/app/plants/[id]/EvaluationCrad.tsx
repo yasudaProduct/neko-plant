@@ -60,62 +60,57 @@ export default function EvaluationCard({
   };
 
   return (
-    <div
-      key={evaluation.id}
-      className="flex items-start gap-3 p-4 rounded-lg bg-gray-50"
-    >
-      {evaluation.pets && evaluation.pets.length > 0 ? (
-        evaluation.pets?.slice(0, 1).map((pet: Pet) => (
-          <Avatar key={pet.id} className="w-10 h-10">
+    <div key={evaluation.id} className="items-start p-4 rounded-lg bg-gray-50">
+      <div className="flex flex-row items-center gap-2">
+        {evaluation.pets && evaluation.pets.length > 0 ? (
+          evaluation.pets?.slice(0, 1).map((pet: Pet) => (
+            <Avatar key={pet.id} className="w-10 h-10">
+              <Image
+                src={pet.imageSrc ?? "/images/logo.png"}
+                alt={pet.name}
+                width={60}
+                height={60}
+                className="rounded-full"
+              />
+            </Avatar>
+          ))
+        ) : (
+          <Avatar className="w-10 h-10">
             <Image
-              src={pet.imageSrc ?? "/images/logo.png"}
-              alt={pet.name}
+              src="/images/logo.png"
+              alt="ロゴ"
               width={60}
               height={60}
               className="rounded-full"
             />
           </Avatar>
-        ))
-      ) : (
-        <Avatar className="w-10 h-10">
-          <Image
-            src="/images/logo.png"
-            alt="ロゴ"
-            width={60}
-            height={60}
-            className="rounded-full"
-          />
-        </Avatar>
-      )}
-
-      <div className="flex flex-col gap-2 w-full">
+        )}
         <div className="text-sm text-gray-500 hover:text-gray-700">
           <Link href={`/${evaluation.user.aliasId}`}>
             {evaluation.user.name}
           </Link>
         </div>
+      </div>
+
+      <div className="flex flex-col gap-2 w-full">
         {/* コメント */}
-        <div className="relative bg-white p-4 rounded-lg shadow-sm flex-grow">
-          <div className="absolute left-[-8px] top-3 w-4 h-4 bg-white transform rotate-45" />
-          <div className="relative z-10">
-            <div className="text-gray-700 whitespace-pre-wrap">
-              <div>
-                <p
-                  className={`text-gray-700 whitespace-pre-wrap ${
-                    isExpanded ? "line-clamp-3" : "line-clamp-none"
-                  }`}
-                >
-                  {evaluation.comment}
-                </p>
-                {evaluation.comment.split("\n").length > 3 && (
-                  <ExpandButton
-                    isExpanded={isExpanded}
-                    onExpand={handleExpand}
-                  />
-                )}
-              </div>
-            </div>
+        <div className="bg-white p-4 rounded-lg shadow-sm flex-grow">
+          {/* <div className="relative bg-white p-4 rounded-lg shadow-sm flex-grow"> */}
+          {/* <div className="absolute left-[-8px] top-3 w-4 h-4 bg-white transform rotate-45" /> */}
+          {/* <div className="relative z-10"> */}
+          <div className="text-gray-700 break-words">
+            <p
+              className={`text-gray-700 whitespace-pre-wrap break-words overflow-hidden ${
+                isExpanded ? "line-clamp-3" : "line-clamp-none"
+              }`}
+            >
+              {evaluation.comment}
+            </p>
+            {evaluation.comment.split("\n").length > 3 && (
+              <ExpandButton isExpanded={isExpanded} onExpand={handleExpand} />
+            )}
           </div>
+          {/* </div> */}
         </div>
         {/* コメント評価 */}
         <div className="flex flex-col gap-2 w-full">

@@ -46,6 +46,16 @@ supabase db diff -f <fileName>
 
 ```bash
 
+supabase db push -p [Database Password] --dry-run
+
 supabase db push
 
+```
+
+```bash
+# 指定したマイグレーションを適用させる
+supabase migration repair --status applied [タイムスタンプ]
+
+# 指定したマイグレーションを適用させる前の状態に戻す（＝無効化）させる。
+supabase migration repair --status reverted [タイムスタンプ]
 ```

@@ -16,7 +16,7 @@ export enum ActionErrorCode {
     VALIDATION_ERROR = "VALIDATION_ERROR",
     ALREADY_EXISTS = "ALREADY_EXISTS",
     INTERNAL_SERVER_ERROR = "INTERNAL_SERVER_ERROR",
-
+    NOT_FOUND = "NOT_FOUND",
 }
 
 export type ActionParams<T> = {

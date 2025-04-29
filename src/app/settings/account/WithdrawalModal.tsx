@@ -15,11 +15,7 @@ import { deleteUser } from "./actions";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 
-interface WithdrawalModalProps {
-  userId: string;
-}
-
-export default function WithdrawalModal({ userId }: WithdrawalModalProps) {
+export default function WithdrawalModal() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const { success, error } = useToast();
@@ -27,7 +23,7 @@ export default function WithdrawalModal({ userId }: WithdrawalModalProps) {
     setLoading(true);
 
     try {
-      await deleteUser(userId);
+      await deleteUser();
       router.push("/");
       success({
         title: "アカウントの削除に成功しました。",

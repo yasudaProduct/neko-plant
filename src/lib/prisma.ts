@@ -20,6 +20,11 @@ const prisma = new PrismaClient({
                 level: 'error',
             },
         ],
+    omit: {
+        auth_users: {
+            encrypted_password: true,
+        }
+    }
 });
 
 // prisma.$on("query", (e: Prisma.QueryEvent) => {

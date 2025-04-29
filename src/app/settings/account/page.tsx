@@ -64,7 +64,7 @@ export default async function AccountPage() {
           <div>
             <h2 className="font-medium mb-2">アカウントの削除</h2>
           </div>
-          <WithdrawalModal userId={user.id} />
+          <WithdrawalModal />
         </div>
       </div>
     </Card>

@@ -284,9 +284,21 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
     await prisma.$transaction(async (prisma) => {
 
         // ネコを更新
+        const pet = await prisma.pets.findUnique({
+            where: {
+                id: petId,
+                user_id: userData.id,
+            },
+        });
+
+        if (!pet) {
+            throw new Error("飼い猫が見つかりません");
+        }
+
         await prisma.pets.update({
             where: {
                 id: petId,
+                user_id: userData.id,
             },
             data: {
                 name: name,
@@ -348,6 +360,7 @@ export async function deletePet(petId: number) {
     const petData = await prisma.pets.delete({
         where: {
             id: petId,
+            user_id: userData.id,
         },
     });
 
@@ -594,7 +607,10 @@ export async function deletePostImage(postImageId: number): Promise<{ success: b
 
             // TODO 存在しなかったらplantImageはどうなる？
             const plantImage = await prisma.plant_images.delete({
-                where: { id: postImageId },
+                where: {
+                    id: postImageId,
+                    user_id: userData.id,
+                },
             });
 
             const { error } = await supabase.storage.from("plants").remove([plantImage.image_url]);

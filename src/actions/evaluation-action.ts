@@ -154,6 +154,17 @@ export async function deleteEvaluation(evaluationId: number): Promise<ActionResu
 
     try {
 
+        const evaluation = await prisma.evaluations.findUnique({
+            where: {
+                id: evaluationId,
+                user_id: userData.id,
+            },
+        });
+
+        if (!evaluation) {
+            return { success: false, code: ActionErrorCode.NOT_FOUND, message: "評価が見つかりません。" };
+        }
+
         await prisma.evaluations.delete({
             where: {
                 id: evaluationId,
@@ -220,13 +231,13 @@ export async function getEvalReAction(evalId: number): Promise<EvaluationReActio
     }));
 }
 
-export async function upsertReAction(evalId: number, type: EvaluationReActionType): Promise<void> {
+export async function upsertReAction(evalId: number, type: EvaluationReActionType): Promise<ActionResult> {
     const supabase = await createClient();
 
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-        throw new Error("ユーザーが見つかりません");
+        return { success: false, code: ActionErrorCode.AUTH_REQUIRED, message: "ユーザーが見つかりません" };
     }
 
     const userData = await prisma.public_users.findFirst({
@@ -236,7 +247,7 @@ export async function upsertReAction(evalId: number, type: EvaluationReActionTyp
     });
 
     if (!userData) {
-        throw new Error("ユーザーが見つかりません");
+        return { success: false, code: ActionErrorCode.AUTH_REQUIRED, message: "ユーザーが見つかりません" };
     }
 
     // 自分のコメント評価を取得
@@ -267,6 +278,8 @@ export async function upsertReAction(evalId: number, type: EvaluationReActionTyp
             },
         });
     }
+
+    return { success: true, message: "コメント評価を更新しました。" };
 }
 
 export async function deleteReAction(evalId: number): Promise<void> {

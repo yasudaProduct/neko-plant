@@ -99,25 +99,20 @@ export default function AddPetDialogContent({
   const { success, error } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [preview, setPreview] = useState("");
+  const [preview, setPreview] = useState<string>(pet?.imageSrc || "");
   const [isOpen, setIsOpen] = useState(false);
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
-    defaultValues: pet
-      ? {
-          name: pet.name,
-          species: pet.neko.id,
-          sex: pet.sex,
-          age: pet.age,
-          birthday: pet.birthday?.toISOString().split("T")[0],
-        }
-      : {
-          name: "",
-          species: 1,
-          sex: undefined,
-          age: undefined,
-          birthday: undefined,
-        },
+    defaultValues: {
+      name: pet?.name || "",
+      species: pet?.neko.id || 1,
+      sex: pet?.sex || undefined,
+      age: pet?.age || undefined,
+      birthday: pet?.birthday
+        ? pet.birthday.toISOString().split("T")[0].replace(/-/g, "/")
+        : "",
+      image: undefined,
+    },
   });
 
   const handleDelete = async () => {
@@ -151,7 +146,7 @@ export default function AddPetDialogContent({
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { files, displayUrls } = getImageData(e);
     if (files && files.length > 0) {
-      if (files.length >= 1) {
+      if (files.length >= 2) {
         alert(`最大1枚までしかアップロードできません。`);
         return;
       }
@@ -201,6 +196,7 @@ export default function AddPetDialogContent({
       });
     } finally {
       setIsSubmitting(false);
+      form.reset();
     }
   };
 
@@ -367,7 +363,17 @@ export default function AddPetDialogContent({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>年齢</FormLabel>
-                      <Input {...field} type="number" placeholder="例：3" />
+                      <Input
+                        {...field}
+                        type="number"
+                        placeholder="例：3"
+                        value={field.value || ""}
+                        onChange={(e) =>
+                          field.onChange(
+                            e.target.value ? Number(e.target.value) : ""
+                          )
+                        }
+                      />
                       <FormMessage />
                     </FormItem>
                   )}

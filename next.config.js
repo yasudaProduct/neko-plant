@@ -53,7 +53,8 @@ const cspHeader = `
     script-src 'self' 'unsafe-eval' 'unsafe-inline';
     style-src 'self' 'unsafe-inline';
     object-src 'none';
-    frame-ancestors 'none';
+    frame-ancestors 'self' https://confirmed-giant-27d.notion.site;
+    frame-src 'self' https://confirmed-giant-27d.notion.site/ebd/1c69f17f06688007995fc3497043f841;
     block-all-mixed-content;
     upgrade-insecure-requests;
 `;

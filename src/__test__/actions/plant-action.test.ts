@@ -3,6 +3,7 @@ import { getPlants, searchPlants, getPlant, addPlant, addFavorite, deleteFavorit
 import { createClient } from '@/lib/supabase/server';
 import prisma from '@/lib/prisma';
 import { SupabaseClient } from '@supabase/supabase-js';
+import { ActionErrorCode } from '@/types/common';
 
 // Prismaのモック
 vi.mock('@/lib/prisma', () => ({
@@ -44,14 +45,37 @@ describe('Plant Actions', () => {
         {
             id: 1,
             name: 'テスト植物1',
-            image_src: 'test1.jpg',
             created_at: new Date(),
+            updated_at: new Date(),
+            scientific_name: 'テスト植物1',
+            family: 'テスト植物1',
+            genus: 'テスト植物1',
+            species: 'テスト植物1',
+            plant_images: [
+                {
+                    id: 1,
+                    image_url: 'test1.jpg',
+                    order: 1,
+                },
+            ],
         },
         {
             id: 2,
             name: 'テスト植物2',
             image_src: 'test2.jpg',
             created_at: new Date(),
+            updated_at: new Date(),
+            scientific_name: null,
+            family: null,
+            genus: null,
+            species: null,
+            plant_images: [
+                {
+                    id: 2,
+                    image_url: 'test2.jpg',
+                    order: 1,
+                },
+            ],
         },
     ];
 
@@ -60,6 +84,11 @@ describe('Plant Actions', () => {
         name: 'テスト植物1',
         image_src: 'test1.jpg',
         created_at: new Date(),
+        updated_at: new Date(),
+        scientific_name: 'テスト植物1',
+        family: 'テスト植物1',
+        genus: 'テスト植物1',
+        species: 'テスト植物1',
     };
 
     beforeEach(() => {
@@ -78,14 +107,14 @@ describe('Plant Actions', () => {
                     {
                         id: 1,
                         name: 'テスト植物1',
-                        imageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
+                        mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
                         isFavorite: false,
                         isHave: false,
                     },
                     {
                         id: 2,
                         name: 'テスト植物2',
-                        imageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test2.jpg',
+                        mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test2.jpg',
                         isFavorite: false,
                         isHave: false,
                     },
@@ -94,16 +123,6 @@ describe('Plant Actions', () => {
             });
 
             expect(prisma.plants.count).toHaveBeenCalled();
-            expect(prisma.plants.findMany).toHaveBeenCalledWith({
-                select: {
-                    id: true,
-                    name: true,
-                    image_src: true,
-                },
-                orderBy: { name: 'asc' },
-                skip: 0,
-                take: 10,
-            });
         });
 
         it('空の配列を返すこと', async () => {
@@ -126,10 +145,13 @@ describe('Plant Actions', () => {
             await getPlants(sortBy, 1, 10);
 
             expect(prisma.plants.findMany).toHaveBeenCalledWith({
-                select: {
-                    id: true,
-                    name: true,
-                    image_src: true,
+                include: {
+                    plant_images: {
+                        orderBy: {
+                            order: 'asc',
+                        },
+                        take: 1,
+                    },
                 },
                 orderBy: { name: 'desc' },
                 skip: 0,
@@ -145,10 +167,13 @@ describe('Plant Actions', () => {
             await getPlants(sortBy, 1, 10);
 
             expect(prisma.plants.findMany).toHaveBeenCalledWith({
-                select: {
-                    id: true,
-                    name: true,
-                    image_src: true,
+                include: {
+                    plant_images: {
+                        orderBy: {
+                            order: 'asc',
+                        },
+                        take: 1,
+                    },
                 },
                 orderBy: { created_at: 'desc' },
                 skip: 0,
@@ -164,10 +189,13 @@ describe('Plant Actions', () => {
             await getPlants(sortBy, 1, 10);
 
             expect(prisma.plants.findMany).toHaveBeenCalledWith({
-                select: {
-                    id: true,
-                    name: true,
-                    image_src: true,
+                include: {
+                    plant_images: {
+                        orderBy: {
+                            order: 'asc',
+                        },
+                        take: 1,
+                    },
                 },
                 orderBy: { created_at: 'asc' },
                 skip: 0,
@@ -183,10 +211,13 @@ describe('Plant Actions', () => {
             await getPlants(sortBy, 1, 10);
 
             expect(prisma.plants.findMany).toHaveBeenCalledWith({
-                select: {
-                    id: true,
-                    name: true,
-                    image_src: true,
+                include: {
+                    plant_images: {
+                        orderBy: {
+                            order: 'asc',
+                        },
+                        take: 1,
+                    },
                 },
                 orderBy: { evaluations: { _count: 'desc' } },
                 skip: 0,
@@ -208,14 +239,14 @@ describe('Plant Actions', () => {
                     {
                         id: 1,
                         name: 'テスト植物1',
-                        imageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
+                        mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
                         isFavorite: false,
                         isHave: false,
                     },
                     {
                         id: 2,
                         name: 'テスト植物2',
-                        imageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test2.jpg',
+                        mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test2.jpg',
                         isFavorite: false,
                         isHave: false,
                     },
@@ -238,10 +269,13 @@ describe('Plant Actions', () => {
                         mode: 'insensitive',
                     },
                 },
-                select: {
-                    id: true,
-                    name: true,
-                    image_src: true,
+                include: {
+                    plant_images: {
+                        orderBy: {
+                            order: 'asc',
+                        },
+                        take: 1,
+                    },
                 },
                 orderBy: { name: 'asc' },
                 skip: 0,
@@ -280,12 +314,25 @@ describe('Plant Actions', () => {
             expect(result).toEqual({
                 id: 1,
                 name: 'テスト植物1',
-                imageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
+                mainImageUrl: undefined,
                 isFavorite: false,
                 isHave: false,
+                scientific_name: 'テスト植物1',
+                family: 'テスト植物1',
+                genus: 'テスト植物1',
+                species: 'テスト植物1',
             });
 
             expect(prisma.plants.findUnique).toHaveBeenCalledWith({
+                include: {
+                    plant_images: {
+                        orderBy: {
+                            order: 'asc',
+                        },
+                        take: 1,
+
+                    },
+                },
                 where: { id: 1 },
             });
         });
@@ -326,14 +373,22 @@ describe('Plant Actions', () => {
             vi.mocked(prisma.plants.create).mockResolvedValue({
                 id: 1,
                 name: 'テスト植物',
-                image_src: null,
                 created_at: new Date(),
+                updated_at: new Date(),
+                scientific_name: null,
+                family: null,
+                genus: null,
+                species: null,
             });
             vi.mocked(prisma.plants.update).mockResolvedValue({
                 id: 1,
                 name: 'テスト植物',
-                image_src: '1/test.jpg',
                 created_at: new Date(),
+                updated_at: new Date(),
+                scientific_name: null,
+                family: null,
+                genus: null,
+                species: null,
             });
 
             const result = await addPlant('テスト植物', mockFile);
@@ -364,7 +419,7 @@ describe('Plant Actions', () => {
 
             expect(result).toEqual({
                 success: false,
-                message: 'ログインしてください。',
+                code: ActionErrorCode.AUTH_REQUIRED,
             });
         });
 
@@ -381,7 +436,8 @@ describe('Plant Actions', () => {
 
             expect(result).toEqual({
                 success: false,
-                message: '植物の名前と画像は必須です。',
+                code: ActionErrorCode.VALIDATION_ERROR,
+                message: '植物の名前は必須です。',
             });
         });
 
@@ -396,16 +452,21 @@ describe('Plant Actions', () => {
             vi.mocked(prisma.plants.findFirst).mockResolvedValue({
                 id: 1,
                 name: 'テスト植物',
-                image_src: 'test.jpg',
                 created_at: new Date(),
+                updated_at: new Date(),
+                scientific_name: null,
+                family: null,
+                genus: null,
+                species: null,
             });
 
             const result = await addPlant('テスト植物', mockFile);
 
             expect(result).toEqual({
                 success: false,
+                code: ActionErrorCode.ALREADY_EXISTS,
                 message: '植物名が重複しています。',
-                plantId: 1,
+                data: { plantId: 1 },
             });
         });
 
@@ -425,15 +486,20 @@ describe('Plant Actions', () => {
             vi.mocked(prisma.plants.create).mockResolvedValue({
                 id: 1,
                 name: 'テスト植物',
-                image_src: null,
+                scientific_name: null,
+                family: null,
+                genus: null,
+                species: null,
                 created_at: new Date(),
+                updated_at: new Date(),
             });
 
             const result = await addPlant('テスト植物', mockFile);
 
             expect(result).toEqual({
                 success: false,
-                message: '画像のアップロードに失敗しました。',
+                code: ActionErrorCode.INTERNAL_SERVER_ERROR,
+                message: '植物の追加に失敗しました。',
             });
         });
     });

@@ -6,6 +6,7 @@ import { SupabaseClient } from '@supabase/supabase-js';
 import { EvaluationType, EvaluationReActionType } from '@/types/evaluation';
 import { SexType } from '@/types/neko';
 import { PrismaClient } from '@prisma/client';
+import { ActionErrorCode } from '@/types/common';
 
 // Prismaのモック
 vi.mock('@/lib/prisma', () => {
@@ -477,9 +478,50 @@ describe('Evaluation Actions', () => {
 
             vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
 
-            await expect(addEvaluation(1, 'テストコメント', EvaluationType.GOOD))
-                .rejects
-                .toThrow('ユーザーが見つかりません');
+            expect(await addEvaluation(1, 'テストコメント', EvaluationType.GOOD))
+                .toEqual({
+                    success: false,
+                    code: ActionErrorCode.AUTH_REQUIRED,
+                    message: "ユーザーが見つかりません",
+                });
+
+        });
+
+        it('usersデータがない場合', async () => {
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(null);
+            const mockSupabaseClient = {
+                auth: {
+                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
+                },
+            } as unknown as SupabaseClient;
+
+            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+            expect(await addEvaluation(1, 'テストコメント', EvaluationType.GOOD))
+                .toEqual({
+                    success: false,
+                    code: ActionErrorCode.AUTH_REQUIRED,
+                    message: "ユーザーが見つかりません",
+                });
+
+        });
+
+        it('画像が3枚以上の場合はエラーを返すこと', async () => {
+            const mockSupabaseClient = {
+                auth: {
+                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
+                },
+            } as unknown as SupabaseClient;
+
+            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
+
+            expect(await addEvaluation(1, 'テストコメント', EvaluationType.GOOD, [new File([], 'test.jpg'), new File([], 'test2.jpg'), new File([], 'test3.jpg'), new File([], 'test4.jpg')]))
+                .toEqual({
+                    success: false,
+                    code: ActionErrorCode.VALIDATION_ERROR,
+                    message: "最大3枚までしかアップロードできません。",
+                });
         });
 
         it('評価の追加に失敗した場合はエラーを返すこと', async () => {
@@ -493,9 +535,15 @@ describe('Evaluation Actions', () => {
             vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
             vi.mocked(prisma.evaluations.create).mockRejectedValue(null);
 
-            await expect(addEvaluation(1, 'テストコメント', EvaluationType.GOOD))
-                .rejects
-                .toThrow('評価投稿に失敗しました。');
+            // await expect(addEvaluation(1, 'テストコメント', EvaluationType.GOOD))
+            //     .rejects
+            //     .toThrow('評価投稿に失敗しました。');
+            expect(await addEvaluation(1, 'テストコメント', EvaluationType.GOOD))
+                .toEqual({
+                    success: false,
+                    code: ActionErrorCode.INTERNAL_SERVER_ERROR,
+                    message: "評価の投稿に失敗しました。",
+                });
         });
     });
 
@@ -649,9 +697,12 @@ describe('Evaluation Actions', () => {
 
             vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
 
-            await expect(upsertReAction(1, EvaluationReActionType.GOOD))
-                .rejects
-                .toThrow('ユーザーが見つかりません');
+            expect(await upsertReAction(1, EvaluationReActionType.GOOD))
+                .toEqual({
+                    success: false,
+                    code: ActionErrorCode.AUTH_REQUIRED,
+                    message: "ユーザーが見つかりません",
+                });
         });
     });
 

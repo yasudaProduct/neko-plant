@@ -81,7 +81,7 @@ export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
         },
     });
 
-    if (!pets) { // TODO 0件の場合ちゃんと判定される？
+    if (pets.length === 0) {
         return undefined;
     }
 

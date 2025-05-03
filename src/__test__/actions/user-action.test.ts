@@ -45,6 +45,7 @@ vi.mock('@/lib/prisma', () => ({
         },
         plant_have: {
             deleteMany: vi.fn(),
+            findMany: vi.fn(),
         },
         $transaction: vi.fn((callback) => callback(prisma)),
     },
@@ -615,55 +616,62 @@ describe('User Actions', () => {
 
     describe('getUserPlants', () => {
         it('ユーザーの植物一覧を取得できること', async () => {
-            const mockPlants = [
-                {
-                    id: 1,
-                    name: 'テスト植物1',
-                    image_src: 'test1.jpg',
-                    created_at: new Date(),
-                },
-                {
-                    id: 2,
-                    name: 'テスト植物2',
-                    image_src: 'test2.jpg',
-                    created_at: new Date(),
-                },
-            ];
-
-            vi.mocked(prisma.plants.findMany).mockResolvedValue(mockPlants);
-
+            vi.mocked(prisma.plant_have.findMany).mockResolvedValue(
+                [
+                    {
+                        id: 1,
+                        plant_id: 1,
+                        user_id: 1,
+                        created_at: new Date(),
+                        // plants: {
+                        //     id: 1,
+                        //     name: 'テスト植物1',
+                        //     image_src: 'test1.jpg',
+                        //     created_at: new Date(),
+                        //     updated_at: new Date(),
+                        //     scientific_name: null,
+                        //     family: null,
+                        //     genus: null,
+                        //     species: null,
+                        // },
+                    },
+                    {
+                        id: 2,
+                        plant_id: 2,
+                        user_id: 1,
+                        created_at: new Date(),
+                        // plants: {
+                        //     id: 2,
+                        //     created_at: new Date(),
+                        //     plant_id: 2,
+                        //     user_id: 1
+                        // }
+                    },
+                ]
+            );
             const result = await getUserPlants(1);
 
             expect(result).toEqual([
                 {
                     id: 1,
                     name: 'テスト植物1',
-                    imageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
+                    mainImageUrl: undefined,
                     isFavorite: false,
-                    isHave: false,
+                    isHave: true,
                 },
                 {
                     id: 2,
                     name: 'テスト植物2',
-                    imageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test2.jpg',
+                    mainImageUrl: undefined,
                     isFavorite: false,
-                    isHave: false,
+                    isHave: true,
                 },
             ]);
 
-            expect(prisma.plants.findMany).toHaveBeenCalledWith({
-                where: {
-                    plant_have: {
-                        some: {
-                            user_id: 1,
-                        },
-                    },
-                },
-            });
         });
 
         it('植物が存在しない場合はundefinedを返すこと', async () => {
-            vi.mocked(prisma.plants.findMany).mockResolvedValue([]);
+            vi.mocked(prisma.plant_have.findMany).mockResolvedValue([]);
 
             const result = await getUserPlants(1);
 
@@ -806,12 +814,22 @@ describe('User Actions', () => {
                     name: 'テスト植物1',
                     image_src: 'test1.jpg',
                     created_at: new Date(),
+                    updated_at: new Date(),
+                    scientific_name: null,
+                    family: null,
+                    genus: null,
+                    species: null,
                 },
                 {
                     id: 2,
                     name: 'テスト植物2',
                     image_src: 'test2.jpg',
                     created_at: new Date(),
+                    updated_at: new Date(),
+                    scientific_name: null,
+                    family: null,
+                    genus: null,
+                    species: null,
                 },
             ];
 

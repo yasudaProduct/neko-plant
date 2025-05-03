@@ -5,10 +5,11 @@ import prisma from '@/lib/prisma';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { EvaluationType, EvaluationReActionType } from '@/types/evaluation';
 import { SexType } from '@/types/neko';
+import { PrismaClient } from '@prisma/client';
 
 // Prismaのモック
-vi.mock('@/lib/prisma', () => ({
-    default: {
+vi.mock('@/lib/prisma', () => {
+    const prisma = {
         evaluations: {
             findMany: vi.fn(),
             create: vi.fn(),
@@ -26,8 +27,10 @@ vi.mock('@/lib/prisma', () => ({
         public_users: {
             findFirst: vi.fn(),
         },
-    },
-}));
+        $transaction: vi.fn().mockImplementation(callback => callback(prisma)),
+    };
+    return { default: prisma };
+});
 
 // Supabaseクライアントのモック
 vi.mock('@/lib/supabase/server', () => ({
@@ -54,7 +57,7 @@ describe('Evaluation Actions', () => {
     });
 
     describe('getEvaluations', () => {
-        it('評価一覧を取得できること', async () => {
+        it('正常系', async () => {
             const mockEvaluations = [
                 {
                     id: 1,
@@ -66,20 +69,20 @@ describe('Evaluation Actions', () => {
                     users: {
                         alias_id: 'test-alias',
                         name: 'Test User',
-                        image: null,
+                        image: 'test.jpg',
                     },
                 },
                 {
                     id: 2,
                     type: EvaluationType.BAD,
-                    comment: 'テストコメント2',
+                    comment: null,
                     created_at: new Date(),
                     user_id: 1,
                     plant_id: 1,
                     users: {
                         alias_id: 'test-alias',
                         name: 'Test User',
-                        image: null,
+                        image: 'test.jpg',
                     },
                 },
             ];
@@ -100,10 +103,42 @@ describe('Evaluation Actions', () => {
                         name: 'テスト猫',
                     },
                 },
+                {
+                    id: 2,
+                    user_id: 1,
+                    name: 'テストペット2',
+                    image: null,
+                    created_at: new Date(),
+                    neko_id: 2,
+                    sex: null,
+                    age: null,
+                    birthday: null,
+                    neko: {
+                        id: 2,
+                        name: 'テスト猫2',
+                    },
+                },
             ];
 
             vi.mocked(prisma.evaluations.findMany).mockResolvedValue(mockEvaluations);
             vi.mocked(prisma.pets.findMany).mockResolvedValue(mockPets);
+            const mockSupabaseClient = {
+                auth: {
+                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
+                },
+                storage: {
+                    from: vi.fn().mockReturnValue({
+                        list: vi.fn().mockResolvedValue({
+                            data: [
+                                {
+                                    name: 'test.jpg',
+                                },
+                            ],
+                        }),
+                    }),
+                },
+            } as unknown as SupabaseClient;
+            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
 
             const result = await getEvaluations(1);
 
@@ -123,12 +158,25 @@ describe('Evaluation Actions', () => {
                             name: 'テスト猫',
                         },
                     },
+                    {
+                        id: 2,
+                        name: 'テストペット2',
+                        imageSrc: undefined,
+                        neko: {
+                            id: 2,
+                            name: 'テスト猫2',
+                        },
+                    },
+                ],
+                imageUrls: [
+                    'http://localhost:54321/storage/v1/object/public/evaluations/1/test.jpg',
                 ],
                 user: {
                     aliasId: 'test-alias',
                     name: 'Test User',
-                    imageSrc: undefined,
+                    imageSrc: 'http://localhost:54321/storage/v1/object/public/user_profiles/test.jpg',
                 },
+
             });
 
             expect(prisma.evaluations.findMany).toHaveBeenCalledWith({
@@ -148,7 +196,219 @@ describe('Evaluation Actions', () => {
             });
         });
 
-        it('評価が存在しない場合は空の配列を返すこと', async () => {
+        it('正常系 ペット0件', async () => {
+            const mockEvaluations = [
+                {
+                    id: 1,
+                    type: EvaluationType.GOOD,
+                    comment: 'テストコメント1',
+                    created_at: new Date(),
+                    user_id: 1,
+                    plant_id: 1,
+                    users: {
+                        alias_id: 'test-alias',
+                        name: 'Test User',
+                        image: null,
+                    },
+                },
+                {
+                    id: 2,
+                    type: EvaluationType.BAD,
+                    comment: null,
+                    created_at: new Date(),
+                    user_id: 1,
+                    plant_id: 1,
+                    users: {
+                        alias_id: 'test-alias',
+                        name: 'Test User',
+                        image: null,
+                    },
+                },
+            ];
+
+
+            vi.mocked(prisma.evaluations.findMany).mockResolvedValue(mockEvaluations);
+            vi.mocked(prisma.pets.findMany).mockResolvedValue([]);
+            const mockSupabaseClient = {
+                auth: {
+                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
+                },
+                storage: {
+                    from: vi.fn().mockReturnValue({
+                        list: vi.fn().mockResolvedValue({
+                            data: [
+                                {
+                                    name: 'test.jpg',
+                                },
+                            ],
+                        }),
+                    }),
+                },
+            } as unknown as SupabaseClient;
+            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+            const result = await getEvaluations(1);
+
+            expect(result).toHaveLength(2);
+            expect(result[0]).toEqual({
+                id: 1,
+                type: EvaluationType.GOOD,
+                comment: 'テストコメント1',
+                createdAt: expect.any(Date),
+                pets: undefined,
+                imageUrls: [
+                    'http://localhost:54321/storage/v1/object/public/evaluations/1/test.jpg',
+                ],
+                user: {
+                    aliasId: 'test-alias',
+                    name: 'Test User',
+                    imageSrc: undefined,
+                },
+
+            });
+        });
+
+        it('正常系 userのカラムがnull', async () => {
+            const mockEvaluations = [
+                {
+                    id: 1,
+                    type: EvaluationType.GOOD,
+                    comment: 'テストコメント1',
+                    created_at: new Date(),
+                    user_id: 1,
+                    plant_id: 1,
+                    users: {
+                        alias_id: null,
+                        name: null,
+                        image: null,
+                    },
+                },
+                {
+                    id: 2,
+                    type: EvaluationType.BAD,
+                    comment: null,
+                    created_at: new Date(),
+                    user_id: 1,
+                    plant_id: 1,
+                    users: {
+                        alias_id: 'test-alias',
+                        name: 'Test User',
+                        image: null,
+                    },
+                },
+            ];
+
+
+            vi.mocked(prisma.evaluations.findMany).mockResolvedValue(mockEvaluations);
+            vi.mocked(prisma.pets.findMany).mockResolvedValue([]);
+            const mockSupabaseClient = {
+                auth: {
+                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
+                },
+                storage: {
+                    from: vi.fn().mockReturnValue({
+                        list: vi.fn().mockResolvedValue({
+                            data: [
+                                {
+                                    name: 'test.jpg',
+                                },
+                            ],
+                        }),
+                    }),
+                },
+            } as unknown as SupabaseClient;
+            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+            const result = await getEvaluations(1);
+
+            expect(result).toHaveLength(2);
+            expect(result[0]).toEqual({
+                id: 1,
+                type: EvaluationType.GOOD,
+                comment: 'テストコメント1',
+                createdAt: expect.any(Date),
+                pets: undefined,
+                imageUrls: [
+                    'http://localhost:54321/storage/v1/object/public/evaluations/1/test.jpg',
+                ],
+                user: {
+                    aliasId: "",
+                    name: "",
+                    imageSrc: undefined,
+                },
+
+            });
+        });
+
+        it('正常系 userがnull', async () => {
+            const mockEvaluations = [
+                {
+                    id: 1,
+                    type: EvaluationType.GOOD,
+                    comment: 'テストコメント1',
+                    created_at: new Date(),
+                    user_id: 1,
+                    plant_id: 1,
+                    users: null,
+                },
+                {
+                    id: 2,
+                    type: EvaluationType.BAD,
+                    comment: null,
+                    created_at: new Date(),
+                    user_id: 1,
+                    plant_id: 1,
+                    users: {
+                        alias_id: 'test-alias',
+                        name: 'Test User',
+                        image: null,
+                    },
+                },
+            ];
+
+
+            vi.mocked(prisma.evaluations.findMany).mockResolvedValue(mockEvaluations);
+            vi.mocked(prisma.pets.findMany).mockResolvedValue([]);
+            const mockSupabaseClient = {
+                auth: {
+                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
+                },
+                storage: {
+                    from: vi.fn().mockReturnValue({
+                        list: vi.fn().mockResolvedValue({
+                            data: [
+                                {
+                                    name: 'test.jpg',
+                                },
+                            ],
+                        }),
+                    }),
+                },
+            } as unknown as SupabaseClient;
+            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+
+            const result = await getEvaluations(1);
+
+            expect(result).toHaveLength(2);
+            expect(result[0]).toEqual({
+                id: 1,
+                type: EvaluationType.GOOD,
+                comment: 'テストコメント1',
+                createdAt: expect.any(Date),
+                pets: undefined,
+                imageUrls: [
+                    'http://localhost:54321/storage/v1/object/public/evaluations/1/test.jpg',
+                ],
+                user: {
+                    aliasId: "",
+                    name: "",
+                    imageSrc: undefined,
+                },
+
+            });
+        });
+
+        it('評価が存在しない場合', async () => {
             vi.mocked(prisma.evaluations.findMany).mockResolvedValue([]);
 
             const result = await getEvaluations(1);
@@ -163,24 +423,36 @@ describe('Evaluation Actions', () => {
                 auth: {
                     getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
                 },
+                storage: {
+                    from: vi.fn().mockReturnValue({
+                        upload: vi.fn().mockResolvedValue({
+                            data: {
+                                path: 'test.jpg',
+                            },
+                        }),
+                    }),
+                },
             } as unknown as SupabaseClient;
 
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-            vi.mocked(prisma.evaluations.create).mockResolvedValue({
+            const mockEvaluation = {
                 id: 1,
                 plant_id: 1,
                 user_id: 1,
                 comment: 'テストコメント',
                 type: EvaluationType.GOOD,
                 created_at: new Date(),
+            };
+
+            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
+            vi.mocked(prisma.evaluations.create).mockResolvedValue(mockEvaluation);
+            vi.mocked(prisma.$transaction).mockImplementation((callback) => {
+                return Promise.resolve(callback(prisma as unknown as PrismaClient));
             });
 
-            await addEvaluation(1, 'テストコメント', EvaluationType.GOOD);
+            const result = await addEvaluation(1, 'テストコメント', EvaluationType.GOOD);
 
-            expect(prisma.public_users.findFirst).toHaveBeenCalledWith({
-                where: { auth_id: mockUser.id },
-            });
+            expect(prisma.$transaction).toHaveBeenCalled();
             expect(prisma.evaluations.create).toHaveBeenCalledWith({
                 data: {
                     plant_id: 1,
@@ -190,6 +462,10 @@ describe('Evaluation Actions', () => {
                 },
             });
 
+            expect(result).toEqual({
+                success: true,
+                message: '評価を投稿しました。',
+            });
         });
 
         it('未ログインの場合はエラーを返すこと', async () => {
@@ -239,18 +515,14 @@ describe('Evaluation Actions', () => {
                     type: EvaluationReActionType.GOOD,
                     created_at: new Date(),
                     evaluation_id: 1,
-                    users: {
-                        id: 1,
-                    },
+                    user_id: 1,
                 },
                 {
                     id: 2,
                     type: EvaluationReActionType.BAD,
                     created_at: new Date(),
                     evaluation_id: 1,
-                    users: {
-                        id: 2,
-                    },
+                    user_id: 2,
                 },
             ]);
 
@@ -294,9 +566,7 @@ describe('Evaluation Actions', () => {
                     type: EvaluationReActionType.GOOD,
                     created_at: new Date(),
                     evaluation_id: 1,
-                    users: {
-                        id: 2,
-                    },
+                    user_id: 2,
                 },
             ]);
 

@@ -47,7 +47,7 @@ export async function getEvaluations(plantId: number): Promise<Evaluation[]> {
         type: evaluation.type as EvaluationType,
         comment: evaluation.comment ?? "",
         createdAt: evaluation.created_at,
-        pets: petsData ? petsData.filter((pet) => pet.user_id === evaluation.user_id).map((pet) => ({
+        pets: (petsData && petsData.length > 0) ? petsData.filter((pet) => pet.user_id === evaluation.user_id).map((pet) => ({
             id: pet.id,
             name: pet.name,
             imageSrc: pet.image ? STORAGE_PATH.USER_PET + pet.image : undefined,

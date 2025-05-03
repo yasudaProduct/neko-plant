@@ -56,3 +56,11 @@ alwaysApply: true
    - supabase上のプロジェクトは"neko-plant"です。
    - supabaseへは本番環境へMCP接続で操作できます。
    - supabaseへの変更操作前は必ず確認してください。
+
+## GitHub
+
+1. **リポジトリ情報**
+   - リポジトリオーナー: `yasudaProduct`
+   - リポジトリ名: `neko-plant`
+   - プロジェクト管理は GitHub Issues を使用します。
+   - プルリクエストは必ずレビューを経てからマージしてください。

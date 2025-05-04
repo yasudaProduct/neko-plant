@@ -564,6 +564,9 @@ describe('Evaluation Actions', () => {
                     created_at: new Date(),
                     evaluation_id: 1,
                     user_id: 1,
+                    users: {
+                        id: 1,
+                    },
                 },
                 {
                     id: 2,
@@ -571,6 +574,9 @@ describe('Evaluation Actions', () => {
                     created_at: new Date(),
                     evaluation_id: 1,
                     user_id: 2,
+                    users: {
+                        id: 2,
+                    },
                 },
             ]);
 
@@ -615,6 +621,12 @@ describe('Evaluation Actions', () => {
                     created_at: new Date(),
                     evaluation_id: 1,
                     user_id: 2,
+                    users: {
+                        id: 2,
+                        alias_id: 'test-alias2',
+                        name: 'Test User2',
+                        image: null,
+                    },
                 },
             ]);
 

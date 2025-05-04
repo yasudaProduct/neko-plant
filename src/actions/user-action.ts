@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { generateImageName } from "@/lib/utils";
 import { pets } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { ActionErrorCode, ActionResult } from "@/types/common";
 
 export async function getUserProfile(aliasId: string): Promise<UserProfile | undefined> {
     const userData = await prisma.public_users.findFirst({
@@ -260,13 +261,17 @@ export async function addPet(name: string, speciesId: number, image?: File, sex?
     revalidatePath(`/${userData.alias_id}`);
 }
 
-export async function updatePet(petId: number, name: string, speciesId: number, image?: File, sex?: SexType, birthday?: string, age?: number) {
+export async function updatePet(petId: number, name: string, speciesId: number, image?: File, sex?: SexType, birthday?: string, age?: number): Promise<ActionResult> {
     const supabase = await createClient();
     const {
         data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-        throw new Error("ユーザーが見つかりません");
+        return {
+            success: false,
+            code: ActionErrorCode.AUTH_REQUIRED,
+            message: "ユーザーが見つかりません",
+        };
     }
 
     const userData = await prisma.public_users.findFirst({
@@ -278,64 +283,87 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
     // TODO userIdを取得するのめんどくさくない？ authIdをpublic_usersの主キーにした方がいい？
 
     if (!userData) {
-        throw new Error("ユーザーが見つかりません");
+        return {
+            success: false,
+            code: ActionErrorCode.AUTH_REQUIRED,
+            message: "ユーザーが見つかりません",
+        };
     }
 
-    await prisma.$transaction(async (prisma) => {
+    try {
+        await prisma.$transaction(async (prisma) => {
 
-        // ネコを更新
-        const pet = await prisma.pets.findUnique({
-            where: {
-                id: petId,
-                user_id: userData.id,
-            },
-        });
+            // ネコを更新
+            const pet = await prisma.pets.findUnique({
+                where: {
+                    id: petId,
+                    user_id: userData.id,
+                },
+            });
 
-        if (!pet) {
-            throw new Error("飼い猫が見つかりません");
-        }
-
-        await prisma.pets.update({
-            where: {
-                id: petId,
-                user_id: userData.id,
-            },
-            data: {
-                name: name,
-                neko_id: speciesId,
-                sex: sex as SexType,
-                birthday: birthday ? new Date(birthday) : undefined,
-                age: age,
-            },
-        });
-
-        // 画像をアップロード
-        if (image) {
-
-            const imageSrc: string = `${userData.auth_id}/${petId}_${generateImageName("pet")}`;
-
-            const { error } = await supabase.storage
-                .from("user_pets")
-                .upload(imageSrc, image, {
-                    upsert: true,
-                });
-
-            if (error) {
-                throw error;
+            if (!pet) {
+                return {
+                    success: false,
+                    code: ActionErrorCode.NOT_FOUND,
+                    message: "飼い猫が見つかりません",
+                };
             }
 
-            // 画像のURLを更新
             await prisma.pets.update({
                 where: {
                     id: petId,
+                    user_id: userData.id,
                 },
                 data: {
-                    image: imageSrc,
+                    name: name,
+                    neko_id: speciesId,
+                    sex: sex as SexType,
+                    birthday: birthday ? new Date(birthday) : undefined,
+                    age: age,
                 },
             });
-        }
-    })
-    revalidatePath(`/${userData.alias_id}`);
+
+            // 画像をアップロード
+            if (image) {
+
+                const imageSrc: string = `${userData.auth_id}/${petId}_${generateImageName("pet")}`;
+
+                const { error } = await supabase.storage
+                    .from("user_pets")
+                    .upload(imageSrc, image, {
+                        upsert: true,
+                    });
+
+                if (error) {
+                    throw error;
+                }
+
+                // 画像のURLを更新
+                await prisma.pets.update({
+                    where: {
+                        id: petId,
+                    },
+                    data: {
+                        image: imageSrc,
+                    },
+                });
+            }
+        })
+
+        revalidatePath(`/${userData.alias_id}`);
+        return {
+            success: true,
+            message: "飼い猫を更新しました",
+        };
+
+    } catch (error) {
+        console.error(error);
+        return {
+            success: false,
+            code: ActionErrorCode.INTERNAL_SERVER_ERROR,
+            message: "飼い猫を更新できませんでした",
+        };
+    }
 }
 
 export async function deletePet(petId: number) {

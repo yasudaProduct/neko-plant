@@ -16,6 +16,9 @@ vi.mock('@/lib/prisma', () => ({
             create: vi.fn(),
             update: vi.fn(),
         },
+        plant_images: {
+            create: vi.fn(),
+        },
         plant_favorites: {
             create: vi.fn(),
             delete: vi.fn(),
@@ -390,12 +393,26 @@ describe('Plant Actions', () => {
                 genus: null,
                 species: null,
             });
+            vi.mocked(prisma.plant_images.create).mockResolvedValue({
+                id: 1,
+                image_url: 'test1.jpg',
+                created_at: new Date(),
+                updated_at: new Date(),
+                plant_id: 1,
+                user_id: 1,
+                caption: null,
+                alt_text: null,
+                is_approved: true,
+                order: 1,
+            });
 
             const result = await addPlant('テスト植物', mockFile);
 
             expect(result).toEqual({
                 success: true,
-                plantId: 1,
+                data: {
+                    plantId: 1,
+                },
             });
 
             expect(prisma.plants.findFirst).toHaveBeenCalledWith({

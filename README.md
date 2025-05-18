@@ -16,6 +16,14 @@ SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhY
 # Google
 SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=
 SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=
+
+# Notion
+NOTION_API_KEY=
+NOTION_DATABASE_ID=
+
+# E2E
+E2E_TEST_USER_ADDRES="e2e@example.com"
+
 ```
 
 ## dotenv
@@ -58,4 +66,27 @@ supabase migration repair --status applied [タイムスタンプ]
 
 # 指定したマイグレーションを適用させる前の状態に戻す（＝無効化）させる。
 supabase migration repair --status reverted [タイムスタンプ]
+```
+
+## テストについて
+
+### ユニットテスト（Vitest）
+
+```bash
+npm run test
+```
+
+### E2Eテスト（Playwright）
+
+```bash
+# サーバーを起動（例: Next.jsの場合）
+npm run build && npm start
+
+# 別ターミナルでE2Eテストを実行
+npx playwright test
+```
+
+- 初回のみ以下のコマンドでブラウザをインストールしてください。
+```bash
+npx playwright install
 ```

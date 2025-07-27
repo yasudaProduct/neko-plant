@@ -332,13 +332,13 @@ model auth_users {
 model evaluations {
   id                   Int                    @id @default(autoincrement())
   plant_id             Int
-  user_id              Int?
+  user_id              Int
   type                 evaluation_type
   comment              String?                @db.VarChar
   created_at           DateTime               @default(now()) @db.Timestamptz(6)
   evaluation_reactions evaluation_reactions[]
-  plants               plants                 @relation(fields: [plant_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_plant")
-  users                public_users?          @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  plants               plants                 @relation(fields: [plant_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_plant")
+  users                public_users           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@schema("public")
 }
@@ -375,12 +375,12 @@ model pets {
 model plants {
   id              Int               @id(map: "plant_pkey") @default(autoincrement())
   name            String            @db.VarChar
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
   scientific_name String?           @db.VarChar(255)
   family          String?           @db.VarChar(100)
   genus           String?           @db.VarChar(100)
   species         String?           @db.VarChar(100)
-  created_at      DateTime          @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime?         @updatedAt
+  updated_at      DateTime?         @default(now()) @updatedAt @db.Timestamptz(6)
   evaluations     evaluations[]
   plant_favorites plant_favorites[]
   plant_have      plant_have[]
@@ -396,6 +396,7 @@ model public_users {
   alias_id             String                 @db.VarChar
   name                 String                 @db.VarChar
   image                String?                @db.VarChar
+  role                 String?                @default("user") @db.VarChar(50)
   created_at           DateTime               @default(now()) @db.Timestamptz(6)
   evaluation_reactions evaluation_reactions[]
   evaluations          evaluations[]
@@ -414,8 +415,8 @@ model plant_favorites {
   user_id    Int
   plant_id   Int
   created_at DateTime     @default(now()) @db.Timestamptz(6)
-  plants     plants       @relation(fields: [plant_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users      public_users @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  plants     plants       @relation(fields: [plant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@schema("public")
 }
@@ -425,8 +426,8 @@ model plant_have {
   plant_id   Int
   user_id    Int
   created_at DateTime     @default(now()) @db.Timestamptz(6)
-  plants     plants       @relation(fields: [plant_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "plant_ have_plant_id_fkey")
-  users      public_users @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "plant_ have_user_id_fkey")
+  plants     plants       @relation(fields: [plant_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "plant_ have_plant_id_fkey")
+  users      public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "plant_ have_user_id_fkey")
 
   @@schema("public")
 }
@@ -437,8 +438,8 @@ model evaluation_reactions {
   user_id       Int
   created_at    DateTime      @default(now()) @db.Timestamptz(6)
   type          reaction_type
-  evaluations   evaluations   @relation(fields: [evaluation_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users         public_users  @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  evaluations   evaluations   @relation(fields: [evaluation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users         public_users  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@schema("public")
 }
@@ -451,11 +452,11 @@ model plant_images {
   caption     String?      @db.VarChar
   alt_text    String?      @db.VarChar
   created_at  DateTime     @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime     @updatedAt
+  updated_at  DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
   is_approved Boolean      @default(false)
   order       Int          @default(0)
   plants      plants       @relation(fields: [plant_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_plant")
-  users       public_users @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_user")
+  users       public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
 
   @@index([plant_id], map: "idx_plant_images_plant_id")
   @@index([user_id], map: "idx_plant_images_user_id")

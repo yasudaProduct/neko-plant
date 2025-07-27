@@ -23,7 +23,7 @@ npm run seed:e2e         # E2Eテストデータのシード
 # データベース
 npx prisma generate      # Prismaクライアント生成
 npx prisma db pull       # スキーマ変更の取得
-supabase db push         # Supabaseへのマイグレーション適用
+supabase db push         # リモート(本番)Supabaseへのマイグレーション適用
 
 # リント
 npm run lint             # ESLint
@@ -71,3 +71,8 @@ npm run lint             # ESLint
 
 ### データベーストリガー
 データベースは自動ユーザープロフィール作成とデータ整合性のためのトリガーを使用。トリガーのドキュメントは`/doc/supabase.md`を参照。
+
+### データベース変更のルール
+データベースに変更を加える際は、以下のルールに従ってください：
+- Prismaスキーマファイル（`prisma/schema.prisma`）を変更し、Prismaの機能を使用してマイグレーションを行う
+- Supabaseのマイグレーション機能は使用しない

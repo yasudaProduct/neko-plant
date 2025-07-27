@@ -69,6 +69,27 @@ export async function getUserProfileByAuthId(): Promise<UserProfile | undefined>
     };
 }
 
+export async function getUserData(authId: string) {
+    const userData = await prisma.public_users.findFirst({
+        where: {
+            auth_id: authId,
+        },
+    });
+
+    if (!userData) {
+        return null;
+    }
+
+    return {
+        id: userData.id,
+        aliasId: userData.alias_id,
+        authId: userData.auth_id,
+        name: userData.name,
+        image: userData.image,
+        role: userData.role || 'user',
+    };
+}
+
 export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
     const pets = await prisma.pets.findMany({
         where: {

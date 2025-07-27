@@ -125,6 +125,7 @@ export default function PlantEditForm({ plant }: PlantEditFormProps) {
           {...register("name")}
           placeholder="例：ガジュマル"
           defaultValue={plant.name}
+          maxLength={50}
         />
         {errors.name && (
           <p className="text-red-500 text-sm">{errors.name.message}</p>

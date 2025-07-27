@@ -73,7 +73,7 @@ export default function RegisterPlant() {
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="name">植物の名前</Label>
-              <Input id="name" {...register("name")} placeholder="例：パキラ" />
+              <Input id="name" {...register("name")} placeholder="例：パキラ" maxLength={50} />
               {errors.name && (
                 <p className="text-red-500 text-sm">{errors.name.message}</p>
               )}

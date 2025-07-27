@@ -38,7 +38,7 @@ export default defineConfig({
     {
       name: 'no-auth',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: ['**/admin-protection.test.ts'],
+      testIgnore: ['**/admin-protection.test.ts', '**/plant-registration.test.ts'],
     },
     {
       name: 'authenticated',
@@ -47,7 +47,7 @@ export default defineConfig({
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['auth'],
-      testMatch: ['**/admin-protection.test.ts', '**/authenticated-screenshots.test.ts'],
+      testMatch: ['**/admin-protection.test.ts', '**/authenticated-screenshots.test.ts', '**/plant-registration.test.ts'],
     },
 
     // {

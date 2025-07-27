@@ -70,4 +70,5 @@ const protectedPaths = [
   "/private",
   "/settings/profile",
   "/settings/account",
+  "/plants/new",
 ];

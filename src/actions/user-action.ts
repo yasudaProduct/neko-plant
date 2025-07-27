@@ -3,7 +3,7 @@
 import { Evaluation, EvaluationType } from "@/types/evaluation";
 import { Pet, SexType } from "@/types/neko";
 import { Plant } from "@/types/plant";
-import { UserProfile } from "@/types/user";
+import { UserProfile, UserData, UserRole } from "@/types/user";
 import { STORAGE_PATH } from "@/lib/const";
 import prisma from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
@@ -69,7 +69,7 @@ export async function getUserProfileByAuthId(): Promise<UserProfile | undefined>
     };
 }
 
-export async function getUserData(authId: string) {
+export async function getUserData(authId: string): Promise<UserData | null> {
     const userData = await prisma.public_users.findFirst({
         where: {
             auth_id: authId,
@@ -86,7 +86,7 @@ export async function getUserData(authId: string) {
         authId: userData.auth_id,
         name: userData.name,
         image: userData.image,
-        role: userData.role || 'user',
+        role: (userData.role || 'user') as UserRole,
     };
 }
 

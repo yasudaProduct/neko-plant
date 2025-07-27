@@ -3,6 +3,7 @@
 import { signInWithGoogle } from "@/lib/supabase/auth-google";
 import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
+import E2ELoginForm from "./E2ELoginForm";
 
 export default function LoginPage() {
   // const [email, setEmail] = useState("");
@@ -136,6 +137,9 @@ export default function LoginPage() {
             <Link href="/signup">アカウントを作成する</Link>
           </div> */}
           {/* </form> */}
+          
+          {/* E2Eテスト用ログインフォーム */}
+          <E2ELoginForm />
         </div>
       </div>
     </div>

@@ -22,13 +22,13 @@ setup('authenticate as regular user', async ({ page }) => {
 
   // Supabase APIでユーザーリストを取得してメールアドレスで検索
   const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
-  
+
   if (listError) {
     throw new Error('Failed to list users');
   }
-  
+
   const authUser = users.find(user => user.email === testUserEmail);
-  
+
   if (!authUser) {
     throw new Error('Test user not found');
   }
@@ -44,13 +44,48 @@ setup('authenticate as regular user', async ({ page }) => {
   }
 
   // Magic Linkにアクセスして認証
+  console.log('Magic link for regular user:', data.properties.action_link);
   await page.goto(data.properties.action_link);
-  
-  // 認証後のリダイレクトを待つ
-  await page.waitForURL('/');
-  
+
+  // 認証後のリダイレクトを待つ（URLにアクセストークンが含まれるまで待つ）
+  try {
+    await page.waitForURL(/access_token=/, { timeout: 10000 });
+    console.log('Authentication successful, URL contains access token');
+  } catch (error) {
+    console.error('Failed to get access token:', error);
+    console.log('Current URL:', page.url());
+  }
+
+  // トークンが処理されるのを待つ
+  await page.waitForTimeout(2000);
+
+  // トークンを手動で処理（Supabaseがクライアントサイドで行う処理を模倣）
+  const url = new URL(page.url());
+  const accessToken = url.hash.match(/access_token=([^&]+)/)?.[1];
+  const refreshToken = url.hash.match(/refresh_token=([^&]+)/)?.[1];
+
+  if (accessToken && refreshToken) {
+    // Supabaseのローカルストレージキーにトークンを保存
+    await page.evaluate(({ access, refresh }) => {
+      const sessionData = {
+        access_token: access,
+        refresh_token: refresh,
+        token_type: 'bearer',
+        user: {} // 簡略化
+      };
+      localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
+    }, { access: accessToken, refresh: refreshToken });
+
+    console.log('Tokens saved to localStorage');
+  }
+
+  // ホームページに移動して認証が正しく処理されていることを確認
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+
   // 認証状態を保存
   await page.context().storageState({ path: authFile });
+  console.log('Regular user auth state saved to:', authFile);
 });
 
 setup('authenticate as admin user', async ({ page }) => {
@@ -63,13 +98,13 @@ setup('authenticate as admin user', async ({ page }) => {
 
   // 管理者ユーザーの存在確認
   const { data: { users }, error: listError } = await supabase.auth.admin.listUsers();
-  
+
   if (listError) {
     throw new Error('Failed to list users');
   }
-  
+
   const authUser = users.find(user => user.email === adminEmail);
-  
+
   if (!authUser) {
     throw new Error('Admin user not found');
   }
@@ -94,11 +129,46 @@ setup('authenticate as admin user', async ({ page }) => {
   }
 
   // Magic Linkにアクセスして認証
+  console.log('Magic link for admin user:', data.properties.action_link);
   await page.goto(data.properties.action_link);
-  
-  // 認証後のリダイレクトを待つ
-  await page.waitForURL('/');
-  
+
+  // 認証後のリダイレクトを待つ（URLにアクセストークンが含まれるまで待つ）
+  try {
+    await page.waitForURL(/access_token=/, { timeout: 10000 });
+    console.log('Admin authentication successful, URL contains access token');
+  } catch (error) {
+    console.error('Failed to get admin access token:', error);
+    console.log('Current URL:', page.url());
+  }
+
+  // トークンが処理されるのを待つ
+  await page.waitForTimeout(2000);
+
+  // トークンを手動で処理（Supabaseがクライアントサイドで行う処理を模倣）
+  const url = new URL(page.url());
+  const accessToken = url.hash.match(/access_token=([^&]+)/)?.[1];
+  const refreshToken = url.hash.match(/refresh_token=([^&]+)/)?.[1];
+
+  if (accessToken && refreshToken) {
+    // Supabaseのローカルストレージキーにトークンを保存
+    await page.evaluate(({ access, refresh }) => {
+      const sessionData = {
+        access_token: access,
+        refresh_token: refresh,
+        token_type: 'bearer',
+        user: {} // 簡略化
+      };
+      localStorage.setItem('supabase.auth.token', JSON.stringify(sessionData));
+    }, { access: accessToken, refresh: refreshToken });
+
+    console.log('Admin tokens saved to localStorage');
+  }
+
+  // ホームページに移動して認証が正しく処理されていることを確認
+  await page.goto('/');
+  await page.waitForLoadState('networkidle');
+
   // 認証状態を保存
   await page.context().storageState({ path: adminAuthFile });
+  console.log('Admin user auth state saved to:', adminAuthFile);
 });

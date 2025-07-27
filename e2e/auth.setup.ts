@@ -1,17 +1,17 @@
 import { test as setup } from '@playwright/test';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
-import { createClient } from '@supabase/supabase-js';
-import prisma from '../src/lib/prisma';
+// import { createClient } from '@supabase/supabase-js';
+// import prisma from '../src/lib/prisma';
 
 const authFile = 'playwright/.auth/user.json';
 const adminAuthFile = 'playwright/.auth/admin.json';
 
 // Supabase Admin Client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// const supabase = createClient(
+//   process.env.NEXT_PUBLIC_SUPABASE_URL!,
+//   process.env.SUPABASE_SERVICE_ROLE_KEY!
+// );
 
 // Magic Link認証による実装（コメントアウト）
 /*
@@ -92,10 +92,10 @@ setup('authenticate as regular user', async ({ page }) => {
 */
 
 // Email認証による新しい実装
-setup('authenticate as regular user', async ({ page }) => {
+setup('通常のユーザーとして認証します', async ({ page }) => {
   const testUserEmail = process.env.E2E_TEST_USER_ADDRESS;
   const testUserPassword = process.env.E2E_TEST_USER_PASSWORD;
-  
+
   if (!testUserEmail || !testUserPassword) {
     throw new Error('E2E_TEST_USER_ADDRESS and E2E_TEST_USER_PASSWORD must be set');
   }
@@ -107,17 +107,17 @@ setup('authenticate as regular user', async ({ page }) => {
   // メールアドレスとパスワードを入力
   await page.fill('[data-testid="email"]', testUserEmail);
   await page.fill('[data-testid="password"]', testUserPassword);
-  
+
   // ログインボタンをクリック
   await page.click('[data-testid="signin-button"]');
-  
+
   // 認証成功後のリダイレクトを待つ
   await page.waitForURL('/', { timeout: 10000 });
   await page.waitForLoadState('networkidle');
 
   // 認証状態を保存
   await page.context().storageState({ path: authFile });
-  console.log('Regular user auth state saved to:', authFile);
+  console.log('通常のユーザー認証状態が保存されました:', authFile);
 });
 
 // Magic Link認証による管理者認証（コメントアウト）
@@ -209,10 +209,10 @@ setup('authenticate as admin user', async ({ page }) => {
 */
 
 // Email認証による管理者認証
-setup('authenticate as admin user', async ({ page }) => {
+setup('管理者として認証します', async ({ page }) => {
   const adminEmail = process.env.E2E_TEST_ADMIN_ADDRESS;
   const adminPassword = process.env.E2E_TEST_ADMIN_PASSWORD;
-  
+
   if (!adminEmail || !adminPassword) {
     console.log('E2E_TEST_ADMIN_ADDRESS and E2E_TEST_ADMIN_PASSWORD are not set, skipping admin auth setup');
     return;
@@ -225,15 +225,15 @@ setup('authenticate as admin user', async ({ page }) => {
   // メールアドレスとパスワードを入力
   await page.fill('[data-testid="email"]', adminEmail);
   await page.fill('[data-testid="password"]', adminPassword);
-  
+
   // ログインボタンをクリック
   await page.click('[data-testid="signin-button"]');
-  
+
   // 認証成功後のリダイレクトを待つ
   await page.waitForURL('/', { timeout: 10000 });
   await page.waitForLoadState('networkidle');
 
   // 認証状態を保存
   await page.context().storageState({ path: adminAuthFile });
-  console.log('Admin user auth state saved to:', adminAuthFile);
+  console.log('管理者ユーザーの状態が保存されました:', adminAuthFile);
 });

@@ -10,7 +10,6 @@ test.beforeEach(async ({ }) => {
 
 });
 
-
 test.describe('スクリーンショットを取得', () => {
     test('トップ画面', async ({ page }) => {
         await page.goto('/', { waitUntil: 'networkidle' });

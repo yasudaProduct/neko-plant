@@ -23,6 +23,9 @@ NOTION_DATABASE_ID=
 
 # E2E
 E2E_TEST_USER_ADDRES="e2e@example.com"
+E2E_TEST_USER_PASSWORD="password"
+E2E_TEST_ADMIN_ADDRESS="admin@example.com"
+E2E_TEST_ADMIN_PASSWORD="adminpass"
 
 ```
 
@@ -79,11 +82,11 @@ npm run test
 ### E2Eテスト（Playwright）
 
 ```bash
-# サーバーを起動（例: Next.jsの場合）
-npm run build && npm start
+npm run seed:e2e
 
-# 別ターミナルでE2Eテストを実行
-npx playwright test
+npm run e2e
+
+npm run e2e -- --project="no-auth"
 ```
 
 - 初回のみ以下のコマンドでブラウザをインストールしてください。

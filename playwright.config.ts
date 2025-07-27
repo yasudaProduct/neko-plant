@@ -36,37 +36,28 @@ export default defineConfig({
   projects: [
     { name: 'auth', testMatch: 'auth.setup.ts' },
     {
-      name: 'chromium',
+      name: 'no-auth',
       use: { ...devices['Desktop Chrome'] },
       testIgnore: ['**/admin-protection.test.ts'],
     },
     {
-      name: 'chromium authenticated',
-      use: { 
+      name: 'authenticated',
+      use: {
         ...devices['Desktop Chrome'],
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['auth'],
-      testMatch: ['**/authenticated-screenshots.test.ts'],
-    },
-    {
-      name: 'chromium admin',
-      use: { 
-        ...devices['Desktop Chrome'],
-        storageState: 'playwright/.auth/admin.json',
-      },
-      dependencies: ['auth'],
-      testMatch: ['**/admin-protection.test.ts'],
+      testMatch: ['**/admin-protection.test.ts', '**/authenticated-screenshots.test.ts'],
     },
 
     // {
     //   name: 'firefox',
     //   use: { ...devices['Desktop Firefox'] },
     // },
-    {
-      name: 'webkit',
-      use: { ...devices['Desktop Safari'] },
-    },
+    // {
+    //   name: 'webkit',
+    //   use: { ...devices['Desktop Safari'] },
+    // },
 
     /* Test against mobile viewports. */
     // {

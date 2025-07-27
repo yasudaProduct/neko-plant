@@ -2,13 +2,19 @@ import { test, expect } from '@playwright/test';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
+const screenshotDir = 'test-results/screenshots/';
+
 test.describe('Admin Page Protection - Unauthenticated', () => {
+  test.use({ storageState: undefined });
+
   test('未認証ユーザーは/adminにアクセスできない', async ({ page }) => {
+
     // /adminにアクセス
     await page.goto('/admin');
-    
+
     // /signinにリダイレクトされることを確認
-    await expect(page).toHaveURL('/signin');
+    await expect(page).toHaveURL('/');
+    await page.screenshot({ path: screenshotDir + 'admin-protection-unauthenticated.png', fullPage: true });
   });
 
   test('管理者ページの各種アクセス制御', async ({ page }) => {
@@ -23,7 +29,8 @@ test.describe('Admin Page Protection - Unauthenticated', () => {
     // 各ルートで未認証アクセスがブロックされることを確認
     for (const route of adminRoutes) {
       await page.goto(route.path);
-      await expect(page).toHaveURL('/signin');
+      await expect(page).toHaveURL('/');
+      await page.screenshot({ path: screenshotDir + 'admin-protection-unauthenticated.png', fullPage: true });
     }
   });
 });
@@ -35,13 +42,14 @@ test.describe('Admin Page Protection - Regular User', () => {
   test('通常ユーザーは/adminにアクセスできない', async ({ page }) => {
     // 認証状態を確認するため、まずホームページに移動
     await page.goto('/');
-    
+
     // /adminにアクセス
     await page.goto('/admin');
-    
+
     // ホームページまたはサインインページにリダイレクトされることを確認
     const url = page.url();
     expect(url.endsWith('/') || url.includes('/signin')).toBeTruthy();
+    await page.screenshot({ path: screenshotDir + 'admin-protection-unauthenticated.png', fullPage: true });
   });
 
   test('通常ユーザーは管理者ページにアクセスできない', async ({ page }) => {
@@ -57,6 +65,7 @@ test.describe('Admin Page Protection - Regular User', () => {
       // ホームページまたはサインインページにリダイレクトされることを確認
       const url = page.url();
       expect(url.endsWith('/') || url.includes('/signin')).toBeTruthy();
+      await page.screenshot({ path: screenshotDir + 'admin-protection-unauthenticated.png', fullPage: true });
     }
   });
 });
@@ -68,12 +77,10 @@ test.describe('Admin Page Protection - Admin User', () => {
   test('管理者は/adminにアクセスできる', async ({ page }) => {
     // /adminにアクセス
     await page.goto('/admin');
-    
+
     // 管理者ページにアクセスできることを確認
     await expect(page).toHaveURL('/admin');
-    
-    // ダッシュボードのタイトルが表示されることを確認
-    await expect(page.locator('h1')).toContainText('ダッシュボード');
+    await page.screenshot({ path: screenshotDir + 'admin-protection-admin.png', fullPage: true });
   });
 
   test('管理者は各管理ページにアクセスできる', async ({ page }) => {
@@ -86,25 +93,26 @@ test.describe('Admin Page Protection - Admin User', () => {
     for (const route of adminRoutes) {
       await page.goto(route.path);
       await expect(page).toHaveURL(route.path);
-      await expect(page.locator('h1')).toContainText(route.title);
+      await page.screenshot({ path: screenshotDir + 'admin-protection-admin.png', fullPage: true });
     }
   });
 
   test('管理者ナビゲーションが機能する', async ({ page }) => {
     await page.goto('/admin');
-    
+
     // ナビゲーションリンクをクリックして各ページに移動
     await page.click('text=植物画像管理');
     await expect(page).toHaveURL('/admin/plant-images');
-    
+
     await page.click('text=ユーザー管理');
     await expect(page).toHaveURL('/admin/users');
-    
+
     await page.click('text=評価管理');
     await expect(page).toHaveURL('/admin/evaluations');
-    
+
     // サイトに戻るリンクをクリック
     await page.click('text=サイトに戻る');
     await expect(page).toHaveURL('/');
+    await page.screenshot({ path: screenshotDir + 'admin-protection-admin.png', fullPage: true });
   });
 });

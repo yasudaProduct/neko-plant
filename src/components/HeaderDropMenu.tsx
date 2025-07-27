@@ -74,6 +74,7 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
   return (
     <div ref={dropdownRef} className="relative z-50">
       <button
+        data-testid="user-avatar"
         onClick={toggleDropdown}
         onKeyDown={handleKeyDown}
         className="focus:outline-none flex items-center gap-2"

@@ -55,7 +55,7 @@ alwaysApply: true
    - データベースにはsupabaseを使用しています。
    - supabase上のプロジェクトは"neko-plant"です。
    - supabaseへは本番環境へMCP接続で操作できます。
-   - supabaseへの変更操作前は必ず確認してください。
+   - supabaseへの本番環境へ変更操作前は行わないでください。
 
 ## GitHub
 

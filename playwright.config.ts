@@ -38,7 +38,8 @@ export default defineConfig({
     {
       name: 'no-auth',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: ['**/admin-protection.test.ts', '**/plant-registration.test.ts'],
+      testIgnore: ['**/admin-protection.test.ts', '**/plant-registration.test.ts', '**/authentication.test.ts', '**/plant-detail.test.ts', '**/evaluation-system.test.ts'],
+      testMatch: ['**/neko-plant.test.ts', '**/plant-registration-unauth.test.ts', '**/plant-search.test.ts'],
     },
     {
       name: 'authenticated',
@@ -47,7 +48,7 @@ export default defineConfig({
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['auth'],
-      testMatch: ['**/admin-protection.test.ts', '**/authenticated-screenshots.test.ts', '**/plant-registration.test.ts'],
+      testMatch: ['**/admin-protection.test.ts', '**/authenticated-screenshots.test.ts', '**/plant-registration.test.ts', '**/authentication.test.ts', '**/plant-detail.test.ts', '**/evaluation-system.test.ts'],
     },
 
     // {

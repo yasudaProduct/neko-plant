@@ -38,6 +38,7 @@ test.describe('スクリーンショットを取得', () => {
 
     });
 
+
     test('問い合わせ画面', async ({ page }) => {
         await page.goto('/contact', { waitUntil: 'networkidle' });
         await page.waitForTimeout(1000);

@@ -12,10 +12,12 @@ async function main() {
     );
 
     const e2eTestUserAddress = process.env.E2E_TEST_USER_ADDRESS;
-    if (!e2eTestUserAddress) {
-        throw new Error('E2E_TEST_USER_ADDRESS is not defined in environment variables');
+    const e2eTestUserPassword = process.env.E2E_TEST_USER_PASSWORD;
+    if (!e2eTestUserAddress || !e2eTestUserPassword) {
+        throw new Error('E2E_TEST_USER_ADDRESS or E2E_TEST_USER_PASSWORD is not defined in environment variables');
     }
     console.log('✉️E2E_TEST_USER_ADDRESS:', e2eTestUserAddress);
+    console.log('✉️E2E_TEST_USER_PASSWORD:', e2eTestUserPassword);
 
     // usersテーブル以外をtruncate
     await prisma.evaluation_reactions.deleteMany();
@@ -43,19 +45,24 @@ async function main() {
     if (!existingUser) {
         console.log(' => テストユーザーをauth_usersに作成します');
         // Supabase Admin APIでユーザーを作成
-        const { data: newUser, error } = await supabase.auth.admin.createUser({
-            user_metadata: {
-                name: 'テストユーザー',
-                alias_id: 'testuser',
-                image: null,
-            },
+        const { data: newUser, error } = await supabase.auth.signUp({
             email: e2eTestUserAddress,
-            password: 'test-password-123', // テスト用の固定パスワード
-            email_confirm: true,
+            password: e2eTestUserPassword, // テスト用の固定パスワード
+            options: {
+                data: {
+                    name: 'テストユーザー',
+                    alias_id: 'testuser',
+                    image: null,
+                },
+            },
         });
 
         if (error) {
             throw new Error(`Failed to create test user: ${error.message}`);
+        }
+
+        if (!newUser || !newUser.user) {
+            throw new Error('Failed to create test user');
         }
 
         authUser = await prisma.auth_users.findFirst({
@@ -99,8 +106,10 @@ async function main() {
 
     // 管理者ユーザーの作成（E2E_TEST_ADMIN_ADDRESSが設定されている場合）
     const e2eTestAdminAddress = process.env.E2E_TEST_ADMIN_ADDRESS;
-    if (e2eTestAdminAddress) {
+    const e2eTestAdminPassword = process.env.E2E_TEST_ADMIN_PASSWORD;
+    if (e2eTestAdminAddress && e2eTestAdminPassword) {
         console.log('✉️E2E_TEST_ADMIN_ADDRESS:', e2eTestAdminAddress);
+        console.log('✉️E2E_TEST_ADMIN_PASSWORD:', e2eTestAdminPassword);
 
         let adminAuthUser;
 
@@ -114,25 +123,29 @@ async function main() {
         if (!existingAdminUser) {
             console.log(' => 管理者ユーザーをauth_usersに作成します');
             // Supabase Admin APIで管理者ユーザーを作成
-            const { data: newAdminUser, error } = await supabase.auth.admin.createUser({
-                user_metadata: {
-                    name: 'テスト管理者',
-                    alias_id: 'testadmin',
-                    image: null,
-                    role: 'admin',
-                },
+            const { data: newAdminUser, error } = await supabase.auth.signUp({
                 email: e2eTestAdminAddress,
-                password: 'admin-password-123', // テスト用の固定パスワード
-                email_confirm: true,
+                password: e2eTestAdminPassword, // テスト用の固定パスワード
+                options: {
+                    data: {
+                        name: 'テスト管理者',
+                        alias_id: 'testadmin',
+                        image: null,
+                    },
+                },
             });
 
             if (error) {
                 throw new Error(`Failed to create admin user: ${error.message}`);
             }
 
+            if (!newAdminUser || !newAdminUser.user) {
+                throw new Error('Failed to create admin user');
+            }
+
             adminAuthUser = await prisma.auth_users.findFirst({
                 where: {
-                    id: newAdminUser.user.id,
+                    id: newAdminUser.user?.id,
                 },
             });
         } else {

@@ -38,13 +38,25 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
-      testIgnore: '**/admin-protection.test.ts',
+      testIgnore: ['**/admin-protection.test.ts'],
     },
     {
       name: 'chromium authenticated',
-      use: { ...devices['Desktop Chrome'] },
+      use: { 
+        ...devices['Desktop Chrome'],
+        storageState: 'playwright/.auth/user.json',
+      },
       dependencies: ['auth'],
-      testMatch: '**/admin-protection.test.ts',
+      testMatch: ['**/authenticated-screenshots.test.ts'],
+    },
+    {
+      name: 'chromium admin',
+      use: { 
+        ...devices['Desktop Chrome'],
+        storageState: 'playwright/.auth/admin.json',
+      },
+      dependencies: ['auth'],
+      testMatch: ['**/admin-protection.test.ts'],
     },
 
     // {

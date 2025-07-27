@@ -8,7 +8,8 @@
       "Bash(./node_modules/.bin/dotenv -e .env.local -- npx prisma db pull)",
       "Bash(npm run lint)",
       "Bash(npm run dev:*)",
-      "Bash(./node_modules/.bin/dotenv -e .env.local -- npx prisma migrate dev --name add_user_role)"
+      "Bash(./node_modules/.bin/dotenv -e .env.local -- npx prisma migrate dev --name add_user_role)",
+      "Bash(grep:*)"
     ],
     "deny": []
   }

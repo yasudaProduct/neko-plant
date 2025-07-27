@@ -38,11 +38,13 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      testIgnore: 'admin-protection.test.ts',
     },
     {
       name: 'chromium authenticated',
       use: { ...devices['Desktop Chrome'] },
       dependencies: ['auth'],
+      testMatch: 'admin-protection.test.ts',
     },
 
     // {

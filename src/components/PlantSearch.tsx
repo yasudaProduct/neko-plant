@@ -187,6 +187,7 @@ export default function PlantSearch() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onFocus={() => setIsSuggestOpen(true)}
+            data-testid="search-input"
           />
           <Button
             type="submit"
@@ -197,7 +198,10 @@ export default function PlantSearch() {
           </Button>
         </form>
         {isSuggestOpen && plantSuggest.length > 0 && (
-          <div className="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-md shadow-md z-50">
+          <div 
+          className="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-md shadow-md z-50"
+          data-testid="plant-suggestions"
+          >
             {plantSuggest.map((name) => (
               <Link
                 key={name.id}

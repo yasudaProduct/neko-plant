@@ -9,17 +9,18 @@ test.describe('植物検索・発見機能', () => {
     test('検索フィールドに入力すると検索候補が表示される', async ({ page }) => {
       await page.goto('/');
       await page.waitForLoadState('networkidle');
+      await page.waitForSelector('form', { timeout: 10000 });
 
       // 検索フィールドを見つける
-      const searchInput = page.locator('input[placeholder="植物名を検索する"]');
+      const searchInput = page.locator('input[data-testid="search-input"]');
       await expect(searchInput).toBeVisible();
 
       // 検索文字を入力
-      await searchInput.fill('あ');
-      
+      await searchInput.fill('ネコマダラ');
+
       // 検索候補のドロップダウンが表示されることを確認
       await page.waitForSelector('[data-testid="plant-suggestions"]', { timeout: 5000 });
-      
+
       // 候補がリスト形式で表示されることを確認
       const suggestions = page.locator('[data-testid="plant-suggestions"] a');
       const suggestionCount = await suggestions.count();
@@ -32,11 +33,11 @@ test.describe('植物検索・発見機能', () => {
       await page.goto('/');
       await page.waitForLoadState('networkidle');
 
-      const searchInput = page.locator('input[placeholder="植物名を検索する"]');
-      await searchInput.fill('あ');
-      
+      const searchInput = page.locator('input[data-testid="search-input"]');
+      await searchInput.fill('ネコマダラ');
+
       await page.waitForSelector('[data-testid="plant-suggestions"]');
-      
+
       // 最初の候補をクリック
       const firstSuggestion = page.locator('[data-testid="plant-suggestions"] a').first();
       const suggestionText = await firstSuggestion.textContent();
@@ -44,10 +45,10 @@ test.describe('植物検索・発見機能', () => {
 
       // 植物詳細ページに移動することを確認
       await page.waitForURL(/\/plants\/\d+/);
-      
+
       // ページタイトルに選択した植物名が含まれることを確認
       if (suggestionText) {
-        await expect(page.locator('h1')).toContainText(suggestionText.trim());
+        await expect(page.locator('[data-testid="plant-name"]')).toContainText(suggestionText.trim());
       }
 
       await page.screenshot({ path: screenshotDir + 'search-suggestion-click.png', fullPage: true });
@@ -57,14 +58,14 @@ test.describe('植物検索・発見機能', () => {
       await page.goto('/');
       await page.waitForLoadState('networkidle');
 
-      const searchInput = page.locator('input[placeholder="植物名を検索する"]');
-      await searchInput.fill('あ');
-      
+      const searchInput = page.locator('input[data-testid="search-input"]');
+      await searchInput.fill('ネコマダラ');
+
       await page.waitForSelector('[data-testid="plant-suggestions"]');
-      
+
       // 検索フィールドの外をクリック
       await page.click('body');
-      
+
       // 候補が非表示になることを確認
       await expect(page.locator('[data-testid="plant-suggestions"]')).not.toBeVisible();
 
@@ -142,7 +143,7 @@ test.describe('植物検索・発見機能', () => {
       // 検索結果が表示されることを確認
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         // 結果がある場合、最大8件表示されることを確認
         expect(cardCount).toBeLessThanOrEqual(8);
@@ -151,7 +152,7 @@ test.describe('植物検索・発見機能', () => {
       // ページネーションコンポーネントの存在確認
       const pagination = page.locator('[data-testid="pagination"]');
       const hasPagination = await pagination.count() > 0;
-      
+
       if (hasPagination) {
         await expect(pagination).toBeVisible();
       }
@@ -166,14 +167,14 @@ test.describe('植物検索・発見機能', () => {
       // ページネーションが存在する場合のみテスト
       const nextButton = page.locator('[data-testid="pagination-next"]');
       const hasNextButton = await nextButton.count() > 0;
-      
+
       if (hasNextButton) {
         await nextButton.click();
         await page.waitForLoadState('networkidle');
-        
+
         // 2ページ目に移動したことを確認
         await expect(page).toHaveURL(/page=2/);
-        
+
         await page.screenshot({ path: screenshotDir + 'pagination-next.png', fullPage: true });
       } else {
         // ページネーションがない場合のスクリーンショット
@@ -188,14 +189,14 @@ test.describe('植物検索・発見機能', () => {
 
       const prevButton = page.locator('[data-testid="pagination-prev"]');
       const hasPrevButton = await prevButton.count() > 0;
-      
+
       if (hasPrevButton) {
         await prevButton.click();
         await page.waitForLoadState('networkidle');
-        
+
         // 1ページ目に戻ったことを確認（pageパラメータがない状態）
         await expect(page).toHaveURL(/^[^?]*\?q=植物$/);
-        
+
         await page.screenshot({ path: screenshotDir + 'pagination-prev.png', fullPage: true });
       }
     });
@@ -207,13 +208,13 @@ test.describe('植物検索・発見機能', () => {
       // ページ番号2のリンクが存在する場合
       const pageLink = page.locator('[data-testid="pagination"] a[href*="page=2"]');
       const hasPageLink = await pageLink.count() > 0;
-      
+
       if (hasPageLink) {
         await pageLink.click();
         await page.waitForLoadState('networkidle');
-        
+
         await expect(page).toHaveURL(/page=2/);
-        
+
         await page.screenshot({ path: screenshotDir + 'pagination-direct.png', fullPage: true });
       }
     });
@@ -232,7 +233,7 @@ test.describe('植物検索・発見機能', () => {
 
       // 検索結果なしのメッセージが表示されることを確認
       await expect(page.locator('text=検索結果がありません')).toBeVisible();
-      
+
       // または具体的なメッセージ
       await expect(page.locator('text=「存在しない植物名12345」の検索結果がありません')).toBeVisible();
 
@@ -262,14 +263,14 @@ test.describe('植物検索・発見機能', () => {
       // 植物カードが表示されることを確認
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         // 最初のカードの内容を確認
         const firstCard = plantCards.first();
-        
+
         // 植物名が表示されることを確認
         await expect(firstCard.locator('h3')).toBeVisible();
-        
+
         // いいね・悪いアイコンが表示されることを確認
         await expect(firstCard.locator('[data-testid="heart-icon"]')).toBeVisible();
         await expect(firstCard.locator('[data-testid="skull-icon"]')).toBeVisible();
@@ -284,14 +285,14 @@ test.describe('植物検索・発見機能', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         const firstCard = plantCards.first();
         await firstCard.click();
-        
+
         // 植物詳細ページに移動することを確認
         await page.waitForURL(/\/plants\/\d+/);
-        
+
         await page.screenshot({ path: screenshotDir + 'search-card-click.png', fullPage: true });
       }
     });
@@ -303,18 +304,18 @@ test.describe('植物検索・発見機能', () => {
       // デスクトップビューでの表示確認
       await page.setViewportSize({ width: 1200, height: 800 });
       await page.waitForLoadState('networkidle');
-      
+
       const plantGrid = page.locator('[data-testid="plant-grid"]');
       await expect(plantGrid).toBeVisible();
-      
+
       await page.screenshot({ path: screenshotDir + 'search-responsive-desktop.png', fullPage: true });
 
       // モバイルビューでの表示確認
       await page.setViewportSize({ width: 375, height: 667 });
       await page.waitForLoadState('networkidle');
-      
+
       await expect(plantGrid).toBeVisible();
-      
+
       await page.screenshot({ path: screenshotDir + 'search-responsive-mobile.png', fullPage: true });
     });
   });

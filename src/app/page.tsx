@@ -17,7 +17,6 @@ export default function Home() {
             height={100}
             className="mb-4 rounded-md"
           />
-
           <p className="text-4xl font-bold text-primary mb-4">
             植物は猫に安全？
           </p>

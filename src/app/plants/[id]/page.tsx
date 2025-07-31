@@ -99,7 +99,7 @@ export default async function PlantPage({
               )}
               <div className="w-full md:w-1/2 flex flex-col gap-2 p-4">
                 <div className="text-2xl font-bold">
-                  {plant.name}
+                  <span data-testid="plant-name">{plant.name}</span>
                   <span className="text-sm text-gray-500 ml-4">
                     学名：
                     {plant.scientific_name

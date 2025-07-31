@@ -37,7 +37,7 @@ export default defineConfig({
     { name: 'auth', testMatch: 'auth.setup.ts' },
     {
       name: 'no-auth',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], headless: false },
       testIgnore: ['**/admin-protection.test.ts', '**/plant-registration.test.ts', '**/authentication.test.ts', '**/plant-detail.test.ts', '**/evaluation-system.test.ts'],
       testMatch: ['**/neko-plant.test.ts', '**/plant-registration-unauth.test.ts', '**/plant-search.test.ts'],
     },

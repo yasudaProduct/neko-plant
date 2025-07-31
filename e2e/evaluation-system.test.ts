@@ -2,11 +2,14 @@ import { test, expect } from '@playwright/test';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
-const screenshotDir = 'test-results/screenshots/';
+const screenshotDir = 'test-results/screenshots/evaluation-system/';
 
 test.describe('評価システム', () => {
   test.describe('良い/悪い評価の投稿', () => {
     test.use({ storageState: 'playwright/.auth/user.json' });
+    
+    // テスト間の独立性を保つため、一意のコメントを生成
+    const generateUniqueComment = (base: string) => `${base}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     test('評価投稿ダイアログが開く', async ({ page }) => {
       // 植物詳細ページに移動

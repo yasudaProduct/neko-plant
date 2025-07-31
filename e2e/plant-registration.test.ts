@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
-const screenshotDir = 'test-results/screenshots/';
+const screenshotDir = 'test-results/screenshots/plant-registration/';
 
 test.describe('植物登録機能', () => {
 

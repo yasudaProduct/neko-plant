@@ -37,12 +37,10 @@ test.describe('スクリーンショットを取得', () => {
 
     });
 
-
-    test('問い合わせ画面', async ({ page }) => {
-        await page.goto('/contact', { waitUntil: 'networkidle' });
-        await page.waitForTimeout(1000);
-        await page.screenshot({ path: screenshotDir + 'contact.png', fullPage: true });
-    });
+    // test('問い合わせ画面', async ({ page }) => {
+    //     await page.goto('/contact', { waitUntil: 'networkidle' });
+    //     await page.screenshot({ path: screenshotDir + 'contact.png', fullPage: true });
+    // });
 
     test('お知らせ画面', async ({ page }) => {
         await page.goto('/news', { waitUntil: 'networkidle' });

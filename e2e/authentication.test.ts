@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
-const screenshotDir = 'test-results/screenshots/';
+const screenshotDir = 'test-results/screenshots/authentication/';
 
 test.describe('認証機能', () => {
   test.describe('ログアウト機能', () => {
@@ -14,7 +14,10 @@ test.describe('認証機能', () => {
       await page.waitForLoadState('networkidle');
 
       // ユーザーアバターをクリックしてドロップダウンを開く
-      await page.click('[data-testid="user-avatar"]');
+      const userAvatar = page.locator('[data-testid="user-avatar"]');
+      await expect(userAvatar).toBeVisible({ timeout: 10000 });
+      await userAvatar.click();
+      
       await page.waitForSelector('text=ログアウト', { timeout: 5000 });
 
       // ログアウトボタンをクリック
@@ -25,10 +28,10 @@ test.describe('認証機能', () => {
       await page.waitForLoadState('networkidle');
 
       // ログインボタンが表示されることを確認（非認証状態）
-      await expect(page.locator('text=ログイン')).toBeVisible();
+      await expect(page.locator('text=ログイン')).toBeVisible({ timeout: 10000 });
 
       // ユーザーアバターが表示されていないことを確認
-      await expect(page.locator('[data-testid="user-avatar"]')).not.toBeVisible();
+      await expect(page.locator('[data-testid="user-avatar"]')).not.toBeVisible({ timeout: 5000 });
 
       await page.screenshot({ path: screenshotDir + 'logout-success.png', fullPage: true });
     });

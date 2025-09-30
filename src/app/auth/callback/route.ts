@@ -1,36 +1,44 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 
+/**
+ * Supabaseの認証コールバック
+ * @param request - リクエスト
+ * @returns リダイレクト
+ * @description このルートは、クライアントで認証トークンが取得されたときに呼び出されます。
+ */
 export async function GET(request: Request) {
-    console.log("auth callback route");
-    console.log(process.env.NEXT_PUBLIC_APP_BASE_URL)
-    console.log(request.url)
-    const { searchParams, origin } = new URL(request.url)
+    const { searchParams } = new URL(request.url)
     const code = searchParams.get('code')
-    // if "next" is in param, use it as the redirect URL
     const next = searchParams.get('next') ?? '/'
 
-    console.log(code)
+    // 許可するリダイレクト先はアプリ内部パスのみ
+    const isSafeInternalPath = (value: string) => {
+        return typeof value === 'string' && value.startsWith('/') && !value.startsWith('//')
+    }
+
+    const getSafeOrigin = (): string => {
+        const base = process.env.NEXT_PUBLIC_APP_BASE_URL
+        try {
+            if (base) {
+                return new URL(base).origin
+            }
+        } catch {
+        }
+        return new URL(request.url).origin
+    }
+
+    const safeOrigin = getSafeOrigin()
+    const safeNextPath = isSafeInternalPath(next) ? next : '/'
+
     if (code) {
         const supabase = await createClient()
         const { error } = await supabase.auth.exchangeCodeForSession(code)
-        console.log(error)
         if (!error) {
-            const forwardedHost = request.headers.get('x-forwarded-host') // original origin before load balancer
-            const isLocalEnv = process.env.NODE_ENV === 'development'
-            console.log(isLocalEnv)
-            if (isLocalEnv) {
-                // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
-                console.log((`${origin}${next}`))
-                return NextResponse.redirect(`${origin}${next}`)
-            } else if (forwardedHost) {
-                return NextResponse.redirect(`https://${forwardedHost}${next}`)
-            } else {
-                return NextResponse.redirect(`${origin}${next}`)
-            }
+            const destination = new URL(safeNextPath, safeOrigin).toString()
+            return NextResponse.redirect(destination)
         }
     }
 
-    // return the user to an error page with instructions
-    return NextResponse.redirect(`${origin}/auth/auth-code-error`)
+    return NextResponse.redirect(new URL('/auth/auth-code-error', safeOrigin).toString())
 }

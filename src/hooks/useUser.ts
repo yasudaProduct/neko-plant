@@ -10,14 +10,11 @@ interface ExtendedUser extends User {
 }
 
 export default function useUser() {
-    console.log('useUser')
     const supabase = createClient();
     const [session, setSession] = useState<Session | null>(null);
     const [user, setUser] = useState<ExtendedUser | null>(null);
 
     const getUserProfiles = async () => {
-        console.log('useUser: getUserProfiles')
-        console.log('useUser: getUserProfiles: session', session)
         try {
             const { data: user_profiles } = await supabase
                 .from('users')
@@ -34,17 +31,12 @@ export default function useUser() {
                 setUser(null);
             }
 
-        } catch (error) {
-            console.log('useUser: getUserProfiles: error', error)
+        } catch {
         }
     }
 
     useEffect(() => {
-        console.log('useUser: useEffect')
-
         const { data: authListener } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
-            console.log('useUser: onAuthStateChange')
-            console.log('useUser: onAuthStateChange: event', event)
             if (session) {
                 // signInWithPasswordの後sessionがnullの状態で呼ばれる
                 setSession(session);
@@ -63,7 +55,6 @@ export default function useUser() {
     }, []);
 
     useEffect(() => {
-        console.log('useUser: useEffect: session', session)
         if (session) {
             getUserProfiles();
         } else {
@@ -100,10 +91,8 @@ export default function useUser() {
     // }
 
     const signIn = async (email: string, password: string) => {
-        console.log('useUser: signIn')
         try {
             const { error, data: { session } } = await supabase.auth.signInWithPassword({ email, password });
-            console.log('useUser: signIn: session', session)
             setSession(session);
 
             if (error) {
@@ -111,7 +100,6 @@ export default function useUser() {
             }
 
         } catch (error) {
-            console.log('useUser: signIn: error', error)
             throw error;
         }
     }

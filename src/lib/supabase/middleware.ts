@@ -2,9 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+  const isProd = process.env.NODE_ENV === "production";
 
-  // CSP nonce生成
-  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+  // CSP nonce生成（本番環境のみ）
+  const nonce = isProd ? Buffer.from(crypto.randomUUID()).toString('base64') : '';
 
   let supabaseResponse = NextResponse.next({
     request,
@@ -66,18 +67,26 @@ export async function updateSession(request: NextRequest) {
     }
   }
 
-  // CSP nonceをリクエストヘッダーに追加
-  const requestHeaders = new Headers(request.headers)
-  requestHeaders.set('x-nonce', nonce)
+  // CSPヘッダーを設定
+  const cspHeader = [
+    "default-src 'self'",
+    `script-src 'self'${isProd ? ` 'nonce-${nonce}'` : " 'unsafe-eval' 'unsafe-inline'"}`,
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: blob: https:",
+    `connect-src 'self' https: wss:${isProd ? '' : ' ws:'}`,
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'self' https://confirmed-giant-27d.notion.site",
+    "frame-src 'self' https://confirmed-giant-27d.notion.site/ebd/1c69f17f06688007995fc3497043f841",
+    ...(isProd ? ["block-all-mixed-content", "upgrade-insecure-requests"] : []),
+  ].join("; ");
 
-  // 既存のCSPヘッダーを取得し、nonceを動的に注入
-  const cspHeader = supabaseResponse.headers.get('Content-Security-Policy')
-  if (cspHeader) {
-    const updatedCsp = cspHeader.replace(
-      /script-src ([^;]*)/,
-      `script-src $1 'nonce-${nonce}'`
-    )
-    supabaseResponse.headers.set('Content-Security-Policy', updatedCsp)
+  supabaseResponse.headers.set('Content-Security-Policy', cspHeader)
+
+  // nonceをリクエストヘッダーに追加
+  if (isProd && nonce) {
+    supabaseResponse.headers.set('x-nonce', nonce)
   }
 
   return supabaseResponse

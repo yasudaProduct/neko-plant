@@ -2,7 +2,10 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
-  console.log("middleware: updateSession");
+
+  // CSP nonce生成
+  const nonce = Buffer.from(crypto.randomUUID()).toString('base64')
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -61,6 +64,20 @@ export async function updateSession(request: NextRequest) {
       url.pathname = '/'
       return NextResponse.redirect(url)
     }
+  }
+
+  // CSP nonceをリクエストヘッダーに追加
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-nonce', nonce)
+
+  // 既存のCSPヘッダーを取得し、nonceを動的に注入
+  const cspHeader = supabaseResponse.headers.get('Content-Security-Policy')
+  if (cspHeader) {
+    const updatedCsp = cspHeader.replace(
+      /script-src ([^;]*)/,
+      `script-src $1 'nonce-${nonce}'`
+    )
+    supabaseResponse.headers.set('Content-Security-Policy', updatedCsp)
   }
 
   return supabaseResponse

@@ -16,6 +16,16 @@
           "ls -la",
           "npm run dev"
         ]
+      },
+      {
+        "name": "supabase",
+        "autoExecuteCommands": true,
+        "icon": "database",
+        "color": "terminal.ansiBlue",
+        "commands": [
+          "pwd",
+          "supabase status"
+        ]
       }
     ]
   }

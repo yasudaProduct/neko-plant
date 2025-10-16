@@ -14,6 +14,8 @@ export default defineConfig({
             reporter: ['text', 'json', 'html'],
         },
         env: dotenv.config({ path: ".env.local" }).parsed,
+        include: ['src/__test__/**/*.{test,spec}.{ts,tsx}'],
+        exclude: ['e2e/**', 'playwright/**', 'playwright-report/**'],
     },
     resolve: {
         alias: {

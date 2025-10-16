@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getEvaluations, addEvaluation, getEvalReAction, upsertReAction, deleteReAction } from '@/actions/evaluation-action';
 import { createClient } from '@/lib/supabase/server';
@@ -50,6 +51,7 @@ describe('Evaluation Actions', () => {
         alias_id: 'test-alias',
         name: 'Test User',
         image: null,
+        role: 'user',
         created_at: new Date(),
     };
 
@@ -578,7 +580,7 @@ describe('Evaluation Actions', () => {
                         id: 2,
                     },
                 },
-            ]);
+            ] as any);
 
             const result = await getEvalReAction(1);
 
@@ -628,7 +630,7 @@ describe('Evaluation Actions', () => {
                         image: null,
                     },
                 },
-            ]);
+            ] as any);
 
             const result = await getEvalReAction(1);
 

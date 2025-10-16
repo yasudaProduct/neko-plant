@@ -36,6 +36,7 @@ export default defineConfig({
 
     /* Add action timeout */
     actionTimeout: 10000,
+    headless: true,
   },
 
   /* Configure projects for major browsers */
@@ -43,7 +44,7 @@ export default defineConfig({
     { name: 'auth', testMatch: 'auth.setup.ts' },
     {
       name: 'no-auth',
-      use: { ...devices['Desktop Chrome'], headless: false },
+      use: { ...devices['Desktop Chrome'] },
       testIgnore: ['**/admin-protection.test.ts', '**/plant-registration.test.ts', '**/authentication.test.ts', '**/plant-detail.test.ts', '**/evaluation-system.test.ts'],
       testMatch: ['**/neko-plant.test.ts', '**/plant-registration-unauth.test.ts', '**/plant-search.test.ts'],
     },

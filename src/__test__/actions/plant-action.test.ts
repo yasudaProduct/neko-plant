@@ -542,6 +542,7 @@ describe('Plant Actions', () => {
                 alias_id: 'test-alias',
                 name: 'Test User',
                 image: null,
+                role: 'user',
                 created_at: new Date(),
             });
             vi.mocked(prisma.plant_favorites.findFirst).mockResolvedValue(null);
@@ -612,6 +613,7 @@ describe('Plant Actions', () => {
                 alias_id: 'test-alias',
                 name: 'Test User',
                 image: null,
+                role: 'user',
                 created_at: new Date(),
             });
             vi.mocked(prisma.plant_favorites.findFirst).mockResolvedValue({
@@ -689,6 +691,7 @@ describe('Plant Actions', () => {
                 alias_id: 'test-alias',
                 name: 'Test User',
                 image: null,
+                role: 'user',
                 created_at: new Date(),
             });
             vi.mocked(prisma.plant_have.findFirst).mockResolvedValue(null);
@@ -750,6 +753,7 @@ describe('Plant Actions', () => {
                 alias_id: 'test-alias',
                 name: 'Test User',
                 image: null,
+                role: 'user',
                 created_at: new Date(),
             });
             vi.mocked(prisma.plant_have.findFirst).mockResolvedValue({
@@ -789,6 +793,7 @@ describe('Plant Actions', () => {
                 alias_id: 'test-alias',
                 name: 'Test User',
                 image: null,
+                role: 'user',
                 created_at: new Date(),
             });
             vi.mocked(prisma.plant_have.findFirst).mockResolvedValue({

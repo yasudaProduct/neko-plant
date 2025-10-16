@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
     getUserProfile,
@@ -71,6 +72,7 @@ describe('User Actions', () => {
         alias_id: 'test-alias',
         name: 'Test User',
         image: null,
+        role: 'user',
         created_at: new Date(),
     };
 
@@ -556,9 +558,9 @@ describe('User Actions', () => {
                     getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
                 },
                 storage: {
-                    from: {
-                        upload: vi.fn().mockResolvedValue(new Error('アップロードエラー')),
-                    },
+                    from: vi.fn().mockReturnValue({
+                        upload: vi.fn().mockResolvedValue({ error: new Error('アップロードエラー') }),
+                    }),
                 },
             } as unknown as SupabaseClient;
 
@@ -658,7 +660,7 @@ describe('User Actions', () => {
                             name: 'テスト植物2',
                         },
                     },
-                ]
+                ] as any
             );
             const result = await getUserPlants(1);
 

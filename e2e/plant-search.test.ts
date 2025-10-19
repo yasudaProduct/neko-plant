@@ -4,7 +4,7 @@ dotenv.config({ path: '.env.local' });
 
 const screenshotDir = 'test-results/screenshots/plant-search/';
 
-test.describe('植物検索・発見機能', () => {
+test.describe('植物検索・発見機能 @public @user', () => {
   // 各テストで一意の検索キーワードを使用してデータ競合を避ける
   // const getUniqueSearchTerm = (baseterm: string) => `${baseterm}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   // const commonSearchTerm = '植物'; // データベースに存在する共通の検索語

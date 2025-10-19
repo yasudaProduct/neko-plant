@@ -4,7 +4,7 @@ dotenv.config({ path: '.env.local' });
 
 const screenshotDir = 'test-results/screenshots/';
 
-test.describe('植物詳細ページ', () => {
+test.describe('植物詳細ページ @public', () => {
   test.describe('植物情報表示', () => {
     test('植物の基本情報が表示される', async ({ page }) => {
       // 植物一覧から最初の植物の詳細ページに移動
@@ -13,7 +13,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -22,7 +22,7 @@ test.describe('植物詳細ページ', () => {
         // 植物名（h1タグ）が表示されることを確認
         const plantName = page.locator('h1');
         await expect(plantName).toBeVisible();
-        
+
         // 植物名が空でないことを確認
         const nameText = await plantName.textContent();
         expect(nameText?.trim().length).toBeGreaterThan(0);
@@ -37,7 +37,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -69,7 +69,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -78,7 +78,7 @@ test.describe('植物詳細ページ', () => {
         // 「未設定」テキストが存在するか確認（すべての分類学的情報が設定されていない場合）
         const unsetFields = page.locator('text=未設定');
         const unsetCount = await unsetFields.count();
-        
+
         // 少なくとも1つ以上の分類学的情報が表示されていることを確認
         expect(unsetCount).toBeGreaterThanOrEqual(0);
 
@@ -94,7 +94,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -103,20 +103,20 @@ test.describe('植物詳細ページ', () => {
         // カルーセルコンテナが存在することを確認
         const carousel = page.locator('[data-testid="plant-carousel"]');
         const hasCarousel = await carousel.count() > 0;
-        
+
         if (hasCarousel) {
           await expect(carousel).toBeVisible();
-          
+
           // カルーセル画像が表示されることを確認
           const carouselImages = carousel.locator('img');
           await expect(carouselImages.first()).toBeVisible();
-          
+
           await page.screenshot({ path: screenshotDir + 'plant-detail-carousel.png', fullPage: true });
         } else {
           // カルーセルがない場合のプレースホルダー確認
           const placeholder = page.locator('text=No image');
           await expect(placeholder).toBeVisible();
-          
+
           await page.screenshot({ path: screenshotDir + 'plant-detail-no-image.png', fullPage: true });
         }
       }
@@ -128,7 +128,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -137,14 +137,14 @@ test.describe('植物詳細ページ', () => {
         // 次へボタンの存在確認
         const nextButton = page.locator('[data-testid="carousel-next"]');
         const hasNextButton = await nextButton.count() > 0;
-        
+
         if (hasNextButton) {
           await expect(nextButton).toBeVisible();
-          
+
           // 前へボタンの存在確認
           const prevButton = page.locator('[data-testid="carousel-prev"]');
           await expect(prevButton).toBeVisible();
-          
+
           await page.screenshot({ path: screenshotDir + 'plant-detail-carousel-navigation.png', fullPage: true });
         }
       }
@@ -156,7 +156,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -164,17 +164,17 @@ test.describe('植物詳細ページ', () => {
 
         const nextButton = page.locator('[data-testid="carousel-next"]');
         const hasNextButton = await nextButton.count() > 0;
-        
+
         if (hasNextButton) {
           // 次へボタンをクリック
           await nextButton.click();
           await page.waitForTimeout(500); // カルーセルアニメーション待機
-          
+
           // 前へボタンをクリック
           const prevButton = page.locator('[data-testid="carousel-prev"]');
           await prevButton.click();
           await page.waitForTimeout(500);
-          
+
           await page.screenshot({ path: screenshotDir + 'plant-detail-carousel-interaction.png', fullPage: true });
         }
       }
@@ -188,7 +188,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -197,21 +197,21 @@ test.describe('植物詳細ページ', () => {
         // RatingBarコンポーネントが表示されることを確認
         const ratingBar = page.locator('[data-testid="rating-bar"]');
         const hasRatingBar = await ratingBar.count() > 0;
-        
+
         if (hasRatingBar) {
           await expect(ratingBar).toBeVisible();
-          
+
           // ハートアイコン（良い評価）の表示確認
           await expect(ratingBar.locator('[data-testid="heart-icon"]')).toBeVisible();
-          
+
           // スカルアイコン（悪い評価）の表示確認
           await expect(ratingBar.locator('[data-testid="skull-icon"]')).toBeVisible();
-          
+
           await page.screenshot({ path: screenshotDir + 'plant-detail-rating-stats.png', fullPage: true });
         } else {
           // 評価がない場合のメッセージ確認
           await expect(page.locator('text=評価がまだありません')).toBeVisible();
-          
+
           await page.screenshot({ path: screenshotDir + 'plant-detail-no-ratings.png', fullPage: true });
         }
       }
@@ -223,7 +223,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -247,7 +247,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -256,36 +256,36 @@ test.describe('植物詳細ページ', () => {
         // 評価カードが存在する場合
         const evaluationCards = page.locator('[data-testid="evaluation-card"]');
         const evaluationCount = await evaluationCards.count();
-        
+
         if (evaluationCount > 0) {
           const firstEvaluation = evaluationCards.first();
-          
+
           // ユーザーアバターの表示確認
           const avatar = firstEvaluation.locator('[data-testid="user-avatar"]');
           const hasAvatar = await avatar.count() > 0;
           if (hasAvatar) {
             await expect(avatar).toBeVisible();
           }
-          
+
           // ユーザー名のリンクが表示されることを確認
           const userLink = firstEvaluation.locator('a[href^="/"]');
           await expect(userLink.first()).toBeVisible();
-          
+
           // コメントテキストが表示されることを確認
           const commentText = firstEvaluation.locator('[data-testid="comment-text"]');
           const hasComment = await commentText.count() > 0;
           if (hasComment) {
             await expect(commentText).toBeVisible();
           }
-          
+
           await page.screenshot({ path: screenshotDir + 'plant-detail-evaluation-card.png', fullPage: true });
         }
       }
     });
   });
 
-  test.describe('ユーザーインタラクション（認証済み）', () => {
-    test.use({ storageState: 'playwright/.auth/user.json' });
+  test.describe('ユーザーインタラクション（認証済み） @user', () => {
+    // test.use({ storageState: 'playwright/.auth/user.json' });
 
     test('お気に入りボタンが表示され機能する', async ({ page }) => {
       await page.goto('/?q=植物');
@@ -293,7 +293,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -317,7 +317,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -341,7 +341,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -361,7 +361,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -370,7 +370,7 @@ test.describe('植物詳細ページ', () => {
         // 画像アップロードボタンの存在確認
         const uploadButton = page.locator('[data-testid="upload-image-button"]');
         const hasUploadButton = await uploadButton.count() > 0;
-        
+
         if (hasUploadButton) {
           await expect(uploadButton).toBeVisible();
         }
@@ -385,7 +385,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -394,22 +394,22 @@ test.describe('植物詳細ページ', () => {
         // 編集ボタンの存在確認（鉛筆アイコン）
         const editButton = page.locator('[data-testid="edit-button"]');
         const hasEditButton = await editButton.count() > 0;
-        
+
         if (hasEditButton) {
           await expect(editButton).toBeVisible();
-          
+
           // 編集ページへのリンクをクリック
           await editButton.click();
           await page.waitForURL(/\/plants\/\d+\/edit/);
-          
+
           await page.screenshot({ path: screenshotDir + 'plant-detail-edit-page.png', fullPage: true });
         }
       }
     });
   });
 
-  test.describe('ユーザーインタラクション（未認証）', () => {
-    test.use({ storageState: undefined });
+  test.describe('ユーザーインタラクション（未認証） @public', () => {
+    // test.use({ storageState: undefined });
 
     test('未認証ユーザーにはユーザー専用ボタンが表示されない', async ({ page }) => {
       await page.goto('/?q=植物');
@@ -417,7 +417,7 @@ test.describe('植物詳細ページ', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -440,17 +440,17 @@ test.describe('植物詳細ページ', () => {
     });
   });
 
-  test.describe('レスポンシブデザイン', () => {
-    test('モバイル表示での植物詳細ページ', async ({ page }) => {
+  test.describe('レスポンシブデザイン @public @mobile', () => {
+    test('モバイル表示での植物詳細ページ ', async ({ page }) => {
       // モバイル表示サイズに設定
       await page.setViewportSize({ width: 375, height: 667 });
-      
+
       await page.goto('/?q=植物');
       await page.waitForLoadState('networkidle');
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -470,13 +470,13 @@ test.describe('植物詳細ページ', () => {
     test('タブレット表示での植物詳細ページ', async ({ page }) => {
       // タブレット表示サイズに設定
       await page.setViewportSize({ width: 768, height: 1024 });
-      
+
       await page.goto('/?q=植物');
       await page.waitForLoadState('networkidle');
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);

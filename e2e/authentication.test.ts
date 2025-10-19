@@ -4,9 +4,9 @@ dotenv.config({ path: '.env.local' });
 
 const screenshotDir = 'test-results/screenshots/authentication/';
 
-test.describe('認証機能', () => {
+test.describe('認証機能 @user', () => {
   test.describe('ログアウト機能', () => {
-    test.use({ storageState: 'playwright/.auth/user.json' });
+    // test.use({ storageState: 'playwright/.auth/user.json' });
 
     test('ヘッダードロップダウンからログアウトできる', async ({ page }) => {
       // ホームページに移動
@@ -17,7 +17,7 @@ test.describe('認証機能', () => {
       const userAvatar = page.locator('[data-testid="user-avatar"]');
       await expect(userAvatar).toBeVisible({ timeout: 10000 });
       await userAvatar.click();
-      
+
       await page.waitForSelector('text=ログアウト', { timeout: 5000 });
 
       // ログアウトボタンをクリック
@@ -54,8 +54,8 @@ test.describe('認証機能', () => {
     });
   });
 
-  test.describe('ログイン後のリダイレクト機能', () => {
-    test.use({ storageState: undefined });
+  test.describe('ログイン後のリダイレクト機能 @public', () => {
+    // test.use({ storageState: undefined });
 
     test('保護されたページにアクセス後、ログインすると元のページにリダイレクトされる', async ({ page }) => {
       // 保護されたページ（設定ページ）に直接アクセス
@@ -90,8 +90,8 @@ test.describe('認証機能', () => {
 
 });
 
-test.describe('ヘッダーナビゲーション - 未認証', () => {
-  test.use({ storageState: undefined });
+test.describe('ヘッダーナビゲーション - 未認証 @public', () => {
+  // test.use({ storageState: undefined });
 
   test('未認証ユーザーにはログインボタンが表示される', async ({ page }) => {
     await page.goto('/');
@@ -111,8 +111,8 @@ test.describe('ヘッダーナビゲーション - 未認証', () => {
   });
 });
 
-test.describe('ヘッダーナビゲーション - 認証済み', () => {
-  test.use({ storageState: 'playwright/.auth/user.json' });
+test.describe('ヘッダーナビゲーション - 認証済み @user', () => {
+  // test.use({ storageState: 'playwright/.auth/user.json' });
 
   test('認証済みユーザーにはユーザーアバターと植物追加ボタンが表示される', async ({ page }) => {
     await page.goto('/');
@@ -138,8 +138,8 @@ test.describe('ヘッダーナビゲーション - 認証済み', () => {
 
 });
 
-test.describe('セッション永続化', () => {
-  test.use({ storageState: 'playwright/.auth/user.json' });
+test.describe('セッション永続化 @user', () => {
+  // test.use({ storageState: 'playwright/.auth/user.json' });
 
   test('ページリロード後も認証状態が維持される', async ({ page }) => {
     // ホームページに移動

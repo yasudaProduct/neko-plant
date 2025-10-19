@@ -4,8 +4,8 @@ dotenv.config({ path: '.env.local' });
 
 const screenshotDir = 'test-results/screenshots/';
 
-test.describe('Admin Page Protection - Unauthenticated', () => {
-  test.use({ storageState: undefined });
+test.describe('Admin Page Protection - Unauthenticated @public', () => {
+  // test.use({ storageState: undefined });
 
   test('未認証ユーザーは/adminにアクセスできない', async ({ page }) => {
 
@@ -13,7 +13,7 @@ test.describe('Admin Page Protection - Unauthenticated', () => {
     await page.goto('/admin');
 
     // /signinにリダイレクトされることを確認
-    await expect(page).toHaveURL('/');
+    await expect(page).toHaveURL('/signin');
     await page.screenshot({ path: screenshotDir + 'admin-protection-unauthenticated.png', fullPage: true });
   });
 
@@ -29,15 +29,15 @@ test.describe('Admin Page Protection - Unauthenticated', () => {
     // 各ルートで未認証アクセスがブロックされることを確認
     for (const route of adminRoutes) {
       await page.goto(route.path);
-      await expect(page).toHaveURL('/');
+      await expect(page).toHaveURL('/signin');
       await page.screenshot({ path: screenshotDir + 'admin-protection-unauthenticated.png', fullPage: true });
     }
   });
 });
 
 // 通常ユーザーとして認証済みのテスト
-test.describe('Admin Page Protection - Regular User', () => {
-  test.use({ storageState: 'playwright/.auth/user.json' });
+test.describe('Admin Page Protection - Regular User @user', () => {
+  // test.use({ storageState: 'playwright/.auth/user.json' });
 
   test('通常ユーザーは/adminにアクセスできない', async ({ page }) => {
     // 認証状態を確認するため、まずホームページに移動
@@ -71,8 +71,8 @@ test.describe('Admin Page Protection - Regular User', () => {
 });
 
 // 管理者として認証済みのテスト
-test.describe('Admin Page Protection - Admin User', () => {
-  test.use({ storageState: 'playwright/.auth/admin.json' });
+test.describe('Admin Page Protection - Admin User @admin', () => {
+  // test.use({ storageState: 'playwright/.auth/admin.json' });
 
   test('管理者は/adminにアクセスできる', async ({ page }) => {
     // /adminにアクセス

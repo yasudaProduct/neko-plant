@@ -46,7 +46,7 @@ jobs:
           done
 
       - name: Reset DB (migrate + seed)
-        run: supabase db reset --force
+        run: supabase db reset
 
       - name: Generate Prisma Client
         run: npx prisma generate

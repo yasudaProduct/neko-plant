@@ -34,12 +34,6 @@ jobs:
       - name: Start Supabase
         run: |
           supabase start -x studio,edge-runtime,imgproxy,mailpit
-          supabase status --output env >> $GITHUB_ENV
-
-      - name: Map Supabase env for app
-        run: |
-          echo "NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL:-http://127.0.0.1:54321}" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}" >> $GITHUB_ENV
 
       - name: Wait for Supabase API
         run: |
@@ -50,6 +44,13 @@ jobs:
 
       - name: Reset DB (migrate + seed)
         run: supabase db reset
+
+      - name: Export Supabase env
+        run: |
+          supabase status --output env >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL:-http://127.0.0.1:54321}" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}" >> $GITHUB_ENV
 
       - name: Generate Prisma Client
         run: npx prisma generate

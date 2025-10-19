@@ -35,8 +35,11 @@ jobs:
         run: |
           supabase start -x studio,edge-runtime,imgproxy,mailpit
           supabase status --output env >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_URL" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY" >> $GITHUB_ENV
+
+      - name: Map Supabase env for app
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL}" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}" >> $GITHUB_ENV
 
       - name: Wait for Supabase API
         run: |

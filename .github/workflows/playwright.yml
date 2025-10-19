@@ -51,21 +51,15 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
-      - name: Prepare .env.local for app and seeding
+      - name: Set E2E env
         run: |
-          cat > .env.local << 'EOF'
-          NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-          SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-          DATABASE_URL=${DATABASE_URL}
-          E2E_TEST_USER_ADDRESS=test@example.com
-          E2E_TEST_USER_PASSWORD=password
-          E2E_TEST_ADMIN_ADDRESS=admin@example.com
-          E2E_TEST_ADMIN_PASSWORD=adminpass
-          EOF
+          echo "E2E_TEST_USER_ADDRESS=test@example.com" >> $GITHUB_ENV
+          echo "E2E_TEST_USER_PASSWORD=password" >> $GITHUB_ENV
+          echo "E2E_TEST_ADMIN_ADDRESS=admin@example.com" >> $GITHUB_ENV
+          echo "E2E_TEST_ADMIN_PASSWORD=adminpass" >> $GITHUB_ENV
 
       - name: Seed data for E2E
-        run: npm run seed:e2e
+        run: npm run seed:e2e:ci
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps

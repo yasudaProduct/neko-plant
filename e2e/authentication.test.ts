@@ -4,9 +4,21 @@ dotenv.config({ path: '.env.local' });
 
 const screenshotDir = 'test-results/screenshots/authentication/';
 
-test.describe('認証機能 @user', () => {
-  test.describe('ログアウト機能', () => {
-    // test.use({ storageState: 'playwright/.auth/user.json' });
+test.describe('認証機能', () => {
+  test.describe('ログアウト機能 @user', () => {
+    test.use({ storageState: undefined });
+
+    test.beforeEach(async ({ page }) => {
+      // SupabaseのsignOutを使用すると、リフレッシュトークンが無効化されるため、
+      // storageStateは使用ぜす直接ログインする
+
+      // TODO: フローを共通化する
+      await page.goto('/signin/dev');
+      await page.fill('[data-testid="email"]', process.env.E2E_TEST_USER_ADDRESS!);
+      await page.fill('[data-testid="password"]', process.env.E2E_TEST_USER_PASSWORD!);
+      await page.click('[data-testid="signin-button"]');
+      await page.waitForURL('/');
+    })
 
     test('ヘッダードロップダウンからログアウトできる', async ({ page }) => {
       // ホームページに移動
@@ -37,11 +49,14 @@ test.describe('認証機能 @user', () => {
     });
 
     test('ログアウト後に保護されたページにアクセスするとログインページにリダイレクトされる', async ({ page }) => {
+
       // まずログアウト
       await page.goto('/');
       await page.click('[data-testid="user-avatar"]');
       await page.click('text=ログアウト');
       await page.waitForURL('/');
+      await page.waitForLoadState('networkidle');
+
 
       // 保護されたページ（植物登録）にアクセス
       await page.goto('/plants/new');
@@ -55,7 +70,6 @@ test.describe('認証機能 @user', () => {
   });
 
   test.describe('ログイン後のリダイレクト機能 @public', () => {
-    // test.use({ storageState: undefined });
 
     test('保護されたページにアクセス後、ログインすると元のページにリダイレクトされる', async ({ page }) => {
       // 保護されたページ（設定ページ）に直接アクセス
@@ -112,7 +126,6 @@ test.describe('ヘッダーナビゲーション - 未認証 @public', () => {
 });
 
 test.describe('ヘッダーナビゲーション - 認証済み @user', () => {
-  // test.use({ storageState: 'playwright/.auth/user.json' });
 
   test('認証済みユーザーにはユーザーアバターと植物追加ボタンが表示される', async ({ page }) => {
     await page.goto('/');

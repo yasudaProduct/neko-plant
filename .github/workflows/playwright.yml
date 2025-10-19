@@ -71,8 +71,8 @@ jobs:
           echo "E2E_TEST_ADMIN_ADDRESS=admin@example.com" >> $GITHUB_ENV
           echo "E2E_TEST_ADMIN_PASSWORD=adminpass" >> $GITHUB_ENV
 
-      - name: Seed data for E2E
-        run: npm run seed:e2e:ci
+      # - name: Seed data for E2E
+      #   run: npm run seed:e2e:ci
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps

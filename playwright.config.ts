@@ -37,6 +37,8 @@ export default defineConfig({
     /* Add action timeout */
     actionTimeout: 10000,
     headless: true,
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
   },
 
   /* Configure projects for major browsers */

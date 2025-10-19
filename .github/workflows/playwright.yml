@@ -27,9 +27,13 @@ jobs:
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
 
+      - name: Prepare storage dirs for Supabase
+        run: |
+          mkdir -p supabase/storage/{plants,user_profiles,evaluations,user_pets}
+
       - name: Start Supabase
         run: |
-          supabase start -x studio,edge-runtime,imgproxy,inbucket
+          supabase start -x studio,edge-runtime,imgproxy,mailpit
           supabase status --output env >> $GITHUB_ENV
           echo "NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_URL" >> $GITHUB_ENV
           echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY" >> $GITHUB_ENV

@@ -57,6 +57,13 @@ jobs:
       - name: Generate Prisma Client
         run: npx prisma generate
 
+      - name: Echo Supabase env
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${ANON_KEY}}"
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-${SERVICE_ROLE_KEY}}"
+          echo "DATABASE_URL=${DATABASE_URL:-${DB_URL}}"
+
       - name: Set E2E env
         run: |
           echo "E2E_TEST_USER_ADDRESS=test@example.com" >> $GITHUB_ENV

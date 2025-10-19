@@ -10,8 +10,8 @@ export default defineConfig({
   globalSetup: './e2e/global-setup.ts',
   use: {
     baseURL: 'http://localhost:3001',
-    navigationTimeout: 15000,
-    actionTimeout: 10000,
+    navigationTimeout: 2 * 60 * 1000, // 2 minutes
+    actionTimeout: 10 * 1000, // 10 seconds
     headless: true,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',

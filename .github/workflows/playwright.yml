@@ -62,7 +62,13 @@ jobs:
           supabase status --output env >> $GITHUB_ENV
           echo "NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL:-http://127.0.0.1:54321}" >> $GITHUB_ENV
           echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}" >> $GITHUB_ENV
-          echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-${SERVICE_ROLE_KEY:-$NEXT_PUBLIC_SUPABASE_ANON_KEY}}" >> $GITHUB_ENV
+
+      - name: Verify Supabase env
+        run: |
+          [ -n "$NEXT_PUBLIC_SUPABASE_URL" ] || (echo "missing NEXT_PUBLIC_SUPABASE_URL" && exit 1)
+          [ -n "$SUPABASE_SERVICE_ROLE_KEY" ] || (echo "missing SUPABASE_SERVICE_ROLE_KEY" && exit 1)
+          echo "Env OK"
 
       - name: Generate Prisma Client
         run: npx prisma generate

@@ -19,7 +19,10 @@ export default function PlantCard({
   reviewCount,
 }: PlantCardProps) {
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+    <Card
+      className="overflow-hidden hover:shadow-lg transition-shadow"
+      data-testid="plant-card"
+    >
       <div className="relative w-full h-48 max-md:h-32">
         {imageSrc ? (
           <div className="relative h-full w-full">

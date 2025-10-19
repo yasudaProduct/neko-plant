@@ -53,6 +53,9 @@ npx prisma generate
 
 supabase db diff -f <fileName>
 
+# storage, auth を含めて差分を出す
+supabase db diff --schema storage,auth,public -f <fileName>
+
 ```
 
 ```bash

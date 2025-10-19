@@ -58,7 +58,10 @@ export function Pagination({
   }
 
   return (
-    <div className="flex justify-center items-center gap-1 mt-8">
+    <div
+      className="flex justify-center items-center gap-1 mt-8"
+      data-testid="pagination"
+    >
       <PaginationArrow
         direction="left"
         href={createPageURL(currentPage - 1)}
@@ -129,14 +132,28 @@ function PaginationArrow({
 
   if (isDisabled) {
     return (
-      <Button variant="outline" size="icon" className="w-9 h-9" disabled>
+      <Button
+        variant="outline"
+        size="icon"
+        className="w-9 h-9"
+        disabled
+        data-testid={
+          direction === "left" ? "pagination-prev" : "pagination-next"
+        }
+      >
         <Icon className="h-4 w-4" />
       </Button>
     );
   }
 
   return (
-    <Button variant="outline" size="icon" className="w-9 h-9" asChild>
+    <Button
+      variant="outline"
+      size="icon"
+      className="w-9 h-9"
+      asChild
+      data-testid={direction === "left" ? "pagination-prev" : "pagination-next"}
+    >
       <Link href={href}>
         <Icon className="h-4 w-4" />
       </Link>

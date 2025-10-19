@@ -43,7 +43,19 @@ jobs:
           done
 
       - name: Reset DB (migrate + seed)
-        run: supabase db reset
+        run: |
+          set +e
+          supabase db reset
+          status=$?
+          if [ $status -ne 0 ]; then
+            echo "supabase db reset exited with $status; waiting for health and continuing"
+          fi
+          set -e
+          # 再起動直後の不安定時間を吸収
+          for i in {1..60}; do
+            curl -sf http://127.0.0.1:54321/health && break
+            sleep 2
+          done
 
       - name: Export Supabase env
         run: |

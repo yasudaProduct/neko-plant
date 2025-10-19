@@ -71,6 +71,15 @@ jobs:
           echo "E2E_TEST_ADMIN_ADDRESS=admin@example.com" >> $GITHUB_ENV
           echo "E2E_TEST_ADMIN_PASSWORD=adminpass" >> $GITHUB_ENV
 
+      - name: Write .env.local for Next dev and seed
+        run: |
+          cat > .env.local << 'EOF'
+          NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+          SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+          DATABASE_URL=${DATABASE_URL}
+          EOF
+
       # - name: Seed data for E2E
       #   run: npm run seed:e2e:ci
 
@@ -80,6 +89,10 @@ jobs:
       - name: Run E2E tests
         env:
           CI: true
+          # NEXT_PUBLIC_SUPABASE_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL || env.SUPABASE_URL || env.API_URL }}
+          # NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY || env.SUPABASE_ANON_KEY || env.ANON_KEY }}
+          # SUPABASE_SERVICE_ROLE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY || env.SERVICE_ROLE_KEY }}
+          # DATABASE_URL: ${{ env.DATABASE_URL || env.DB_URL }}
         run: npm run e2e
 
       - name: Upload Playwright report

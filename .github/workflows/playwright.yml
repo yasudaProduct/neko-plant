@@ -86,6 +86,23 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
+      - name: Verify required env for Next/Supabase
+        run: |
+          set -euo pipefail
+          for v in NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY DATABASE_URL; do
+            if [ -z "${!v:-}" ]; then
+              echo "ERROR: $v is not set" >&2
+              exit 1
+            else
+              echo "$v=present"
+            fi
+          done
+          if [ ! -f .env.local ]; then
+            echo "ERROR: .env.local is missing" >&2
+            exit 1
+          fi
+          echo ".env.local exists"
+
       - name: Run E2E tests
         run: npm run e2e
 

@@ -49,10 +49,18 @@ jobs:
       - name: Export Supabase env
         run: |
           supabase status --output env >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL:-${API_URL:-http://127.0.0.1:54321}}" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-$ANON_KEY}" >> $GITHUB_ENV
-          echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-$SERVICE_ROLE_KEY}" >> $GITHUB_ENV
-          echo "DATABASE_URL=${DATABASE_URL:-$DB_URL}" >> $GITHUB_ENV
+          {
+            echo "NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL:-${API_URL:-http://127.0.0.1:54321}}"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY<<__EOF__"
+            echo "${SUPABASE_ANON_KEY:-$ANON_KEY}"
+            echo "__EOF__"
+            echo "SUPABASE_SERVICE_ROLE_KEY<<__EOF__"
+            echo "${SUPABASE_SERVICE_ROLE_KEY:-$SERVICE_ROLE_KEY}"
+            echo "__EOF__"
+            echo "DATABASE_URL<<__EOF__"
+            echo "${DATABASE_URL:-$DB_URL}"
+            echo "__EOF__"
+          } >> "$GITHUB_ENV"
 
       - name: Generate Prisma Client
         run: npx prisma generate
@@ -73,7 +81,7 @@ jobs:
 
       - name: Write .env.local for Next dev and seed
         run: |
-          cat > .env.local << 'EOF'
+          cat > .env.local << EOF
           NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
           NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
           SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}

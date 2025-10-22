@@ -57,12 +57,11 @@ jobs:
       # デバッグ用：Supabaseのステータス確認
       - name: Verify Supabase status
         run: |
-          supabase status
-          echo "API URL: $NEXT_PUBLIC_SUPABASE_URL"
-          echo "Database URL: $DATABASE_URL"
-
-      - name: Generate Prisma Client
-        run: npx prisma generate
+          supabase status --output json
+          echo "NEXT_PUBLIC_SUPABASE_URL: $NEXT_PUBLIC_SUPABASE_URL"
+          echo "DATABASE_URL: $DATABASE_URL"
+          echo "ANON_KEY: $ANON_KEY"
+          echo "SERVICE_ROLE_KEY: $SERVICE_ROLE_KEY"
 
       - name: Write .env.local for Next dev and seed
         run: |
@@ -72,6 +71,11 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-$SERVICE_ROLE_KEY}
           DATABASE_URL=${DATABASE_URL:-$DB_URL}
           EOF
+
+      - name: Generate Prisma Client
+        run: |
+          npx prisma generate
+          npx prisma migrate deploy
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps

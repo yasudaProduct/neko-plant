@@ -4,9 +4,12 @@ export default defineConfig({
   testDir: './e2e',
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
+  retries: process.env.CI ? 2 : 1,
   workers: process.env.CI ? 2 : 4,
-  reporter: 'html',
+  reporter: [
+    ['html'],
+    ['list']
+  ],
   globalSetup: './e2e/global-setup.ts',
   use: {
     baseURL: 'http://localhost:3001',
@@ -17,6 +20,7 @@ export default defineConfig({
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
   },
+
 
   /* Configure projects for major browsers */
   projects: [

@@ -46,30 +46,23 @@ jobs:
         run: |
           supabase db reset
 
-      - name: Export Supabase env
+      # Supabaseの接続情報を環境変数に設定
+      - name: Set Supabase environment variables
         run: |
-          supabase status --output env >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL:-${API_URL:-http://127.0.0.1:54321}}" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-$ANON_KEY}" >> $GITHUB_ENV
-          echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-$SERVICE_ROLE_KEY}" >> $GITHUB_ENV
-          echo "DATABASE_URL=${DATABASE_URL:-$DB_URL}" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_SUPABASE_URL=$(supabase status --output json | jq -r '.API_URL')" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(supabase status --output json | jq -r '.ANON_KEY')" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status --output json | jq -r '.SERVICE_ROLE_KEY')" >> $GITHUB_ENV
+          echo "DATABASE_URL=$(supabase status --output json | jq -r '.DB_URL')" >> $GITHUB_ENV
+
+      # デバッグ用：Supabaseのステータス確認
+      - name: Verify Supabase status
+        run: |
+          supabase status
+          echo "API URL: $NEXT_PUBLIC_SUPABASE_URL"
+          echo "Database URL: $DATABASE_URL"
 
       - name: Generate Prisma Client
         run: npx prisma generate
-
-      - name: Echo Supabase env
-        run: |
-          echo "NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}"
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-${ANON_KEY}}"
-          echo "SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-${SERVICE_ROLE_KEY}}"
-          echo "DATABASE_URL=${DATABASE_URL:-${DB_URL}}"
-
-      - name: Set E2E env
-        run: |
-          echo "E2E_TEST_USER_ADDRESS=test@example.com" >> $GITHUB_ENV
-          echo "E2E_TEST_USER_PASSWORD=password" >> $GITHUB_ENV
-          echo "E2E_TEST_ADMIN_ADDRESS=admin@example.com" >> $GITHUB_ENV
-          echo "E2E_TEST_ADMIN_PASSWORD=adminpass" >> $GITHUB_ENV
 
       - name: Write .env.local for Next dev and seed
         run: |
@@ -79,9 +72,6 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-$SERVICE_ROLE_KEY}
           DATABASE_URL=${DATABASE_URL:-$DB_URL}
           EOF
-
-      # - name: Seed data for E2E
-      #   run: npm run seed:e2e:ci
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps

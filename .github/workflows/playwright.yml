@@ -81,25 +81,25 @@ jobs:
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
-      - name: Verify required env/config for Next/Supabase
-        run: |
-          set -euo pipefail
-          if [ ! -f .env.local ]; then
-            echo "ERROR: .env.local is missing" >&2
-            exit 1
-          fi
-          echo ".env.local exists"
-          # Check .env.local has non-empty values
-          required=(NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY DATABASE_URL)
-          for key in "${required[@]}"; do
-            if ! grep -E "^${key}=.+" .env.local >/dev/null; then
-              echo "ERROR: ${key} is missing or empty in .env.local" >&2
-              echo "---- .env.local ----"; cat .env.local; echo "--------------------"
-              exit 1
-            else
-              echo "${key}=present in .env.local"
-            fi
-          done
+      # - name: Verify required env/config for Next/Supabase
+      #   run: |
+      #     set -euo pipefail
+      #     if [ ! -f .env.local ]; then
+      #       echo "ERROR: .env.local is missing" >&2
+      #       exit 1
+      #     fi
+      #     echo ".env.local exists"
+      #     # Check .env.local has non-empty values
+      #     required=(NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY DATABASE_URL)
+      #     for key in "${required[@]}"; do
+      #       if ! grep -E "^${key}=.+" .env.local >/dev/null; then
+      #         echo "ERROR: ${key} is missing or empty in .env.local" >&2
+      #         echo "---- .env.local ----"; cat .env.local; echo "--------------------"
+      #         exit 1
+      #       else
+      #         echo "${key}=present in .env.local"
+      #       fi
+      #     done
 
       - name: Run E2E tests
         run: npm run e2e

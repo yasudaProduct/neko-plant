@@ -53,6 +53,7 @@ jobs:
           echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(supabase status --output json | jq -r '.ANON_KEY')" >> $GITHUB_ENV
           echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status --output json | jq -r '.SERVICE_ROLE_KEY')" >> $GITHUB_ENV
           echo "DATABASE_URL=$(supabase status --output json | jq -r '.DB_URL')" >> $GITHUB_ENV
+          echo "DIRECT_URL=$(supabase status --output json | jq -r '.DB_URL')" >> $GITHUB_ENV
 
       # デバッグ用：Supabaseのステータス確認
       - name: Verify Supabase status
@@ -60,6 +61,7 @@ jobs:
           supabase status --output json
           echo "NEXT_PUBLIC_SUPABASE_URL: $NEXT_PUBLIC_SUPABASE_URL"
           echo "DATABASE_URL: $DATABASE_URL"
+          echo "DIRECT_URL: $DIRECT_URL"
           echo "ANON_KEY: $ANON_KEY"
           echo "SERVICE_ROLE_KEY: $SERVICE_ROLE_KEY"
 

@@ -77,7 +77,6 @@ jobs:
       - name: Generate Prisma Client
         run: |
           npx prisma generate
-          npx prisma migrate deploy
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps

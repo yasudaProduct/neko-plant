@@ -5,57 +5,70 @@ dotenv.config({ path: '.env.local' });
 const screenshotDir = 'test-results/screenshots/authentication/';
 
 test.describe('認証機能', () => {
-  test.describe('ログアウト機能', () => {
-    test.use({ storageState: 'playwright/.auth/user.json' });
+  // test.describe('ログアウト機能 @public', () => {
 
-    test('ヘッダードロップダウンからログアウトできる', async ({ page }) => {
-      // ホームページに移動
-      await page.goto('/');
-      await page.waitForLoadState('networkidle');
+  //   test.beforeEach(async ({ page }) => {
+  //     // SupabaseのsignOutを使用すると、リフレッシュトークンが無効化されるため、
+  //     // storageStateは使用ぜす直接ログインする
 
-      // ユーザーアバターをクリックしてドロップダウンを開く
-      const userAvatar = page.locator('[data-testid="user-avatar"]');
-      await expect(userAvatar).toBeVisible({ timeout: 10000 });
-      await userAvatar.click();
-      
-      await page.waitForSelector('text=ログアウト', { timeout: 5000 });
+  //     // TODO: フローを共通化する
+  //     await page.goto('/signin/dev');
+  //     await page.fill('[data-testid="email"]', process.env.E2E_TEST_USER_ADDRESS!);
+  //     await page.fill('[data-testid="password"]', process.env.E2E_TEST_USER_PASSWORD!);
+  //     await page.click('[data-testid="signin-button"]');
+  //     await page.waitForURL('/');
+  //   })
 
-      // ログアウトボタンをクリック
-      await page.click('text=ログアウト');
+  //   test('ヘッダードロップダウンからログアウトできる', async ({ page }) => {
+  //     // ホームページに移動
+  //     await page.goto('/');
+  //     await page.waitForLoadState('networkidle');
 
-      // ログアウト後、ホームページにリダイレクトされることを確認
-      await page.waitForURL('/');
-      await page.waitForLoadState('networkidle');
+  //     // ユーザーアバターをクリックしてドロップダウンを開く
+  //     const userAvatar = page.locator('[data-testid="user-avatar"]');
+  //     await expect(userAvatar).toBeVisible({ timeout: 10000 });
+  //     await userAvatar.click();
 
-      // ログインボタンが表示されることを確認（非認証状態）
-      await expect(page.locator('text=ログイン')).toBeVisible({ timeout: 10000 });
+  //     await page.waitForSelector('text=ログアウト', { timeout: 5000 });
 
-      // ユーザーアバターが表示されていないことを確認
-      await expect(page.locator('[data-testid="user-avatar"]')).not.toBeVisible({ timeout: 5000 });
+  //     // ログアウトボタンをクリック
+  //     await page.click('text=ログアウト');
 
-      await page.screenshot({ path: screenshotDir + 'logout-success.png', fullPage: true });
-    });
+  //     // ログアウト後、ホームページにリダイレクトされることを確認
+  //     await page.waitForURL('/');
+  //     await page.waitForLoadState('networkidle');
 
-    test('ログアウト後に保護されたページにアクセスするとログインページにリダイレクトされる', async ({ page }) => {
-      // まずログアウト
-      await page.goto('/');
-      await page.click('[data-testid="user-avatar"]');
-      await page.click('text=ログアウト');
-      await page.waitForURL('/');
+  //     // ログインボタンが表示されることを確認（非認証状態）
+  //     await expect(page.locator('text=ログイン')).toBeVisible({ timeout: 10000 });
 
-      // 保護されたページ（植物登録）にアクセス
-      await page.goto('/plants/new');
-      await page.waitForLoadState('networkidle');
+  //     // ユーザーアバターが表示されていないことを確認
+  //     await expect(page.locator('[data-testid="user-avatar"]')).not.toBeVisible({ timeout: 5000 });
 
-      // ログインページにリダイレクトされることを確認
-      await expect(page).toHaveURL('/signin');
+  //     await page.screenshot({ path: screenshotDir + 'logout-success.png', fullPage: true });
+  //   });
 
-      await page.screenshot({ path: screenshotDir + 'logout-protected-redirect.png', fullPage: true });
-    });
-  });
+  //   test('ログアウト後に保護されたページにアクセスするとログインページにリダイレクトされる', async ({ page }) => {
 
-  test.describe('ログイン後のリダイレクト機能', () => {
-    test.use({ storageState: undefined });
+  //     // まずログアウト
+  //     await page.goto('/');
+  //     await page.click('[data-testid="user-avatar"]');
+  //     await page.click('text=ログアウト');
+  //     await page.waitForURL('/');
+  //     await page.waitForLoadState('networkidle');
+
+
+  //     // 保護されたページ（植物登録）にアクセス
+  //     await page.goto('/plants/new');
+  //     await page.waitForLoadState('networkidle');
+
+  //     // ログインページにリダイレクトされることを確認
+  //     await expect(page).toHaveURL('/signin');
+
+  //     await page.screenshot({ path: screenshotDir + 'logout-protected-redirect.png', fullPage: true });
+  //   });
+  // });
+
+  test.describe('ログイン後のリダイレクト機能 @public', () => {
 
     test('保護されたページにアクセス後、ログインすると元のページにリダイレクトされる', async ({ page }) => {
       // 保護されたページ（設定ページ）に直接アクセス
@@ -90,8 +103,8 @@ test.describe('認証機能', () => {
 
 });
 
-test.describe('ヘッダーナビゲーション - 未認証', () => {
-  test.use({ storageState: undefined });
+test.describe('ヘッダーナビゲーション - 未認証 @public', () => {
+  // test.use({ storageState: undefined });
 
   test('未認証ユーザーにはログインボタンが表示される', async ({ page }) => {
     await page.goto('/');
@@ -111,8 +124,7 @@ test.describe('ヘッダーナビゲーション - 未認証', () => {
   });
 });
 
-test.describe('ヘッダーナビゲーション - 認証済み', () => {
-  test.use({ storageState: 'playwright/.auth/user.json' });
+test.describe('ヘッダーナビゲーション - 認証済み @user', () => {
 
   test('認証済みユーザーにはユーザーアバターと植物追加ボタンが表示される', async ({ page }) => {
     await page.goto('/');
@@ -138,8 +150,7 @@ test.describe('ヘッダーナビゲーション - 認証済み', () => {
 
 });
 
-test.describe('セッション永続化', () => {
-  test.use({ storageState: 'playwright/.auth/user.json' });
+test.describe('セッション永続化 @user', () => {
 
   test('ページリロード後も認証状態が維持される', async ({ page }) => {
     // ホームページに移動

@@ -5,11 +5,11 @@ dotenv.config({ path: '.env.local' });
 const screenshotDir = 'test-results/screenshots/evaluation-system/';
 
 test.describe('評価システム', () => {
-  test.describe('良い/悪い評価の投稿', () => {
-    test.use({ storageState: 'playwright/.auth/user.json' });
-    
+  test.describe('良い/悪い評価の投稿 @user', () => {
+    // test.use({ storageState: 'playwright/.auth/user.json' });
+
     // テスト間の独立性を保つため、一意のコメントを生成
-    const generateUniqueComment = (base: string) => `${base}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // const generateUniqueComment = (base: string) => `${base}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     test('評価投稿ダイアログが開く', async ({ page }) => {
       // 植物詳細ページに移動
@@ -18,7 +18,7 @@ test.describe('評価システム', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -46,7 +46,7 @@ test.describe('評価システム', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -86,7 +86,7 @@ test.describe('評価システム', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -126,7 +126,7 @@ test.describe('評価システム', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -143,7 +143,7 @@ test.describe('評価システム', () => {
         // バリデーションエラーが表示されることを確認
         const errorMessage = page.locator('text=評価を選択してください');
         const hasError = await errorMessage.count() > 0;
-        
+
         if (hasError) {
           await expect(errorMessage).toBeVisible();
         }
@@ -161,7 +161,7 @@ test.describe('評価システム', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -181,9 +181,9 @@ test.describe('評価システム', () => {
         // 画像アップロードエリアの存在確認
         const imageUpload = page.locator('input[type="file"]');
         const hasImageUpload = await imageUpload.count() > 0;
-        
+
         if (hasImageUpload) {
-          await expect(imageUpload).toBePresent();
+          await expect(imageUpload).toBeVisible();
         }
 
         await page.screenshot({ path: screenshotDir + 'evaluation-image-upload.png', fullPage: true });
@@ -191,8 +191,8 @@ test.describe('評価システム', () => {
     });
   });
 
-  test.describe('評価へのリアクション', () => {
-    test.use({ storageState: 'playwright/.auth/user.json' });
+  test.describe('評価へのリアクション @user', () => {
+    // test.use({ storageState: 'playwright/.auth/user.json' });
 
     test('他ユーザーの評価にサムズアップリアクションできる', async ({ page }) => {
       await page.goto('/?q=植物');
@@ -200,7 +200,7 @@ test.describe('評価システム', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -209,25 +209,30 @@ test.describe('評価システム', () => {
         // 評価カードが存在する場合
         const evaluationCards = page.locator('[data-testid="evaluation-card"]');
         const evaluationCount = await evaluationCards.count();
-        
+
         if (evaluationCount > 0) {
           const firstEvaluation = evaluationCards.first();
-          
+
           // サムズアップボタンを探す
           const thumbsUpButton = firstEvaluation.locator('[data-testid="thumbs-up"]');
           const hasThumbsUp = await thumbsUpButton.count() > 0;
-          
+
           if (hasThumbsUp) {
             // リアクション前のカウントを取得
             const countBefore = await thumbsUpButton.locator('.reaction-count').textContent();
-            
+
             // サムズアップをクリック
             await thumbsUpButton.click();
             await page.waitForTimeout(1000); // サーバー処理待機
-            
+
             // カウントが変更されたか確認（オプティミスティック更新）
             const countAfter = await thumbsUpButton.locator('.reaction-count').textContent();
-            
+
+            if (countBefore && countAfter) {
+              expect(countBefore).not.toEqual(countAfter);
+              expect(Number(countAfter)).toBeGreaterThan(Number(countBefore));
+            }
+
             await page.screenshot({ path: screenshotDir + 'evaluation-thumbs-up-reaction.png', fullPage: true });
           }
         }
@@ -240,7 +245,7 @@ test.describe('評価システム', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -248,19 +253,19 @@ test.describe('評価システム', () => {
 
         const evaluationCards = page.locator('[data-testid="evaluation-card"]');
         const evaluationCount = await evaluationCards.count();
-        
+
         if (evaluationCount > 0) {
           const firstEvaluation = evaluationCards.first();
-          
+
           // サムズダウンボタンを探す
           const thumbsDownButton = firstEvaluation.locator('[data-testid="thumbs-down"]');
           const hasThumbsDown = await thumbsDownButton.count() > 0;
-          
+
           if (hasThumbsDown) {
             // サムズダウンをクリック
             await thumbsDownButton.click();
             await page.waitForTimeout(1000); // サーバー処理待機
-            
+
             await page.screenshot({ path: screenshotDir + 'evaluation-thumbs-down-reaction.png', fullPage: true });
           }
         }
@@ -273,7 +278,7 @@ test.describe('評価システム', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -281,21 +286,21 @@ test.describe('評価システム', () => {
 
         const evaluationCards = page.locator('[data-testid="evaluation-card"]');
         const evaluationCount = await evaluationCards.count();
-        
+
         if (evaluationCount > 0) {
           const firstEvaluation = evaluationCards.first();
           const thumbsUpButton = firstEvaluation.locator('[data-testid="thumbs-up"]');
           const hasThumbsUp = await thumbsUpButton.count() > 0;
-          
+
           if (hasThumbsUp) {
             // 最初にリアクションを追加
             await thumbsUpButton.click();
             await page.waitForTimeout(1000);
-            
+
             // 同じボタンをもう一度クリックしてリアクションを取り消し
             await thumbsUpButton.click();
             await page.waitForTimeout(1000);
-            
+
             await page.screenshot({ path: screenshotDir + 'evaluation-reaction-toggle.png', fullPage: true });
           }
         }
@@ -308,7 +313,7 @@ test.describe('評価システム', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -316,24 +321,24 @@ test.describe('評価システム', () => {
 
         const evaluationCards = page.locator('[data-testid="evaluation-card"]');
         const evaluationCount = await evaluationCards.count();
-        
+
         if (evaluationCount > 0) {
           const firstEvaluation = evaluationCards.first();
-          
+
           // リアクションボタンが表示されることを確認
           const reactionButtons = firstEvaluation.locator('[data-testid="reaction-buttons"]');
           const hasReactionButtons = await reactionButtons.count() > 0;
-          
+
           if (hasReactionButtons) {
             await expect(reactionButtons).toBeVisible();
-            
+
             // サムズアップアイコンとカウントの表示確認
             const thumbsUpIcon = reactionButtons.locator('[data-testid="thumbs-up-icon"]');
             const hasThumbsUpIcon = await thumbsUpIcon.count() > 0;
             if (hasThumbsUpIcon) {
               await expect(thumbsUpIcon).toBeVisible();
             }
-            
+
             // サムズダウンアイコンとカウントの表示確認
             const thumbsDownIcon = reactionButtons.locator('[data-testid="thumbs-down-icon"]');
             const hasThumbsDownIcon = await thumbsDownIcon.count() > 0;
@@ -348,8 +353,8 @@ test.describe('評価システム', () => {
     });
   });
 
-  test.describe('自分の評価削除', () => {
-    test.use({ storageState: 'playwright/.auth/user.json' });
+  test.describe('自分の評価削除 @user', () => {
+    // test.use({ storageState: 'playwright/.auth/user.json' });
 
     test('ユーザープロフィールから自分の評価を確認できる', async ({ page }) => {
       // まず評価を投稿
@@ -358,7 +363,7 @@ test.describe('評価システム', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -367,7 +372,7 @@ test.describe('評価システム', () => {
         // 既存の評価があるかマイページで確認
         await page.click('[data-testid="user-avatar"]');
         await page.click('text=マイページ');
-        
+
         // ユーザーページに移動
         await page.waitForURL(/\/[^\/]+$/);
         await page.waitForLoadState('networkidle');
@@ -383,7 +388,11 @@ test.describe('評価システム', () => {
         // 自分の評価が表示されることを確認
         const userEvaluations = page.locator('[data-testid="user-evaluation"]');
         const evaluationCount = await userEvaluations.count();
-        
+
+        if (evaluationCount > 0) {
+          await expect(userEvaluations).toBeVisible();
+        }
+
         await page.screenshot({ path: screenshotDir + 'evaluation-user-posts.png', fullPage: true });
       }
     });
@@ -392,10 +401,10 @@ test.describe('評価システム', () => {
       // ユーザーのマイページに移動
       await page.goto('/');
       await page.waitForLoadState('networkidle');
-      
+
       await page.click('[data-testid="user-avatar"]');
       await page.click('text=マイページ');
-      
+
       await page.waitForURL(/\/[^\/]+$/);
       await page.waitForLoadState('networkidle');
 
@@ -410,17 +419,17 @@ test.describe('評価システム', () => {
       // 評価が存在する場合、削除ボタンの確認
       const userEvaluations = page.locator('[data-testid="user-evaluation"]');
       const evaluationCount = await userEvaluations.count();
-      
+
       if (evaluationCount > 0) {
         const firstEvaluation = userEvaluations.first();
-        
+
         // 削除ボタンの存在確認
         const deleteButton = firstEvaluation.locator('[data-testid="delete-evaluation"]');
         const hasDeleteButton = await deleteButton.count() > 0;
-        
+
         if (hasDeleteButton) {
           await expect(deleteButton).toBeVisible();
-          
+
           // ゴミ箱アイコンの確認
           const trashIcon = deleteButton.locator('[data-testid="trash-icon"]');
           const hasTrashIcon = await trashIcon.count() > 0;
@@ -436,10 +445,10 @@ test.describe('評価システム', () => {
     test('評価削除の確認ダイアログが表示される', async ({ page }) => {
       await page.goto('/');
       await page.waitForLoadState('networkidle');
-      
+
       await page.click('[data-testid="user-avatar"]');
       await page.click('text=マイページ');
-      
+
       await page.waitForURL(/\/[^\/]+$/);
       await page.waitForLoadState('networkidle');
 
@@ -452,29 +461,29 @@ test.describe('評価システム', () => {
 
       const userEvaluations = page.locator('[data-testid="user-evaluation"]');
       const evaluationCount = await userEvaluations.count();
-      
+
       if (evaluationCount > 0) {
         const deleteButton = userEvaluations.first().locator('[data-testid="delete-evaluation"]');
         const hasDeleteButton = await deleteButton.count() > 0;
-        
+
         if (hasDeleteButton) {
           // 削除ボタンをクリック
           await deleteButton.click();
-          
+
           // 確認ダイアログが表示されることを確認
           const confirmDialog = page.locator('[role="alertdialog"]');
           const hasConfirmDialog = await confirmDialog.count() > 0;
-          
+
           if (hasConfirmDialog) {
             await expect(confirmDialog).toBeVisible();
-            
+
             // 確認メッセージの表示確認
             await expect(page.locator('text=削除しますか')).toBeVisible();
-            
+
             // キャンセルボタンをクリックしてダイアログを閉じる
             const cancelButton = page.locator('button', { hasText: 'キャンセル' });
             await cancelButton.click();
-            
+
             await expect(confirmDialog).not.toBeVisible();
           }
         }
@@ -484,8 +493,8 @@ test.describe('評価システム', () => {
     });
   });
 
-  test.describe('評価表示（未認証ユーザー）', () => {
-    test.use({ storageState: undefined });
+  test.describe('評価表示（未認証ユーザー） @public', () => {
+    // test.use({ storageState: undefined });
 
     test('未認証ユーザーも評価を閲覧できる', async ({ page }) => {
       await page.goto('/?q=植物');
@@ -493,7 +502,7 @@ test.describe('評価システム', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -520,7 +529,7 @@ test.describe('評価システム', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -540,7 +549,7 @@ test.describe('評価システム', () => {
 
       const plantCards = page.locator('[data-testid="plant-card"]');
       const cardCount = await plantCards.count();
-      
+
       if (cardCount > 0) {
         await plantCards.first().click();
         await page.waitForURL(/\/plants\/\d+/);
@@ -549,10 +558,10 @@ test.describe('評価システム', () => {
         // 評価カードが存在する場合
         const evaluationCards = page.locator('[data-testid="evaluation-card"]');
         const evaluationCount = await evaluationCards.count();
-        
+
         if (evaluationCount > 0) {
           const firstEvaluation = evaluationCards.first();
-          
+
           // リアクションボタンが表示されないことを確認
           const reactionButtons = firstEvaluation.locator('[data-testid="reaction-buttons"]');
           await expect(reactionButtons).not.toBeVisible();

@@ -27,12 +27,13 @@ jobs:
       - name: Install Supabase CLI
         uses: supabase/setup-cli@v1
 
+      - name: Prepare storage dirs for Supabase
+        run: |
+          mkdir -p supabase/storage/{plants,user_profiles,evaluations,user_pets}
+
       - name: Start Supabase
         run: |
-          supabase start -x studio,edge-runtime,imgproxy,inbucket
-          supabase status --output env >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_URL=$SUPABASE_URL" >> $GITHUB_ENV
-          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY" >> $GITHUB_ENV
+          supabase start -x studio,edge-runtime,imgproxy,mailpit
 
       - name: Wait for Supabase API
         run: |
@@ -42,33 +43,70 @@ jobs:
           done
 
       - name: Reset DB (migrate + seed)
-        run: supabase db reset --force
-
-      - name: Generate Prisma Client
-        run: npx prisma generate
-
-      - name: Prepare .env.local for app and seeding
         run: |
-          cat > .env.local << 'EOF'
-          NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-          SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
-          DATABASE_URL=${DATABASE_URL}
+          supabase db reset
+
+      # Supabaseの接続情報を環境変数に設定
+      - name: Set Supabase environment variables
+        run: |
+          echo "NEXT_PUBLIC_SUPABASE_URL=$(supabase status --output json | jq -r '.API_URL')" >> $GITHUB_ENV
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$(supabase status --output json | jq -r '.ANON_KEY')" >> $GITHUB_ENV
+          echo "SUPABASE_SERVICE_ROLE_KEY=$(supabase status --output json | jq -r '.SERVICE_ROLE_KEY')" >> $GITHUB_ENV
+          echo "DATABASE_URL=$(supabase status --output json | jq -r '.DB_URL')" >> $GITHUB_ENV
+          echo "DIRECT_URL=$(supabase status --output json | jq -r '.DB_URL')" >> $GITHUB_ENV
+
+      # デバッグ用：Supabaseのステータス確認
+      - name: Verify Supabase status
+        run: |
+          supabase status --output json
+          echo "NEXT_PUBLIC_SUPABASE_URL: $NEXT_PUBLIC_SUPABASE_URL"
+          echo "DATABASE_URL: $DATABASE_URL"
+          echo "DIRECT_URL: $DIRECT_URL"
+          echo "ANON_KEY: $ANON_KEY"
+          echo "SERVICE_ROLE_KEY: $SERVICE_ROLE_KEY"
+
+      - name: Write .env.local for Next dev and seed
+        run: |
+          cat > .env.local << EOF
+          NEXT_PUBLIC_SUPABASE_URL=${SUPABASE_URL:-${API_URL:-http://127.0.0.1:54321}}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY:-$ANON_KEY}
+          SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-$SERVICE_ROLE_KEY}
+          DATABASE_URL=${DATABASE_URL:-$DB_URL}
           E2E_TEST_USER_ADDRESS=test@example.com
           E2E_TEST_USER_PASSWORD=password
           E2E_TEST_ADMIN_ADDRESS=admin@example.com
           E2E_TEST_ADMIN_PASSWORD=adminpass
+
           EOF
 
-      - name: Seed data for E2E
-        run: npm run seed:e2e
+      - name: Generate Prisma Client
+        run: |
+          npx prisma generate
 
       - name: Install Playwright Browsers
         run: npx playwright install --with-deps
 
+      # - name: Verify required env/config for Next/Supabase
+      #   run: |
+      #     set -euo pipefail
+      #     if [ ! -f .env.local ]; then
+      #       echo "ERROR: .env.local is missing" >&2
+      #       exit 1
+      #     fi
+      #     echo ".env.local exists"
+      #     # Check .env.local has non-empty values
+      #     required=(NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY SUPABASE_SERVICE_ROLE_KEY DATABASE_URL)
+      #     for key in "${required[@]}"; do
+      #       if ! grep -E "^${key}=.+" .env.local >/dev/null; then
+      #         echo "ERROR: ${key} is missing or empty in .env.local" >&2
+      #         echo "---- .env.local ----"; cat .env.local; echo "--------------------"
+      #         exit 1
+      #       else
+      #         echo "${key}=present in .env.local"
+      #       fi
+      #     done
+
       - name: Run E2E tests
-        env:
-          CI: true
         run: npm run e2e
 
       - name: Upload Playwright report

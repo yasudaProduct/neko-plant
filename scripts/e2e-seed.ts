@@ -4,7 +4,7 @@ dotenv.config({ path: '.env.local' });
 import prisma from '../src/lib/prisma';
 import { createClient } from '@supabase/supabase-js';
 
-async function main() {
+export async function main() {
     // Supabase Admin Client
     const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -85,24 +85,29 @@ async function main() {
         },
     });
 
-    // public_usersテーブルはupsert
-    await prisma.public_users.upsert({
-        where: { id: publicUser?.id, auth_id: authUser.id },
-        update: {
-            name: 'テストユーザー',
-            alias_id: 'testuser',
-            image: null,
-            role: 'user',
-            created_at: new Date(),
-        },
-        create: {
-            auth_id: authUser.id,
-            name: 'テストユーザー',
-            alias_id: 'testuser',
-            image: null,
-            role: 'user',
-        },
-    });
+    // public_users を auth_id で存在確認し、あれば update、なければ create
+    if (publicUser) {
+        await prisma.public_users.update({
+            where: { id: publicUser.id },
+            data: {
+                name: 'テストユーザー',
+                alias_id: 'testuser',
+                image: null,
+                role: 'user',
+                created_at: new Date(),
+            },
+        });
+    } else {
+        await prisma.public_users.create({
+            data: {
+                auth_id: authUser.id,
+                name: 'テストユーザー',
+                alias_id: 'testuser',
+                image: null,
+                role: 'user',
+            },
+        });
+    }
 
     // 管理者ユーザーの作成（E2E_TEST_ADMIN_ADDRESSが設定されている場合）
     const e2eTestAdminAddress = process.env.E2E_TEST_ADMIN_ADDRESS;
@@ -159,23 +164,29 @@ async function main() {
                 },
             });
 
-            await prisma.public_users.upsert({
-                where: { id: adminPublicUser?.id, auth_id: adminAuthUser.id },
-                update: {
-                    name: 'テスト管理者',
-                    alias_id: 'testadmin',
-                    image: null,
-                    role: 'admin',
-                    created_at: new Date(),
-                },
-                create: {
-                    auth_id: adminAuthUser.id,
-                    name: 'テスト管理者',
-                    alias_id: 'testadmin',
-                    image: null,
-                    role: 'admin',
-                },
-            });
+            // 管理者 public_users も同様に update-or-create
+            if (adminPublicUser) {
+                await prisma.public_users.update({
+                    where: { id: adminPublicUser.id },
+                    data: {
+                        name: 'テスト管理者',
+                        alias_id: 'testadmin',
+                        image: null,
+                        role: 'admin',
+                        created_at: new Date(),
+                    },
+                });
+            } else {
+                await prisma.public_users.create({
+                    data: {
+                        auth_id: adminAuthUser.id,
+                        name: 'テスト管理者',
+                        alias_id: 'testadmin',
+                        image: null,
+                        role: 'admin',
+                    },
+                });
+            }
             console.log(' => 管理者ユーザーを作成しました');
         }
     }
@@ -193,14 +204,33 @@ async function main() {
     console.log('✅ E2E用のテストデータを投入しました');
 }
 
-main()
-    .catch((e) => {
-        console.error(e);
-        process.exit(1);
-    })
-    .finally(async () => {
-        await prisma.$disconnect();
-    });
+// 直接実行時のみ main() を起動（import 経由では起動しない）
+const isDirectRun = ((): boolean => {
+    // CJS 環境
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (typeof (global as any).require !== 'undefined') {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const req = require as unknown as { main?: unknown };
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        return (req as any).main === module;
+    }
+    // ESM 環境
+    // import.meta は ESM でのみ利用可能
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    return typeof import.meta !== 'undefined' && import.meta.url === `file://${process.argv[1]}`;
+})();
+
+if (isDirectRun) {
+    main()
+        .catch((e) => {
+            console.error(e);
+            process.exit(1);
+        })
+        .finally(async () => {
+            await prisma.$disconnect();
+        });
+}
 
 function sqlDivision(sql: string): string[] {
     return sql.split(';').map(line => line.trim()).filter(line => line.length > 0);

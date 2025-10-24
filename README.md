@@ -53,6 +53,9 @@ npx prisma generate
 
 supabase db diff -f <fileName>
 
+# storage, auth を含めて差分を出す
+supabase db diff --schema storage,auth,public -f <fileName>
+
 ```
 
 ```bash
@@ -93,3 +96,8 @@ npm run e2e -- --project="no-auth"
 ```bash
 npx playwright install
 ```
+
+- レポート確認
+  ```bash
+  npx playwright show-report
+  ```

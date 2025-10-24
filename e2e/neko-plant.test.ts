@@ -10,7 +10,7 @@ test.beforeEach(async ({ }) => {
 
 });
 
-test.describe('スクリーンショットを取得', () => {
+test.describe('スクリーンショットを取得 @public', () => {
     test('トップ画面', async ({ page }) => {
         await page.goto('/', { waitUntil: 'networkidle' });
         await page.screenshot({ path: screenshotDir + 'top.png', fullPage: true });

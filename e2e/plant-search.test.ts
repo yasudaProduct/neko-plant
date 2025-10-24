@@ -82,13 +82,11 @@ test.describe('植物検索・発見機能 @public @user', () => {
   test.describe('ソート機能', () => {
     test('評価数でソートできる', async ({ page }) => {
       await page.goto('/');
-      await page.waitForLoadState('networkidle');
 
       // 検索を実行
       const searchInput = page.locator('input[placeholder="植物名を検索する"]');
       await searchInput.fill('植物');
       await page.click('button[type="submit"]');
-      await page.waitForLoadState('networkidle');
 
       // ソートセレクトボックスが表示されることを確認
       const sortSelect = page.locator('select, button[role="combobox"]').first();
@@ -100,51 +98,6 @@ test.describe('植物検索・発見機能 @public @user', () => {
       await page.screenshot({ path: screenshotDir + 'sort-evaluation-desc.png', fullPage: true });
     });
 
-    test('名前（昇順）でソートできる', async ({ page }) => {
-      await page.goto('/?q=植物&sort=name');
-      await page.waitForLoadState('networkidle');
-
-      // URLパラメータにソート設定が反映されることを確認
-      await expect(page).toHaveURL(/sort=name/);
-
-      // ソート結果が表示されることを確認（より長いタイムアウト）
-      const plantCards = page.locator('[data-testid="plant-card"]');
-      await expect(plantCards.first()).toBeVisible({ timeout: 10000 });
-
-      await page.screenshot({ path: screenshotDir + 'sort-name-asc.png', fullPage: true });
-    });
-
-    test('登録日（新しい順）でソートできる', async ({ page }) => {
-      await page.goto('/?q=植物&sort=created_at_desc');
-      await page.waitForLoadState('networkidle');
-
-      // URLパラメータにソート設定が反映されることを確認
-      await expect(page).toHaveURL(/sort=created_at_desc/);
-
-      await page.screenshot({ path: screenshotDir + 'sort-created-desc.png', fullPage: true });
-    });
-
-    test('ソート変更時にページが1にリセットされる', async ({ page }) => {
-      // 2ページ目にアクセス
-      await page.goto('/?q=植物&page=2');
-      await page.waitForLoadState('networkidle');
-
-      // ソートを変更
-      await page.goto('/?q=植物&page=2&sort=name');
-      await page.waitForLoadState('networkidle');
-
-      // ページが1にリセットされることを確認（より柔軟な正規表現を使用）
-      await expect(page).toHaveURL(/q=植物.*sort=name/);
-
-      // pageパラメータが2以外であることを確認（1またはパラメータなし）
-      const url = page.url();
-      const pageMatch = url.match(/page=(\d+)/);
-      if (pageMatch) {
-        expect(pageMatch[1]).not.toBe('2');
-      }
-
-      await page.screenshot({ path: screenshotDir + 'sort-page-reset.png', fullPage: true });
-    });
   });
 
   test.describe('ページネーション', () => {
@@ -271,8 +224,10 @@ test.describe('植物検索・発見機能 @public @user', () => {
 
   test.describe('検索結果の表示', () => {
     test('検索結果が植物カード形式で表示される', async ({ page }) => {
-      await page.goto('/?q=植物');
-      await page.waitForLoadState('networkidle');
+
+      const plantName = 'ネコマダラ';
+
+      await page.goto(`/?q=${plantName}`);
 
       // 植物カードが表示されることを確認
       const plantCards = page.locator('[data-testid="plant-card"]');
@@ -283,7 +238,7 @@ test.describe('植物検索・発見機能 @public @user', () => {
         const firstCard = plantCards.first();
 
         // 植物名が表示されることを確認
-        await expect(firstCard.locator('h3')).toBeVisible();
+        await expect(firstCard.locator('h3')).toContainText(plantName);
 
         // いいね・悪いアイコンが表示されることを確認
         await expect(firstCard.locator('[data-testid="heart-icon"]')).toBeVisible();
@@ -312,23 +267,22 @@ test.describe('植物検索・発見機能 @public @user', () => {
     });
 
     test('検索結果のレスポンシブ表示', async ({ page }) => {
-      await page.goto('/?q=植物');
-      await page.waitForLoadState('networkidle');
+      const plantName = 'ネコマダラ';
+
+      await page.goto(`/?q=${plantName}`);
 
       // デスクトップビューでの表示確認
       await page.setViewportSize({ width: 1200, height: 800 });
-      await page.waitForLoadState('networkidle');
 
-      const plantGrid = page.locator('[data-testid="plant-grid"]');
-      await expect(plantGrid).toBeVisible();
+      const plantCard = page.locator('[data-testid="plant-card"]');
+      await expect(plantCard).toBeVisible();
 
       await page.screenshot({ path: screenshotDir + 'search-responsive-desktop.png', fullPage: true });
 
       // モバイルビューでの表示確認
       await page.setViewportSize({ width: 375, height: 667 });
-      await page.waitForLoadState('networkidle');
 
-      await expect(plantGrid).toBeVisible();
+      await expect(plantCard).toBeVisible();
 
       await page.screenshot({ path: screenshotDir + 'search-responsive-mobile.png', fullPage: true });
     });

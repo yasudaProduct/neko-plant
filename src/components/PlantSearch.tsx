@@ -198,9 +198,9 @@ export default function PlantSearch() {
           </Button>
         </form>
         {isSuggestOpen && plantSuggest.length > 0 && (
-          <div 
-          className="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-md shadow-md z-50"
-          data-testid="plant-suggestions"
+          <div
+            className="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-md shadow-md z-50"
+            data-testid="plant-suggestions"
           >
             {plantSuggest.map((name) => (
               <Link
@@ -246,7 +246,7 @@ export default function PlantSearch() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
         {isSearching ? (
           <>
             {Array.from({ length: PAGE_SIZE }).map((_, index) => (

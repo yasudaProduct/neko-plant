@@ -6,6 +6,7 @@ import ProgressBar from "@/components/ProgressBar";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthDialogProvider } from "@/contexts/AuthDialogContext";
 import { M_PLUS_Rounded_1c } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 const RampartOneFont = M_PLUS_Rounded_1c({
   subsets: ["latin"],
@@ -62,9 +63,6 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  verification: {
-    google: "google-site-verification-code", // Google Search Consoleの検証コード
-  },
   alternates: {
     canonical: "https://neko-and-plant.com",
   },
@@ -89,6 +87,9 @@ export default function RootLayout({
           </ProgressBar>
         </div>
       </body>
+      {process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID && (
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID} />
+      )}
     </html>
   );
 }

@@ -6,6 +6,7 @@ import ProgressBar from "@/components/ProgressBar";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthDialogProvider } from "@/contexts/AuthDialogContext";
 import { M_PLUS_Rounded_1c } from "next/font/google";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 const RampartOneFont = M_PLUS_Rounded_1c({
   subsets: ["latin"],
@@ -86,6 +87,9 @@ export default function RootLayout({
           </ProgressBar>
         </div>
       </body>
+      {process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID && (
+        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID} />
+      )}
     </html>
   );
 }

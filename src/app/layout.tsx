@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthDialogProvider } from "@/contexts/AuthDialogContext";
 import { M_PLUS_Rounded_1c } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
+import { headers } from "next/headers";
 
 const RampartOneFont = M_PLUS_Rounded_1c({
   subsets: ["latin"],
@@ -68,11 +69,14 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const headersList = await headers();
+  const nonce = headersList.get("x-nonce") || undefined;
+
   return (
     <html lang="ja">
       <body className={`${RampartOneFont.className} antialiased`}>
@@ -88,7 +92,10 @@ export default function RootLayout({
         </div>
       </body>
       {process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID && (
-        <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID} />
+        <GoogleAnalytics
+          gaId={process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID}
+          nonce={nonce}
+        />
       )}
     </html>
   );

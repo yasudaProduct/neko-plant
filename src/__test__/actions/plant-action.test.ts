@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { getPlants, searchPlants, getPlant, addPlant, addFavorite, deleteFavorite, addHave, deleteHave } from '@/actions/plant-action';
 import { createClient } from '@/lib/supabase/server';
@@ -230,65 +231,140 @@ describe('Plant Actions', () => {
     });
 
     describe('searchPlants', () => {
+        const mockSearchResult = [
+            {
+                id: 1,
+                name: 'テスト植物1',
+                created_at: new Date('2024-01-01'),
+                evaluations: [{ type: 'good' }, { type: 'good' }, { type: 'bad' }], // good: 2, bad: 1 => Safe
+            },
+            {
+                id: 2,
+                name: 'テスト植物2',
+                created_at: new Date('2024-01-02'),
+                evaluations: [{ type: 'good' }, { type: 'bad' }, { type: 'bad' }], // good: 1, bad: 2 => Danger
+            },
+        ];
+
+        const mockDetailResult1 = {
+            id: 1,
+            name: 'テスト植物1',
+            created_at: new Date('2024-01-01'),
+            updated_at: new Date(),
+            scientific_name: null,
+            family: null,
+            genus: null,
+            species: null,
+            plant_images: [
+                {
+                    id: 1,
+                    image_url: 'test1.jpg',
+                    order: 1,
+                },
+            ],
+        };
+
+        const mockDetailResult2 = {
+            id: 2,
+            name: 'テスト植物2',
+            created_at: new Date('2024-01-02'),
+            updated_at: new Date(),
+            scientific_name: null,
+            family: null,
+            genus: null,
+            species: null,
+            plant_images: [
+                {
+                    id: 2,
+                    image_url: 'test2.jpg',
+                    order: 1,
+                },
+            ],
+        };
+
         it('検索クエリで植物を検索できること', async () => {
-            const searchQuery = 'テスト';
-            vi.mocked(prisma.plants.count).mockResolvedValue(2);
-            vi.mocked(prisma.plants.findMany).mockResolvedValue(mockPlants);
+            // 1回目のfindMany: IDと評価データの取得
+            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce([mockSearchResult[0]] as any);
+            // 2回目のfindMany: 詳細データの取得
+            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce([mockDetailResult1] as any);
 
-            const result = await searchPlants(searchQuery, '1', 1, 10);
+            const result = await searchPlants('テスト植物1', 'name', 1, 10);
 
-            expect(result).toEqual({
-                plants: [
-                    {
-                        id: 1,
-                        name: 'テスト植物1',
-                        mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
-                        isFavorite: false,
-                        isHave: false,
-                    },
-                    {
-                        id: 2,
-                        name: 'テスト植物2',
-                        mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test2.jpg',
-                        isFavorite: false,
-                        isHave: false,
-                    },
-                ],
-                totalCount: 2,
-            });
+            expect(result.totalCount).toBe(1);
+            expect(result.plants).toHaveLength(1);
+            expect(result.plants[0].name).toBe('テスト植物1');
 
-            expect(prisma.plants.count).toHaveBeenCalledWith({
+            // 1回目の呼び出し検証（検索条件）
+            expect(prisma.plants.findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
                 where: {
                     name: {
-                        contains: searchQuery,
+                        contains: 'テスト植物1',
                         mode: 'insensitive',
                     },
                 },
-            });
-            expect(prisma.plants.findMany).toHaveBeenCalledWith({
-                where: {
-                    name: {
-                        contains: searchQuery,
-                        mode: 'insensitive',
-                    },
-                },
-                include: {
-                    plant_images: {
-                        orderBy: {
-                            order: 'asc',
-                        },
-                        take: 1,
-                    },
-                },
-                orderBy: { name: 'asc' },
-                skip: 0,
-                take: 10,
-            });
+                select: expect.any(Object),
+            }));
+        });
+
+        it('Safeフィルターでフィルタリングできること', async () => {
+            // 1回目: 全件返す
+            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce(mockSearchResult as any);
+            // 2回目: Safeな植物（ID: 1）のみの詳細を返す
+            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce([mockDetailResult1] as any);
+
+            const result = await searchPlants('', 'name', 1, 10, 'safe');
+
+            expect(result.totalCount).toBe(1);
+            expect(result.plants[0].name).toBe('テスト植物1');
+
+            // 2回目の呼び出し検証（IDフィルタリング）
+            expect(prisma.plants.findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
+                where: { id: { in: [1] } },
+            }));
+        });
+
+        it('Dangerフィルターでフィルタリングできること', async () => {
+            // 1回目: 全件返す
+            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce(mockSearchResult as any);
+            // 2回目: Dangerな植物（ID: 2）のみの詳細を返す
+            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce([mockDetailResult2] as any);
+
+            const result = await searchPlants('', 'name', 1, 10, 'danger');
+
+            expect(result.totalCount).toBe(1);
+            expect(result.plants[0].name).toBe('テスト植物2');
+
+            // 2回目の呼び出し検証（IDフィルタリング）
+            expect(prisma.plants.findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
+                where: { id: { in: [2] } },
+            }));
+        });
+
+        it('評価数順（evaluation_desc）でソートできること', async () => {
+            // 1回目: 全件返す
+            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce(mockSearchResult as any);
+            // 2回目: ソートされた順序（評価数が多い順：ID1(3件) -> ID2(3件) ... mockでは両方3件なので created_atなどで変わるかもだが、
+            // 実装上は length - length なので同点。
+            // テストデータを調整して明確な差をつける
+            const sortTestData = [
+                { ...mockSearchResult[0], evaluations: [{ type: 'good' }] }, // 1件
+                { ...mockSearchResult[1], evaluations: [{ type: 'good' }, { type: 'bad' }] }, // 2件
+            ];
+
+            vi.mocked(prisma.plants.findMany).mockReset(); // リセット
+            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce(sortTestData as any);
+            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce([mockDetailResult2, mockDetailResult1] as any);
+
+            const result = await searchPlants('query', 'evaluation_desc', 1, 10);
+
+            // 評価数が多い順（ID2 -> ID1）になっていることを期待
+            expect(result.plants[0].name).toBe('テスト植物2');
+            expect(result.plants[1].name).toBe('テスト植物1');
         });
 
         it('検索結果が0件の場合、空の配列を返すこと', async () => {
-            vi.mocked(prisma.plants.count).mockResolvedValue(0);
-            vi.mocked(prisma.plants.findMany).mockResolvedValue([]);
+            // 検索クエリありの場合は count ではなく findMany が呼ばれる
+            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce([]);
 
             const result = await searchPlants('存在しない植物', 'name', 1, 10);
 
@@ -296,6 +372,9 @@ describe('Plant Actions', () => {
                 plants: [],
                 totalCount: 0,
             });
+
+            // 2回目のfindManyは呼ばれないはず
+            expect(prisma.plants.findMany).toHaveBeenCalledTimes(1);
         });
     });
 

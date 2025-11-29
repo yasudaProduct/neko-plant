@@ -1,6 +1,6 @@
 "use client";
 
-import { Search } from "lucide-react";
+import { Search, Sprout, AlertTriangle, PawPrint } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { Input } from "./ui/input";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -29,12 +29,21 @@ import { Pagination } from "./ui/pagination";
 // 1ページあたりの表示件数
 const PAGE_SIZE = 8;
 
+type SafetyFilter = "all" | "safe" | "danger";
+
+const parseSafetyFilter = (value: string | null): SafetyFilter => {
+  if (value === "safe") return "safe";
+  if (value === "danger") return "danger";
+  return "all";
+};
+
 export default function PlantSearch() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
   const sortBy = searchParams.get("sort") || "evaluation_desc";
   const currentPage = Number(searchParams.get("page") || "1");
+  const initialFilter = parseSafetyFilter(searchParams.get("filter"));
 
   const [plants, setPlants] = useState<Plant[]>([]);
   const [plantCards, setPlantCards] = useState<PlantCardProps[]>([]);
@@ -48,6 +57,8 @@ export default function PlantSearch() {
 
   const [currentSort, setCurrentSort] = useState<string>(sortBy);
   const [totalCount, setTotalCount] = useState<number>(0);
+  const [evaluationFilter, setEvaluationFilter] =
+    useState<SafetyFilter>(initialFilter);
 
   // 初期ロード時と検索クエリが変更された時に植物を取得
   useEffect(() => {
@@ -56,9 +67,20 @@ export default function PlantSearch() {
       try {
         let result;
         if (query) {
-          result = await searchPlants(query, sortBy, currentPage, PAGE_SIZE);
+          result = await searchPlants(
+            query,
+            sortBy,
+            currentPage,
+            PAGE_SIZE,
+            evaluationFilter
+          );
         } else {
-          result = await getPlants(sortBy, currentPage, PAGE_SIZE);
+          result = await getPlants(
+            sortBy,
+            currentPage,
+            PAGE_SIZE,
+            evaluationFilter
+          );
         }
         setPlants(result.plants);
         setTotalCount(result.totalCount);
@@ -69,7 +91,11 @@ export default function PlantSearch() {
       }
     };
     fetchPlants();
-  }, [query, sortBy, currentPage]);
+  }, [query, sortBy, currentPage, evaluationFilter]);
+
+  useEffect(() => {
+    setEvaluationFilter(parseSafetyFilter(searchParams.get("filter")));
+  }, [searchParams]);
 
   useEffect(() => {
     const fetchEvaluations = async () => {
@@ -122,7 +148,25 @@ export default function PlantSearch() {
     if (currentSort !== "name") {
       params.set("sort", currentSort);
     }
+    if (evaluationFilter !== "all") {
+      params.set("filter", evaluationFilter);
+    }
     // 検索時は常に1ページ目に戻る
+
+    router.push(`/?${params.toString()}`);
+  };
+
+  const handleFilterChange = (value: SafetyFilter) => {
+    setEvaluationFilter(value);
+
+    const params = new URLSearchParams(searchParams.toString());
+    if (value === "all") {
+      params.delete("filter");
+    } else {
+      params.set("filter", value);
+    }
+    // フィルター変更時は1ページ目に戻す
+    params.delete("page");
 
     router.push(`/?${params.toString()}`);
   };
@@ -196,29 +240,69 @@ export default function PlantSearch() {
           >
             <Search className="text-white" />
           </Button>
+          {/* 植物名のサジェスト */}
+          {isSuggestOpen && plantSuggest.length > 0 && (
+            <div
+              className="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-md shadow-md z-50"
+              data-testid="plant-suggestions"
+            >
+              {plantSuggest.map((name) => (
+                <Link
+                  key={name.id}
+                  href={`/plants/${name.id}`}
+                  className="block w-full bg-white rounded-md p-2 hover:bg-gray-100 cursor-pointer"
+                >
+                  {name.name}
+                </Link>
+              ))}
+            </div>
+          )}
         </form>
-        {isSuggestOpen && plantSuggest.length > 0 && (
-          <div
-            className="absolute top-full left-0 w-full bg-white border border-gray-300 rounded-md shadow-md z-50"
-            data-testid="plant-suggestions"
-          >
-            {plantSuggest.map((name) => (
-              <Link
-                key={name.id}
-                href={`/plants/${name.id}`}
-                className="block w-full bg-white rounded-md p-2 hover:bg-gray-100 cursor-pointer"
-              >
-                {name.name}
-              </Link>
-            ))}
-          </div>
-        )}
 
-        {isSearching && (
-          <p className="text-sm text-muted-foreground mt-2">検索中...</p>
-        )}
+        {/* 安全/危険フィルター */}
+        <div className="flex justify-center gap-4 mt-6">
+          <Button
+            type="button"
+            onClick={() => handleFilterChange("all")}
+            className={`rounded-full px-6 py-2 transition-all duration-300 font-medium border flex items-center gap-2 hover:scale-105 ${
+              evaluationFilter === "all"
+                ? "bg-orange-100 border-orange-200 text-orange-700 shadow-inner"
+                : "bg-white border-orange-100 text-gray-500 hover:bg-orange-50 shadow-sm"
+            }`}
+            variant="ghost"
+          >
+            <PawPrint className="w-4 h-4" />
+            全て
+          </Button>
+          <Button
+            type="button"
+            onClick={() => handleFilterChange("safe")}
+            className={`rounded-full px-6 py-2 transition-all duration-300 font-medium border flex items-center gap-2 hover:scale-105 ${
+              evaluationFilter === "safe"
+                ? "bg-green-100 border-green-200 text-green-700 shadow-inner"
+                : "bg-white border-green-100 text-gray-500 hover:bg-green-50 shadow-sm"
+            }`}
+            variant="ghost"
+          >
+            <Sprout className="w-4 h-4" />
+            安全
+          </Button>
+          <Button
+            type="button"
+            onClick={() => handleFilterChange("danger")}
+            className={`rounded-full px-6 py-2 transition-all duration-300 font-medium border flex items-center gap-2 hover:scale-105 ${
+              evaluationFilter === "danger"
+                ? "bg-rose-100 border-rose-200 text-rose-700 shadow-inner"
+                : "bg-white border-rose-100 text-gray-500 hover:bg-rose-50 shadow-sm"
+            }`}
+            variant="ghost"
+          >
+            <AlertTriangle className="w-4 h-4" />
+            危険
+          </Button>
+        </div>
       </div>
-      <div className="container mx-auto w-full xl:w-4/5 ">
+      <div className="container mx-auto w-full xl:w-3/5 ">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-semibold">
             {query ? `「${query}」の検索結果` : "すべての植物"}

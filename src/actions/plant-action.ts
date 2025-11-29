@@ -8,88 +8,138 @@ import { generateImageName } from "@/lib/utils";
 import { ActionErrorCode, ActionParams, ActionResult } from "@/types/common";
 import { revalidatePath } from "next/cache";
 
+type FilterType = "all" | "safe" | "danger";
+
 export async function getPlants(
     sortBy: string = 'name',
     page: number = 1,
-    pageSize: number = 9
+    pageSize: number = 9,
+    filter: FilterType = "all"
 ): Promise<{ plants: Plant[], totalCount: number }> {
-    // 総件数を取得
-    const totalCount = await prisma.plants.count();
-
-    // ページングを適用してデータを取得
-    const plantsData = await prisma.plants.findMany({
-        include: {
-            plant_images: {
-                orderBy: {
-                    order: 'asc',
-                },
-                take: 1,
-            },
-        },
-        orderBy: getSortOption(sortBy),
-        skip: (page - 1) * pageSize,
-        take: pageSize,
-    });
-
-    const plants: Plant[] = plantsData.map((plant) => ({
-        id: plant.id,
-        name: plant.name,
-        mainImageUrl: plant.plant_images && plant.plant_images.length > 0 ? STORAGE_PATH.PLANT + plant.plant_images[0].image_url : undefined,
-        isFavorite: false,
-        isHave: false,
-    }));
-
-    return { plants, totalCount };
+    return searchPlants("", sortBy, page, pageSize, filter);
 }
 
 export async function searchPlants(
     query: string,
     sortBy: string = 'name',
     page: number = 1,
-    pageSize: number = 9
+    pageSize: number = 9,
+    filter: FilterType = "all"
 ): Promise<{ plants: Plant[], totalCount: number }> {
-    if (!query || query.trim() === '') {
-        return getPlants(sortBy, page, pageSize);
+
+    // フィルタリングなし、かつ検索クエリなしの場合は標準のPrismaメソッドを使用（高速化のため）
+    if (filter === "all" && (!query || query.trim() === '')) {
+        const totalCount = await prisma.plants.count();
+        const plantsData = await prisma.plants.findMany({
+            include: {
+                plant_images: {
+                    orderBy: { order: 'asc' },
+                    take: 1,
+                },
+            },
+            orderBy: getSortOption(sortBy),
+            skip: (page - 1) * pageSize,
+            take: pageSize,
+        });
+
+        return {
+            plants: plantsData.map(mapToPlant),
+            totalCount
+        };
     }
 
-    // 検索条件に一致する総件数を取得
-    const totalCount = await prisma.plants.count({
-        where: {
-            name: {
-                contains: query,
-                mode: 'insensitive',
+    // 1. まず条件に合うPlantのIDを取得する
+    // Prismaの標準機能ではGROUP BY後のHAVINGで集計値の比較が難しいため、
+    // 2段階で取得する（ID取得 -> 詳細取得）
+
+    // 検索条件の構築
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {};
+    if (query && query.trim() !== '') {
+        where.name = {
+            contains: query,
+            mode: 'insensitive',
+        };
+    }
+
+    // 全件取得してアプリケーション側でフィルタリングする場合、データ量が多いとパフォーマンスに影響が出るため
+    // 評価データをincludeして取得し、メモリ上でフィルタリングする
+    // ※ データ量が増えた場合は、DB設計を見直すか（集計テーブルを作るなど）、Raw SQLに戻すことを検討してください
+
+    // まず、対象となるPlantのIDと評価集計を取得
+    const allPlants = await prisma.plants.findMany({
+        where,
+        select: {
+            id: true,
+            created_at: true,
+            name: true,
+            evaluations: {
+                select: {
+                    type: true,
+                },
             },
         },
     });
 
-    // ページングを適用してデータを取得
+    // アプリケーション側でフィルタリング
+    let filteredPlants = allPlants;
+    if (filter === "safe") {
+        filteredPlants = allPlants.filter(p => {
+            const goodCount = p.evaluations.filter(e => e.type === 'good').length;
+            const badCount = p.evaluations.filter(e => e.type === 'bad').length;
+            return goodCount > 0 && goodCount >= badCount;
+        });
+    } else if (filter === "danger") {
+        filteredPlants = allPlants.filter(p => {
+            const goodCount = p.evaluations.filter(e => e.type === 'good').length;
+            const badCount = p.evaluations.filter(e => e.type === 'bad').length;
+            return badCount > goodCount;
+        });
+    }
+
+    // アプリケーション側でソート
+    filteredPlants.sort((a, b) => {
+        switch (sortBy) {
+            case 'name_desc':
+                return b.name.localeCompare(a.name);
+            case 'created_at':
+                return a.created_at.getTime() - b.created_at.getTime();
+            case 'created_at_desc':
+                return b.created_at.getTime() - a.created_at.getTime();
+            case 'evaluation_desc':
+                return b.evaluations.length - a.evaluations.length;
+            case 'name':
+            default:
+                return a.name.localeCompare(b.name);
+        }
+    });
+
+    const totalCount = filteredPlants.length;
+
+    // ページネーション
+    const paginatedIds = filteredPlants
+        .slice((page - 1) * pageSize, page * pageSize)
+        .map(p => p.id);
+
+    if (paginatedIds.length === 0) {
+        return { plants: [], totalCount };
+    }
+
+    // ページングされたIDを使って詳細データを取得
     const plantsData = await prisma.plants.findMany({
-        where: {
-            name: {
-                contains: query,
-                mode: 'insensitive', // 大文字小文字を区別しない
-            },
-        },
+        where: { id: { in: paginatedIds } },
         include: {
             plant_images: {
-                orderBy: {
-                    order: 'asc',
-                },
+                orderBy: { order: 'asc' },
                 take: 1,
             },
         },
-        orderBy: getSortOption(sortBy),
-        skip: (page - 1) * pageSize,
-        take: pageSize,
     });
 
-    const plants: Plant[] = plantsData.map((plant) => ({
-        id: plant.id,
-        name: plant.name,
-        mainImageUrl: plant.plant_images && plant.plant_images.length > 0 ? STORAGE_PATH.PLANT + plant.plant_images[0].image_url : undefined,
-        isFavorite: false,
-        isHave: false,
-    }));
+    // ID順序を維持するために並び替え
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const plantsMap = new Map(plantsData.map((p: any) => [p.id, p]));
+    const plants = paginatedIds.map(id => plantsMap.get(id)!).filter(p => p).map(mapToPlant);
 
     return { plants, totalCount };
 }
@@ -542,4 +592,16 @@ function getSortOption(sortBy: string) {
         default:
             return { name: 'asc' as const };
     }
+}
+
+// Plantマッパー
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function mapToPlant(plant: any): Plant {
+    return {
+        id: plant.id,
+        name: plant.name,
+        mainImageUrl: plant.plant_images && plant.plant_images.length > 0 ? STORAGE_PATH.PLANT + plant.plant_images[0].image_url : undefined,
+        isFavorite: false,
+        isHave: false,
+    };
 }

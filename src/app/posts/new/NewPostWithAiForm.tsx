@@ -1,0 +1,510 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Heart, Skull, Sparkles } from "lucide-react";
+
+import ImageUpload from "@/components/ImageUpload";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
+
+import { EvaluationType } from "@/types/evaluation";
+import { ActionErrorCode } from "@/types/common";
+import { addEvaluation } from "@/actions/evaluation-action";
+import { addPlant, searchPlantName } from "@/actions/plant-action";
+import {
+  identifyPlantFromImage,
+  type PlantIdentificationCandidate,
+} from "@/actions/plant-identification-action";
+
+const MAX_IMAGES = 3;
+
+const formSchema = z.object({
+  comment: z.string().min(1, { message: "コメントを入力してください" }),
+  type: z.nativeEnum(EvaluationType, {
+    required_error: "安全性を選択してください",
+  }),
+  images: z
+    .array(z.instanceof(File))
+    .min(1, { message: "写真を1枚以上追加してください" })
+    .max(MAX_IMAGES, { message: `最大${MAX_IMAGES}枚までです` })
+    .refine(
+      (files) =>
+        files.length === 0 ||
+        files.every((file) => ["image/jpeg", "image/png"].includes(file.type)),
+      { message: "サポートされていないファイル形式です（JPEG/PNGのみ）。" }
+    )
+    .refine(
+      (files) =>
+        files.length === 0 ||
+        files.every((file) => file.size <= 5 * 1024 * 1024),
+      { message: "ファイルサイズは5MB以下にしてください。" }
+    ),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+type SelectedPlant =
+  | { mode: "existing"; id: number; name: string }
+  | { mode: "new"; name: string }
+  | null;
+
+const normalizePlantName = (name: string) => name.trim().replace(/\s+/g, " ");
+
+export default function NewPostWithAiForm() {
+  const { success, error, info } = useToast();
+  const router = useRouter();
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      comment: "",
+      type: undefined,
+      images: [],
+    },
+  });
+
+  const [isIdentifying, setIsIdentifying] = useState(false);
+  const [candidates, setCandidates] = useState<PlantIdentificationCandidate[]>(
+    []
+  );
+
+  const [manualQuery, setManualQuery] = useState("");
+  const [manualSuggestions, setManualSuggestions] = useState<
+    { id: number; name: string }[]
+  >([]);
+  const manualQueryRef = useRef(manualQuery);
+
+  const [selectedPlant, setSelectedPlant] = useState<SelectedPlant>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const images = form.watch("images");
+  const canIdentify = images.length > 0 && !isIdentifying;
+
+  const selectedPlantLabel = useMemo(() => {
+    if (!selectedPlant) return "";
+    if (selectedPlant.mode === "existing") return selectedPlant.name;
+    return `${selectedPlant.name}（新規登録）`;
+  }, [selectedPlant]);
+
+  useEffect(() => {
+    manualQueryRef.current = manualQuery;
+  }, [manualQuery]);
+
+  useEffect(() => {
+    if (!manualQuery) {
+      setManualSuggestions([]);
+      return;
+    }
+
+    const q = manualQuery;
+    const timer = setTimeout(async () => {
+      try {
+        const result = await searchPlantName(q);
+        if (manualQueryRef.current !== q) return;
+        setManualSuggestions(result.slice(0, 10));
+      } catch (e) {
+        console.error(e);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [manualQuery]);
+
+  const handleImageChange = (files: File[]) => {
+    form.setValue("images", files, { shouldValidate: true });
+  };
+
+  const onIdentify = async () => {
+    const firstImage = images[0];
+    if (!firstImage) {
+      error({ title: "写真を追加してください" });
+      return;
+    }
+
+    setIsIdentifying(true);
+    setCandidates([]);
+
+    try {
+      const result = await identifyPlantFromImage(firstImage);
+      if (!result.success) {
+        error({
+          title: "AI判定に失敗しました",
+          description: result.message,
+        });
+        return;
+      }
+
+      if (result.message) {
+        info({ title: result.message });
+      }
+
+      const nextCandidates = result.data?.candidates ?? [];
+      setCandidates(nextCandidates);
+
+      const firstMatched = nextCandidates.find((c) => c.matchedPlant);
+      if (firstMatched?.matchedPlant) {
+        setSelectedPlant({
+          mode: "existing",
+          id: firstMatched.matchedPlant.id,
+          name: firstMatched.matchedPlant.name,
+        });
+      }
+    } catch (e) {
+      console.error(e);
+      error({
+        title: "AI判定に失敗しました",
+        description: "時間をおいて再度お試しください。",
+      });
+    } finally {
+      setIsIdentifying(false);
+    }
+  };
+
+  const selectCandidate = (candidate: PlantIdentificationCandidate) => {
+    if (candidate.matchedPlant) {
+      setSelectedPlant({
+        mode: "existing",
+        id: candidate.matchedPlant.id,
+        name: candidate.matchedPlant.name,
+      });
+      return;
+    }
+
+    setSelectedPlant({ mode: "new", name: candidate.name });
+  };
+
+  const selectExistingPlant = (plant: { id: number; name: string }) => {
+    setSelectedPlant({ mode: "existing", id: plant.id, name: plant.name });
+    setManualQuery("");
+    setManualSuggestions([]);
+  };
+
+  const selectNewPlantByName = (name: string) => {
+    const normalized = normalizePlantName(name);
+    if (!normalized) return;
+    if (normalized.length > 50) {
+      error({ title: "植物名は50文字以内で入力してください。" });
+      return;
+    }
+    setSelectedPlant({ mode: "new", name: normalized });
+  };
+
+  const onSubmit = async (values: FormValues) => {
+    if (!selectedPlant) {
+      error({
+        title: "植物を選択してください",
+        description: "AI候補の選択、または検索/新規登録で植物を確定してください。",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      let plantId: number | undefined;
+
+      if (selectedPlant.mode === "existing") {
+        plantId = selectedPlant.id;
+      } else {
+        const createResult = await addPlant(selectedPlant.name);
+        if (createResult.success) {
+          plantId = createResult.data?.plantId;
+        } else if (
+          createResult.code === ActionErrorCode.ALREADY_EXISTS &&
+          createResult.data?.plantId
+        ) {
+          plantId = createResult.data.plantId;
+          info({
+            title: "登録済みの植物に紐付けました",
+            description: (
+              <Link href={`/plants/${plantId}`} className="underline">
+                {selectedPlant.name}
+              </Link>
+            ),
+          });
+          setSelectedPlant({
+            mode: "existing",
+            id: plantId,
+            name: selectedPlant.name,
+          });
+        } else {
+          error({
+            title: "植物の登録に失敗しました",
+            description: createResult.message,
+          });
+          return;
+        }
+      }
+
+      if (!plantId) {
+        error({ title: "植物の紐付けに失敗しました" });
+        return;
+      }
+
+      const result = await addEvaluation(
+        plantId,
+        values.comment,
+        values.type,
+        values.images
+      );
+
+      if (!result.success) {
+        error({ title: "投稿に失敗しました", description: result.message });
+        return;
+      }
+
+      success({
+        title: "評価を投稿しました",
+        description: (
+          <Link href={`/plants/${plantId}`} className="underline">
+            {selectedPlant.mode === "existing"
+              ? selectedPlant.name
+              : selectedPlant.name}
+          </Link>
+        ),
+      });
+
+      router.push(`/plants/${plantId}`);
+    } catch (e) {
+      console.error(e);
+      error({
+        title: "投稿に失敗しました",
+        description: "再度試していただくか、サイト管理者にお問い合わせください。",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="images"
+          render={() => (
+            <FormItem>
+              <FormLabel>写真</FormLabel>
+              <ImageUpload
+                onImageChange={handleImageChange}
+                maxCount={MAX_IMAGES}
+              />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>猫に対する安全性</FormLabel>
+              <div className="flex gap-4">
+                <Button
+                  type="button"
+                  variant={
+                    field.value === EvaluationType.GOOD
+                      ? "destructive"
+                      : "outline"
+                  }
+                  onClick={() => field.onChange(EvaluationType.GOOD)}
+                >
+                  <Heart
+                    className={`w-4 h-4 ${
+                      field.value === EvaluationType.GOOD
+                        ? "text-white"
+                        : "text-red-500"
+                    }`}
+                  />
+                  安全
+                </Button>
+                <Button
+                  type="button"
+                  variant={
+                    field.value === EvaluationType.BAD ? "default" : "outline"
+                  }
+                  onClick={() => field.onChange(EvaluationType.BAD)}
+                >
+                  <Skull className="w-4 h-4 text-indigo-500" />
+                  危険
+                </Button>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="comment"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>コメント</FormLabel>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  placeholder="コメントを入力してください"
+                  className="h-32"
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <Label>植物名候補</Label>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!canIdentify}
+              onClick={onIdentify}
+            >
+              <Sparkles className="w-4 h-4" />
+              {isIdentifying ? "判定中..." : "AIで判定"}
+            </Button>
+          </div>
+
+          {candidates.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              AI候補がない場合は、下の検索から植物を選択できます。
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {candidates.map((c) => {
+                const isSelected =
+                  (selectedPlant?.mode === "existing" &&
+                    c.matchedPlant?.id === selectedPlant.id) ||
+                  (selectedPlant?.mode === "new" &&
+                    normalizePlantName(selectedPlant.name) ===
+                      normalizePlantName(c.name));
+
+                return (
+                  <button
+                    key={`${c.name}-${c.matchedPlant?.id ?? "new"}`}
+                    type="button"
+                    onClick={() => selectCandidate(c)}
+                    className={`w-full text-left rounded-md border px-3 py-2 transition-colors ${
+                      isSelected
+                        ? "border-green-500 bg-green-50"
+                        : "border-gray-200 hover:bg-gray-50"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{c.name}</span>
+                      {typeof c.confidence === "number" && (
+                        <span className="text-xs text-muted-foreground">
+                          {(c.confidence * 100).toFixed(0)}%
+                        </span>
+                      )}
+                      <span className="ml-auto text-xs text-muted-foreground">
+                        {c.matchedPlant ? "登録済み" : "未登録（新規）"}
+                      </span>
+                    </div>
+                    {c.matchedPlant && (
+                      <div className="text-xs text-muted-foreground mt-1">
+                        <Link
+                          href={`/plants/${c.matchedPlant.id}`}
+                          className="underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          詳細を見る
+                        </Link>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>候補にない場合（検索）</Label>
+            <Input
+              value={manualQuery}
+              onChange={(e) => setManualQuery(e.target.value)}
+              placeholder="植物名を検索（例：パキラ）"
+              maxLength={50}
+            />
+
+            {manualSuggestions.length > 0 && (
+              <div className="rounded-md border bg-white shadow-sm">
+                {manualSuggestions.map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className="block w-full text-left px-3 py-2 hover:bg-gray-50"
+                    onClick={() => selectExistingPlant(p)}
+                  >
+                    {p.name}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {manualQuery.trim().length > 0 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => selectNewPlantByName(manualQuery)}
+              >
+                「{normalizePlantName(manualQuery)}」を新規登録して選択
+              </Button>
+            )}
+          </div>
+
+          <div className="rounded-md border bg-gray-50 px-3 py-2 text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">選択中:</span>
+              {selectedPlant ? (
+                selectedPlant.mode === "existing" ? (
+                  <Link
+                    href={`/plants/${selectedPlant.id}`}
+                    className="underline font-medium"
+                  >
+                    {selectedPlantLabel}
+                  </Link>
+                ) : (
+                  <span className="font-medium">{selectedPlantLabel}</span>
+                )
+              ) : (
+                <span className="text-muted-foreground">
+                  未選択（投稿前に植物を確定してください）
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              AIの判定は参考です。必ず正しい植物名を選択してください。
+            </p>
+          </div>
+        </div>
+
+        <Button
+          type="submit"
+          disabled={isSubmitting || !selectedPlant}
+          className="w-full"
+        >
+          {isSubmitting ? "投稿中..." : "投稿"}
+        </Button>
+      </form>
+    </Form>
+  );
+}

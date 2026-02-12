@@ -23,8 +23,11 @@ NOTION_DATABASE_ID=
 
 # AI（任意）
 # 画像から植物名候補を推定する機能で使用します。
-OPENAI_API_KEY=
-OPENAI_PLANT_ID_MODEL=gpt-4o-mini
+# AI_PROVIDER : "gemini"(デフォルト) | "openai"
+AI_PROVIDER=gemini
+GEMINI_API_KEY=
+# OPENAI_API_KEY=           # AI_PROVIDER=openai の場合に使用
+# AI_PLANT_ID_MODEL=        # 省略時はプロバイダーのデフォルトモデル
 
 # E2E
 E2E_TEST_USER_ADDRES="e2e@example.com"

@@ -2,6 +2,11 @@
 
 import prisma from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getAiProviderConfig,
+  chatCompletion,
+  ChatMessage,
+} from "@/lib/ai-provider";
 import { ActionErrorCode, ActionResult } from "@/types/common";
 
 export type PlantIdentificationCandidate = {
@@ -96,8 +101,8 @@ export async function identifyPlantFromImage(
     };
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  const aiConfig = getAiProviderConfig();
+  if (!aiConfig) {
     return {
       success: true,
       message:
@@ -111,9 +116,7 @@ export async function identifyPlantFromImage(
     const base64 = buffer.toString("base64");
     const dataUrl = `data:${image.type};base64,${base64}`;
 
-    const model = process.env.OPENAI_PLANT_ID_MODEL ?? "gpt-4o-mini";
-
-    const prompt = [
+    const systemPrompt = [
       "あなたは植物の画像から植物名候補を推定するアシスタントです。",
       "出力は必ずJSONのみ（説明文なし）で返してください。",
       "",
@@ -125,42 +128,30 @@ export async function identifyPlantFromImage(
       "- 不明な場合はcandidatesを空配列",
     ].join("\n");
 
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        temperature: 0.2,
-        messages: [
-          { role: "system", content: prompt },
-          {
-            role: "user",
-            content: [
-              { type: "text", text: "この写真の植物名候補を推定してください。" },
-              { type: "image_url", image_url: { url: dataUrl } },
-            ],
-          },
+    const messages: ChatMessage[] = [
+      { role: "system", content: systemPrompt },
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "この写真の植物名候補を推定してください。" },
+          { type: "image_url", image_url: { url: dataUrl } },
         ],
-      }),
-    });
+      },
+    ];
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      console.error("OpenAI request failed:", response.status, errorText);
+    let content: string;
+    try {
+      content = await chatCompletion(aiConfig, messages, {
+        temperature: 0.2,
+      });
+    } catch (error) {
+      console.error("AI API request failed:", error);
       return {
         success: false,
         code: ActionErrorCode.INTERNAL_SERVER_ERROR,
         message: "AI判定に失敗しました。時間をおいて再度お試しください。",
       };
     }
-
-    const json = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
-    const content = json.choices?.[0]?.message?.content ?? "";
     const parsed = tryParseJson<IdentifyPlantResponse>(content);
 
     const rawCandidates: Array<{ name: string; confidence?: number }> =
@@ -183,9 +174,9 @@ export async function identifyPlantFromImage(
     const exactMatches =
       uniqueNames.length > 0
         ? await prisma.plants.findMany({
-            where: { name: { in: uniqueNames } },
-            select: { id: true, name: true },
-          })
+          where: { name: { in: uniqueNames } },
+          select: { id: true, name: true },
+        })
         : [];
     const exactMatchMap = new Map(exactMatches.map((p) => [p.name, p]));
 
@@ -197,7 +188,14 @@ export async function identifyPlantFromImage(
         matchedPlant: exactMatchMap.get(c.name),
       }));
 
-    return { success: true, data: { candidates } };
+    return {
+      success: true,
+      message:
+        candidates.length === 0
+          ? "植物を判定できませんでした。植物が写った写真で再度お試しいただくか、検索または手入力してください。"
+          : undefined,
+      data: { candidates },
+    };
   } catch (error) {
     console.error("identifyPlantFromImage error:", error);
     return {

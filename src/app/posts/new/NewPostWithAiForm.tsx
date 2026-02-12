@@ -80,6 +80,7 @@ export default function NewPostWithAiForm() {
   });
 
   const [isIdentifying, setIsIdentifying] = useState(false);
+  const [hasIdentified, setHasIdentified] = useState(false);
   const [candidates, setCandidates] = useState<PlantIdentificationCandidate[]>(
     []
   );
@@ -128,6 +129,9 @@ export default function NewPostWithAiForm() {
 
   const handleImageChange = (files: File[]) => {
     form.setValue("images", files, { shouldValidate: true });
+    // 画像が変わったらAI判定結果をリセット
+    setHasIdentified(false);
+    setCandidates([]);
   };
 
   const onIdentify = async () => {
@@ -139,6 +143,7 @@ export default function NewPostWithAiForm() {
 
     setIsIdentifying(true);
     setCandidates([]);
+    setHasIdentified(false);
 
     try {
       const result = await identifyPlantFromImage(firstImage);
@@ -149,6 +154,8 @@ export default function NewPostWithAiForm() {
         });
         return;
       }
+
+      setHasIdentified(true);
 
       if (result.message) {
         info({ title: result.message });
@@ -385,7 +392,9 @@ export default function NewPostWithAiForm() {
 
           {candidates.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              AI候補がない場合は、下の検索から植物を選択できます。
+              {hasIdentified
+                ? "植物を判定できませんでした。植物が写った写真で再度お試しいただくか、下の検索から植物を選択してください。"
+                : "「AIで判定」ボタンを押すと、写真から植物名の候補を表示します。"}
             </p>
           ) : (
             <div className="space-y-2">

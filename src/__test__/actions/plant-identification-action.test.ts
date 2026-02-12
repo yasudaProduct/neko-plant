@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
 import { identifyPlantFromImage } from "@/actions/plant-identification-action";
 import { createClient } from "@/lib/supabase/server";
+import {
+  getAiProviderConfig,
+  chatCompletion,
+} from "@/lib/ai-provider";
 import prisma from "@/lib/prisma";
 import { ActionErrorCode } from "@/types/common";
 
@@ -17,17 +21,33 @@ vi.mock("@/lib/supabase/server", () => ({
   createClient: vi.fn(),
 }));
 
-describe("plant-identification-action", () => {
-  const originalEnv = { ...process.env };
+vi.mock("@/lib/ai-provider", () => ({
+  getAiProviderConfig: vi.fn(),
+  chatCompletion: vi.fn(),
+}));
 
+/** arrayBuffer() が動作する File を生成するヘルパー */
+function createTestFile(
+  name: string,
+  type: string,
+  bytes: Uint8Array = new Uint8Array([1, 2, 3])
+): File {
+  const file = new File([bytes], name, { type });
+  // Node.js/Vitest 環境で arrayBuffer() が無い場合に補填
+  if (typeof file.arrayBuffer !== "function") {
+    (file as any).arrayBuffer = () =>
+      Promise.resolve(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+  }
+  return file;
+}
+
+describe("plant-identification-action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env = { ...originalEnv };
   });
 
   afterEach(() => {
     vi.unstubAllGlobals();
-    process.env = { ...originalEnv };
   });
 
   it("未ログインの場合はAUTH_REQUIRED", async () => {
@@ -37,9 +57,7 @@ describe("plant-identification-action", () => {
       },
     } as any);
 
-    const file = new File([new Uint8Array([1, 2, 3])], "test.png", {
-      type: "image/png",
-    });
+    const file = createTestFile("test.png", "image/png");
 
     const result = await identifyPlantFromImage(file);
 
@@ -49,8 +67,8 @@ describe("plant-identification-action", () => {
     }
   });
 
-  it("OPENAI_API_KEY未設定の場合は候補0件で成功", async () => {
-    delete process.env.OPENAI_API_KEY;
+  it("AIプロバイダー未設定の場合は候補0件で成功", async () => {
+    vi.mocked(getAiProviderConfig).mockReturnValue(null);
 
     vi.mocked(createClient).mockResolvedValue({
       auth: {
@@ -58,9 +76,7 @@ describe("plant-identification-action", () => {
       },
     } as any);
 
-    const file = new File([new Uint8Array([1, 2, 3])], "test.png", {
-      type: "image/png",
-    });
+    const file = createTestFile("test.png", "image/png");
 
     const result = await identifyPlantFromImage(file);
 
@@ -72,8 +88,16 @@ describe("plant-identification-action", () => {
   });
 
   it("AIレスポンスをパースして既存plantsに照合する", async () => {
-    process.env.OPENAI_API_KEY = "test-key";
-    process.env.OPENAI_PLANT_ID_MODEL = "test-model";
+    vi.mocked(getAiProviderConfig).mockReturnValue({
+      provider: "gemini",
+      apiKey: "test-key",
+      model: "gemini-2.5-flash-lite",
+      endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    });
+
+    vi.mocked(chatCompletion).mockResolvedValue(
+      '{"candidates":[{"name":" パキラ ","confidence":0.9},{"name":"モンステラ","confidence":0.5}]}'
+    );
 
     vi.mocked(createClient).mockResolvedValue({
       auth: {
@@ -81,28 +105,11 @@ describe("plant-identification-action", () => {
       },
     } as any);
 
-    const fetchMock = vi.fn().mockResolvedValue({
-      ok: true,
-      json: vi.fn().mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content:
-                '{"candidates":[{"name":" パキラ ","confidence":0.9},{"name":"モンステラ","confidence":0.5}]}',
-            },
-          },
-        ],
-      }),
-    });
-    vi.stubGlobal("fetch", fetchMock);
-
     vi.mocked(prisma.plants.findMany).mockResolvedValue([
       { id: 10, name: "パキラ" },
     ] as any);
 
-    const file = new File([new Uint8Array([1, 2, 3])], "test.png", {
-      type: "image/png",
-    });
+    const file = createTestFile("test.png", "image/png");
 
     const result = await identifyPlantFromImage(file);
 
@@ -119,6 +126,34 @@ describe("plant-identification-action", () => {
     }
   });
 
+  it("AI API呼び出しが失敗した場合はINTERNAL_SERVER_ERROR", async () => {
+    vi.mocked(getAiProviderConfig).mockReturnValue({
+      provider: "gemini",
+      apiKey: "test-key",
+      model: "gemini-2.5-flash-lite",
+      endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    });
+
+    vi.mocked(chatCompletion).mockRejectedValue(
+      new Error("AI API request failed [gemini]: 500")
+    );
+
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+      },
+    } as any);
+
+    const file = createTestFile("test.png", "image/png");
+
+    const result = await identifyPlantFromImage(file);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.code).toBe(ActionErrorCode.INTERNAL_SERVER_ERROR);
+    }
+  });
+
   it("JPEG/PNG以外はVALIDATION_ERROR", async () => {
     vi.mocked(createClient).mockResolvedValue({
       auth: {
@@ -126,9 +161,7 @@ describe("plant-identification-action", () => {
       },
     } as any);
 
-    const file = new File([new Uint8Array([1, 2, 3])], "test.gif", {
-      type: "image/gif",
-    });
+    const file = createTestFile("test.gif", "image/gif");
 
     const result = await identifyPlantFromImage(file);
 

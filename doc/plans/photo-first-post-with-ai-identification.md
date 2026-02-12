@@ -54,9 +54,11 @@
 - レスポンスはJSONで受け取り、植物名候補（最大5件程度）を抽出。
 - DB照合: 候補の `name` で `plants` を照合し、存在すれば `matchedPlant` を付与。
 
-### 環境変数（案）
-- `OPENAI_API_KEY`（サーバーのみ）
-- `OPENAI_PLANT_ID_MODEL`（任意。未設定時はデフォルトモデル）
+### 環境変数
+- `AI_PROVIDER`（任意。`"gemini"`（デフォルト）または `"openai"`）
+- `GEMINI_API_KEY`（サーバーのみ。Gemini 使用時に必要）
+- `OPENAI_API_KEY`（サーバーのみ。OpenAI 使用時に必要）
+- `AI_PLANT_ID_MODEL`（任意。未設定時はプロバイダーのデフォルトモデル）
 
 ---
 

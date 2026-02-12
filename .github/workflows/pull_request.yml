@@ -19,6 +19,31 @@ env:
   NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
 
 jobs:
+  security:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22.14.0]
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "npm"
+          cache-dependency-path: ./package-lock.json
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Security Audit
+        run: npm audit --audit-level=high
+
   lint:
     runs-on: ubuntu-latest
     strategy:

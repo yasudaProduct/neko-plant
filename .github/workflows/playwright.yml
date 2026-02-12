@@ -42,9 +42,11 @@ jobs:
             sleep 2
           done
 
-      - name: Reset DB (migrate + seed)
+      - name: Seed database
         run: |
-          supabase db reset
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -f supabase/seeds/neko.sql \
+            -f supabase/seeds/plants.sql
 
       # Supabaseの接続情報を環境変数に設定
       - name: Set Supabase environment variables

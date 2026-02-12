@@ -35,7 +35,7 @@ function createTestFile(
   const file = new File([bytes], name, { type });
   // Node.js/Vitest 環境で arrayBuffer() が無い場合に補填
   if (typeof file.arrayBuffer !== "function") {
-    (file as any).arrayBuffer = () =>
+    (file as unknown as Record<string, () => Promise<ArrayBuffer>>).arrayBuffer = () =>
       Promise.resolve(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
   }
   return file;
@@ -55,7 +55,7 @@ describe("plant-identification-action", () => {
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
       },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof createClient>>);
 
     const file = createTestFile("test.png", "image/png");
 
@@ -74,7 +74,7 @@ describe("plant-identification-action", () => {
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
       },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof createClient>>);
 
     const file = createTestFile("test.png", "image/png");
 
@@ -103,11 +103,11 @@ describe("plant-identification-action", () => {
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
       },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof createClient>>);
 
     vi.mocked(prisma.plants.findMany).mockResolvedValue([
       { id: 10, name: "パキラ" },
-    ] as any);
+    ] as unknown as Awaited<ReturnType<typeof prisma.plants.findMany>>);
 
     const file = createTestFile("test.png", "image/png");
 
@@ -142,7 +142,7 @@ describe("plant-identification-action", () => {
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
       },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof createClient>>);
 
     const file = createTestFile("test.png", "image/png");
 
@@ -159,7 +159,7 @@ describe("plant-identification-action", () => {
       auth: {
         getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
       },
-    } as any);
+    } as unknown as Awaited<ReturnType<typeof createClient>>);
 
     const file = createTestFile("test.gif", "image/gif");
 

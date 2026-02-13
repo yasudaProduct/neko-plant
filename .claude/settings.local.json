@@ -11,7 +11,8 @@
       "Bash(./node_modules/.bin/dotenv -e .env.local -- npx prisma migrate dev --name add_user_role)",
       "Bash(grep:*)",
       "Bash(npm run e2e:*)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(npx playwright test:*)"
     ],
     "deny": []
   }

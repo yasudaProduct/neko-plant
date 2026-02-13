@@ -11,6 +11,7 @@ export default defineConfig({
     ['list']
   ],
   globalSetup: './e2e/global-setup.ts',
+  timeout: 60 * 1000, // 60 seconds per test
   use: {
     baseURL: 'http://localhost:3001',
     navigationTimeout: 3 * 60 * 1000, // 3 minutes

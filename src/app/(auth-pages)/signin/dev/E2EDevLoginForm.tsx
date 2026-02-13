@@ -10,11 +10,13 @@ export default function E2EDevLoginForm() {
   const handleSubmit = async (formData: FormData) => {
     setIsLoading(true);
     setError("");
-    
+
     try {
       const result = await signInWithEmail(formData);
       if (result?.error) {
         setError(result.error);
+      } else if (result?.success) {
+        window.location.href = "/";
       }
     } catch (err) {
       setError(

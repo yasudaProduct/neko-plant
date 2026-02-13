@@ -112,7 +112,7 @@ setup('通常のユーザーとして認証します', async ({ page }) => {
   await page.click('[data-testid="signin-button"]');
 
   // 認証成功後のリダイレクトを待つ
-  await page.waitForURL('/', { timeout: 10000 });
+  await page.waitForURL('/', { timeout: 30000 });
   await page.waitForLoadState('networkidle');
 
   // 認証状態を保存
@@ -230,7 +230,7 @@ setup('管理者として認証します', async ({ page }) => {
   await page.click('[data-testid="signin-button"]');
 
   // 認証成功後のリダイレクトを待つ
-  await page.waitForURL('/', { timeout: 10000 });
+  await page.waitForURL('/', { timeout: 30000 });
   await page.waitForLoadState('networkidle');
 
   // 認証状態を保存

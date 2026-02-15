@@ -31,7 +31,7 @@ test.describe('スクリーンショットを取得 @public', () => {
             if (!plant) {
                 throw new Error('plant not found');
             }
-            await page.goto(`/plant/${plant.id}`, { waitUntil: 'networkidle' });
+            await page.goto(`/plants/${plant.id}`, { waitUntil: 'networkidle' });
             await page.screenshot({ path: screenshotDir + `plant-${plant.id}.png`, fullPage: true });
         });
 

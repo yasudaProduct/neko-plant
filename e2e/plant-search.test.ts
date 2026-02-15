@@ -18,11 +18,12 @@ test.describe('植物検索・発見機能 @public @user', () => {
       const searchInput = page.locator('input[data-testid="search-input"]');
       await expect(searchInput).toBeVisible();
 
-      // 検索文字を入力
-      await searchInput.fill('ネコマダラ');
+      // 検索文字を入力（pressSequentiallyでReact controlled inputを確実にトリガー）
+      await searchInput.click();
+      await searchInput.pressSequentially('ネコマダラ', { delay: 50 });
 
       // 検索候補のドロップダウンが表示されることを確認
-      await page.waitForSelector('[data-testid="plant-suggestions"]', { timeout: 5000 });
+      await page.waitForSelector('[data-testid="plant-suggestions"]', { timeout: 10000 });
 
       // 候補がリスト形式で表示されることを確認
       const suggestions = page.locator('[data-testid="plant-suggestions"] a');
@@ -37,9 +38,10 @@ test.describe('植物検索・発見機能 @public @user', () => {
       await page.waitForLoadState('networkidle');
 
       const searchInput = page.locator('input[data-testid="search-input"]');
-      await searchInput.fill('ネコマダラ');
+      await searchInput.click();
+      await searchInput.pressSequentially('ネコマダラ', { delay: 50 });
 
-      await page.waitForSelector('[data-testid="plant-suggestions"]');
+      await page.waitForSelector('[data-testid="plant-suggestions"]', { timeout: 10000 });
 
       // 最初の候補をクリック
       const firstSuggestion = page.locator('[data-testid="plant-suggestions"] a').first();
@@ -62,9 +64,10 @@ test.describe('植物検索・発見機能 @public @user', () => {
       await page.waitForLoadState('networkidle');
 
       const searchInput = page.locator('input[data-testid="search-input"]');
-      await searchInput.fill('ネコマダラ');
+      await searchInput.click();
+      await searchInput.pressSequentially('ネコマダラ', { delay: 50 });
 
-      await page.waitForSelector('[data-testid="plant-suggestions"]', { state: 'visible' });
+      await page.waitForSelector('[data-testid="plant-suggestions"]', { state: 'visible', timeout: 10000 });
 
       // 検索フィールドの外をクリック（より具体的な場所をクリック）
       await page.click('header');

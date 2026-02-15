@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { Leaf, PawPrint, Sprout } from "lucide-react";
+import { Camera, Leaf, PawPrint, Sprout } from "lucide-react";
 import { DropdownMenu } from "./HeaderDropMenu";
 import { createClient } from "@/lib/supabase/server";
 import { getUserProfileByAuthId } from "@/actions/user-action";
@@ -38,9 +38,24 @@ export default async function Header() {
           ) : (
             <>
               <Button variant="outline" className="w-10 h-10 sm:hidden">
+                <Link href="/posts/new" className="text-accent-foreground">
+                  <div className="flex items-center gap-2">
+                    <Camera className="w-6 h-6 text-green-500" />
+                  </div>
+                </Link>
+              </Button>
+              <Button variant="outline" className="w-10 h-10 sm:hidden">
                 <Link href="/plants/new" className="text-accent-foreground">
                   <div className="flex items-center gap-2">
                     <Sprout className="w-6 h-6 text-green-500" />
+                  </div>
+                </Link>
+              </Button>
+              <Button variant="outline" className="hidden sm:block">
+                <Link href="/posts/new" className="text-accent-foreground">
+                  <div className="flex items-center gap-2">
+                    <Camera className="w-6 h-6 text-green-500" />
+                    <span className="text-sm">投稿</span>
                   </div>
                 </Link>
               </Button>

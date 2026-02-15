@@ -8,7 +8,7 @@ import {
 } from "@/types/evaluation";
 import { Pet } from "@/types/neko";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   deleteReAction,
@@ -28,9 +28,17 @@ export default function EvaluationCard({
   const [isMineReAction, setIsMineReAction] = useState<
     EvaluationReActionType | undefined
   >(undefined);
+  const fetchReActions = useCallback(async () => {
+    const reActions = await getEvalReAction(evaluation.id);
+    setReActions(reActions);
+
+    const mineReAction = reActions.find((reAction) => reAction.isMine);
+    setIsMineReAction(mineReAction?.type);
+  }, [evaluation.id]);
+
   useEffect(() => {
     fetchReActions();
-  }, []);
+  }, [fetchReActions]);
 
   useEffect(() => {
     setIsExpanded(evaluation.comment.split("\n").length > 3);
@@ -49,14 +57,6 @@ export default function EvaluationCard({
       upsertReAction(evaluation.id, type);
     }
     fetchReActions();
-  };
-
-  const fetchReActions = async () => {
-    const reActions = await getEvalReAction(evaluation.id);
-    setReActions(reActions);
-
-    const mineReAction = reActions.find((reAction) => reAction.isMine);
-    setIsMineReAction(mineReAction?.type);
   };
 
   return (

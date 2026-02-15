@@ -29,4 +29,15 @@ export default async function globalSetup(config: FullConfig) {
     // テストデータのシード
     await maybeSeedData();
 
+    // ページコンパイルのウォームアップ（devサーバーの初回コンパイルを事前に実行）
+    const pagesToWarmUp = ['/', '/signin', '/signin/dev', '/news', '/terms', '/privacy'];
+    console.log('Warming up dev server pages...');
+    for (const pagePath of pagesToWarmUp) {
+        try {
+            await fetch(`${baseURL}${pagePath}`);
+        } catch {
+            // サーバーがまだ起動中の場合は無視
+        }
+    }
+    console.log('Warmup complete.');
 }

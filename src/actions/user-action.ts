@@ -446,6 +446,8 @@ export async function getUserPlants(userId: number): Promise<Plant[] | undefined
         mainImageUrl: plant.plants.plant_images?.[0]?.image_url ? STORAGE_PATH.PLANT + plant.plants.plant_images[0].image_url : undefined,
         isFavorite: false,
         isHave: true,
+        goodCount: 0,
+        badCount: 0,
     }));
 }
 
@@ -525,6 +527,8 @@ export async function getUserEvaluations(userId: number): Promise<(Evaluation & 
                 : undefined,
             isFavorite: false,
             isHave: false,
+            goodCount: 0,
+            badCount: 0,
         },
     })));
 }
@@ -557,6 +561,8 @@ export async function getUserFavoritePlants(userId: number): Promise<Plant[] | u
         mainImageUrl: favoritePlant.plants.plant_images?.[0]?.image_url ? STORAGE_PATH.PLANT + favoritePlant.plants.plant_images[0].image_url : undefined,
         isFavorite: true,
         isHave: false,
+        goodCount: 0,
+        badCount: 0,
     }));
 }
 

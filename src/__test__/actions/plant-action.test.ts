@@ -62,6 +62,7 @@ describe('Plant Actions', () => {
                     order: 1,
                 },
             ],
+            evaluations: [{ type: 'good' }, { type: 'bad' }],
         },
         {
             id: 2,
@@ -80,6 +81,7 @@ describe('Plant Actions', () => {
                     order: 1,
                 },
             ],
+            evaluations: [{ type: 'good' }],
         },
     ];
 
@@ -114,6 +116,8 @@ describe('Plant Actions', () => {
                         mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
                         isFavorite: false,
                         isHave: false,
+                        goodCount: 1,
+                        badCount: 1,
                     },
                     {
                         id: 2,
@@ -121,6 +125,8 @@ describe('Plant Actions', () => {
                         mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test2.jpg',
                         isFavorite: false,
                         isHave: false,
+                        goodCount: 1,
+                        badCount: 0,
                     },
                 ],
                 totalCount: 2,
@@ -156,6 +162,9 @@ describe('Plant Actions', () => {
                         },
                         take: 1,
                     },
+                    evaluations: {
+                        select: { type: true },
+                    },
                 },
                 orderBy: { name: 'desc' },
                 skip: 0,
@@ -177,6 +186,9 @@ describe('Plant Actions', () => {
                             order: 'asc',
                         },
                         take: 1,
+                    },
+                    evaluations: {
+                        select: { type: true },
                     },
                 },
                 orderBy: { created_at: 'desc' },
@@ -200,6 +212,9 @@ describe('Plant Actions', () => {
                         },
                         take: 1,
                     },
+                    evaluations: {
+                        select: { type: true },
+                    },
                 },
                 orderBy: { created_at: 'asc' },
                 skip: 0,
@@ -221,6 +236,9 @@ describe('Plant Actions', () => {
                             order: 'asc',
                         },
                         take: 1,
+                    },
+                    evaluations: {
+                        select: { type: true },
                     },
                 },
                 orderBy: { evaluations: { _count: 'desc' } },
@@ -293,6 +311,8 @@ describe('Plant Actions', () => {
             expect(result.totalCount).toBe(1);
             expect(result.plants).toHaveLength(1);
             expect(result.plants[0].name).toBe('テスト植物1');
+            expect(result.plants[0].goodCount).toBe(2);
+            expect(result.plants[0].badCount).toBe(1);
 
             // 1回目の呼び出し検証（検索条件）
             expect(prisma.plants.findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
@@ -403,6 +423,8 @@ describe('Plant Actions', () => {
                 family: 'テスト植物1',
                 genus: 'テスト植物1',
                 species: 'テスト植物1',
+                goodCount: 0,
+                badCount: 0,
             });
 
             expect(prisma.plants.findUnique).toHaveBeenCalledWith({

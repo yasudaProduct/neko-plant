@@ -163,17 +163,22 @@ export async function searchPlantName(name: string): Promise<{ id: number, name:
 export async function getPlant(id: number): Promise<Plant | undefined> {
     const supabase = await createClient();
 
-    const plant = await prisma.plants.findUnique({
-        where: { id: id },
-        include: {
-            plant_images: {
-                take: 1,
-                orderBy: {
-                    order: 'asc',
+    // 植物取得と認証チェックを並列実行
+    const [plant, { data: { user } }] = await Promise.all([
+        prisma.plants.findUnique({
+            where: { id: id },
+            include: {
+                plant_images: {
+                    take: 1,
+                    orderBy: {
+                        order: 'asc',
+                    },
                 },
             },
-        },
-    });
+        }),
+        supabase.auth.getUser(),
+    ]);
+
     if (!plant) {
         return undefined;
     }
@@ -181,7 +186,6 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
     // 認証ユーザーの場合はfavoriteとhaveを取得
     let isFavorite = false
     let isHave = false
-    const { data: { user } } = await supabase.auth.getUser();
     if (user != null) {
 
         const publicUser = await prisma.public_users.findFirst({
@@ -190,20 +194,22 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
             },
         });
 
-        const favorite = await prisma.plant_favorites.findFirst({
-            where: {
-                user_id: publicUser!.id,
-                plant_id: id,
-            },
-        });
+        // favoriteとhaveを並列取得
+        const [favorite, have] = await Promise.all([
+            prisma.plant_favorites.findFirst({
+                where: {
+                    user_id: publicUser!.id,
+                    plant_id: id,
+                },
+            }),
+            prisma.plant_have.findFirst({
+                where: {
+                    user_id: publicUser!.id,
+                    plant_id: id,
+                },
+            }),
+        ]);
         isFavorite = favorite != null
-
-        const have = await prisma.plant_have.findFirst({
-            where: {
-                user_id: publicUser!.id,
-                plant_id: id,
-            },
-        });
         isHave = have != null
     }
 

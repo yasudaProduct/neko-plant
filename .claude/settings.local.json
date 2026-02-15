@@ -12,7 +12,9 @@
       "Bash(grep:*)",
       "Bash(npm run e2e:*)",
       "Bash(npm test:*)",
-      "Bash(npx playwright test:*)"
+      "Bash(npx playwright test:*)",
+      "Bash(wc:*)",
+      "Bash(find:*)"
     ],
     "deny": []
   }

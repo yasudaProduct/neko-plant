@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Heart, Skull, Sparkles } from "lucide-react";
+import { Heart, Skull, Sparkles, CheckCircle2, Plus } from "lucide-react";
 
 import ImageUpload from "@/components/ImageUpload";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
 import { EvaluationType } from "@/types/evaluation";
@@ -47,13 +48,13 @@ const formSchema = z.object({
       (files) =>
         files.length === 0 ||
         files.every((file) => ["image/jpeg", "image/png"].includes(file.type)),
-      { message: "サポートされていないファイル形式です（JPEG/PNGのみ）。" }
+      { message: "サポートされていないファイル形式です（JPEG/PNGのみ）。" },
     )
     .refine(
       (files) =>
         files.length === 0 ||
         files.every((file) => file.size <= 5 * 1024 * 1024),
-      { message: "ファイルサイズは5MB以下にしてください。" }
+      { message: "ファイルサイズは5MB以下にしてください。" },
     ),
 });
 
@@ -82,7 +83,7 @@ export default function NewPostWithAiForm() {
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [hasIdentified, setHasIdentified] = useState(false);
   const [candidates, setCandidates] = useState<PlantIdentificationCandidate[]>(
-    []
+    [],
   );
 
   const [manualQuery, setManualQuery] = useState("");
@@ -96,12 +97,6 @@ export default function NewPostWithAiForm() {
 
   const images = form.watch("images");
   const canIdentify = images.length > 0 && !isIdentifying;
-
-  const selectedPlantLabel = useMemo(() => {
-    if (!selectedPlant) return "";
-    if (selectedPlant.mode === "existing") return selectedPlant.name;
-    return `${selectedPlant.name}（新規登録）`;
-  }, [selectedPlant]);
 
   useEffect(() => {
     manualQueryRef.current = manualQuery;
@@ -134,6 +129,7 @@ export default function NewPostWithAiForm() {
     setCandidates([]);
   };
 
+  // AIで判定を実行する
   const onIdentify = async () => {
     const firstImage = images[0];
     if (!firstImage) {
@@ -216,7 +212,8 @@ export default function NewPostWithAiForm() {
     if (!selectedPlant) {
       error({
         title: "植物を選択してください",
-        description: "AI候補の選択、または検索/新規登録で植物を確定してください。",
+        description:
+          "AI候補の選択、または検索/新規登録で植物を確定してください。",
       });
       return;
     }
@@ -268,7 +265,7 @@ export default function NewPostWithAiForm() {
         plantId,
         values.comment,
         values.type,
-        values.images
+        values.images,
       );
 
       if (!result.success) {
@@ -292,7 +289,8 @@ export default function NewPostWithAiForm() {
       console.error(e);
       error({
         title: "投稿に失敗しました",
-        description: "再度試していただくか、サイト管理者にお問い合わせください。",
+        description:
+          "再度試していただくか、サイト管理者にお問い合わせください。",
       });
     } finally {
       setIsSubmitting(false);
@@ -414,7 +412,9 @@ export default function NewPostWithAiForm() {
                     className={`w-full text-left rounded-md border px-3 py-2 transition-colors ${
                       isSelected
                         ? "border-green-500 bg-green-50"
-                        : "border-gray-200 hover:bg-gray-50"
+                        : c.matchedPlant
+                          ? "border-green-200 hover:bg-green-50/50"
+                          : "border-amber-200 hover:bg-amber-50/50"
                     }`}
                   >
                     <div className="flex items-center gap-2">
@@ -424,8 +424,24 @@ export default function NewPostWithAiForm() {
                           {(c.confidence * 100).toFixed(0)}%
                         </span>
                       )}
-                      <span className="ml-auto text-xs text-muted-foreground">
-                        {c.matchedPlant ? "登録済み" : "未登録（新規）"}
+                      <span className="ml-auto">
+                        {c.matchedPlant ? (
+                          <Badge
+                            variant="default"
+                            className="bg-green-600 hover:bg-green-600"
+                          >
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            登録済み
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="border-amber-400 text-amber-600 bg-amber-50"
+                          >
+                            <Plus className="w-3 h-3 mr-1" />
+                            新規登録
+                          </Badge>
+                        )}
                       </span>
                     </div>
                     {c.matchedPlant && (
@@ -469,41 +485,72 @@ export default function NewPostWithAiForm() {
               </div>
             )}
 
-            {manualQuery.trim().length > 0 && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => selectNewPlantByName(manualQuery)}
-              >
-                「{normalizePlantName(manualQuery)}」を新規登録して選択
-              </Button>
-            )}
+            {manualQuery.trim().length > 0 &&
+              !manualSuggestions.some(
+                (p) =>
+                  normalizePlantName(p.name) ===
+                  normalizePlantName(manualQuery),
+              ) && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => selectNewPlantByName(manualQuery)}
+                >
+                  「{normalizePlantName(manualQuery)}」を新規登録して選択
+                </Button>
+              )}
           </div>
 
-          <div className="rounded-md border bg-gray-50 px-3 py-2 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">選択中:</span>
-              {selectedPlant ? (
-                selectedPlant.mode === "existing" ? (
-                  <Link
-                    href={`/plants/${selectedPlant.id}`}
-                    className="underline font-medium"
+          {selectedPlant ? (
+            <div
+              className={`rounded-lg border-2 px-4 py-3 ${
+                selectedPlant.mode === "existing"
+                  ? "border-green-400 bg-green-50"
+                  : "border-amber-400 bg-amber-50"
+              }`}
+            >
+              <p className="text-xs text-muted-foreground mb-1">
+                この名前で投稿されます
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold">{selectedPlant.name}</span>
+                {selectedPlant.mode === "existing" ? (
+                  <Badge
+                    variant="default"
+                    className="bg-green-600 hover:bg-green-600"
                   >
-                    {selectedPlantLabel}
-                  </Link>
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    登録済み
+                  </Badge>
                 ) : (
-                  <span className="font-medium">{selectedPlantLabel}</span>
-                )
-              ) : (
-                <span className="text-muted-foreground">
-                  未選択（投稿前に植物を確定してください）
-                </span>
+                  <Badge
+                    variant="outline"
+                    className="border-amber-400 text-amber-600 bg-amber-50"
+                  >
+                    <Plus className="w-3 h-3 mr-1" />
+                    新規登録
+                  </Badge>
+                )}
+              </div>
+              {selectedPlant.mode === "existing" && (
+                <Link
+                  href={`/plants/${selectedPlant.id}`}
+                  className="text-xs text-green-700 underline mt-1 inline-block"
+                >
+                  この植物の詳細を見る
+                </Link>
               )}
+              <p className="text-xs text-muted-foreground mt-2">
+                AIの判定は参考です。必ず正しい植物名を選択してください。
+              </p>
             </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              AIの判定は参考です。必ず正しい植物名を選択してください。
-            </p>
-          </div>
+          ) : (
+            <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-center">
+              <p className="text-sm text-muted-foreground">
+                未選択（投稿前に植物を確定してください）
+              </p>
+            </div>
+          )}
         </div>
 
         <Button

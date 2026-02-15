@@ -121,6 +121,7 @@ export default defineConfig({
       if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) env.NEXT_PUBLIC_SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
       if (process.env.SUPABASE_SERVICE_ROLE_KEY) env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
       if (process.env.DATABASE_URL) env.DATABASE_URL = process.env.DATABASE_URL;
+      env.AI_PROVIDER = 'mock';
       return env;
     })(),
   },

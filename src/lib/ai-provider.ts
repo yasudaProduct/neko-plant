@@ -13,7 +13,7 @@
 // ---------------------------------------------------------------------------
 // 型定義
 // ---------------------------------------------------------------------------
-export type AiProviderType = "gemini" | "openai";
+export type AiProviderType = "gemini" | "openai" | "mock";
 
 export interface AiProviderConfig {
   provider: AiProviderType;
@@ -26,6 +26,7 @@ export interface AiProviderConfig {
 const DEFAULT_MODELS: Record<AiProviderType, string> = {
   gemini: "gemini-2.5-flash-lite",
   openai: "gpt-4o-mini",
+  mock: "mock",
 };
 
 /** プロバイダーごとの Chat Completions エンドポイント */
@@ -33,12 +34,14 @@ const ENDPOINTS: Record<AiProviderType, string> = {
   gemini:
     "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
   openai: "https://api.openai.com/v1/chat/completions",
+  mock: "",
 };
 
 /** プロバイダーごとの API キー環境変数名 */
 const API_KEY_ENV: Record<AiProviderType, string> = {
   gemini: "GEMINI_API_KEY",
   openai: "OPENAI_API_KEY",
+  mock: "",
 };
 
 // ---------------------------------------------------------------------------
@@ -51,6 +54,10 @@ const API_KEY_ENV: Record<AiProviderType, string> = {
  */
 export function getAiProviderConfig(): AiProviderConfig | null {
   const provider = (process.env.AI_PROVIDER ?? "gemini") as AiProviderType;
+
+  if (provider === "mock") {
+    return { provider: "mock", apiKey: "mock", model: "mock", endpoint: "" };
+  }
 
   if (!ENDPOINTS[provider]) {
     console.warn(`Unknown AI_PROVIDER: ${provider}`);
@@ -102,6 +109,16 @@ export async function chatCompletion(
   messages: ChatMessage[],
   options?: { temperature?: number }
 ): Promise<string> {
+  if (config.provider === "mock") {
+    return JSON.stringify({
+      candidates: [
+        { name: "パキラ", confidence: 0.92 },
+        { name: "モンステラ", confidence: 0.65 },
+        { name: "テスト新規植物", confidence: 0.3 },
+      ],
+    });
+  }
+
   const response = await fetch(config.endpoint, {
     method: "POST",
     headers: {

@@ -61,6 +61,7 @@ function normalizePlantName(name: string): string {
   return name.trim().replace(/\s+/g, " ");
 }
 
+// AIで植物名を判定する
 export async function identifyPlantFromImage(
   image: File
 ): Promise<ActionResult<{ candidates: PlantIdentificationCandidate[] }>> {

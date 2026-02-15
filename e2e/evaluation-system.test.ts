@@ -57,8 +57,7 @@ test.describe('評価システム', () => {
         await expect(page.locator('[role="dialog"]')).toBeVisible();
 
         // 良い評価を選択
-        const goodRadio = page.locator('input[value="GOOD"]');
-        await goodRadio.click();
+        await page.getByRole('dialog').getByRole('button', { name: 'Good' }).click();
 
         // コメントを入力
         const commentText = `テスト用良い評価コメント ${Date.now()}`;
@@ -66,7 +65,7 @@ test.describe('評価システム', () => {
         await commentTextarea.fill(commentText);
 
         // 投稿ボタンをクリック
-        const submitButton = page.locator('button[type="submit"]', { hasText: '投稿する' });
+        const submitButton = page.locator('[role="dialog"] button[type="submit"]');
         await submitButton.click();
 
         // ダイアログが閉じることを確認
@@ -97,8 +96,7 @@ test.describe('評価システム', () => {
         await expect(page.locator('[role="dialog"]')).toBeVisible();
 
         // 悪い評価を選択
-        const badRadio = page.locator('input[value="BAD"]');
-        await badRadio.click();
+        await page.getByRole('dialog').getByRole('button', { name: 'Bad' }).click();
 
         // コメントを入力
         const commentText = `テスト用悪い評価コメント ${Date.now()}`;
@@ -106,7 +104,7 @@ test.describe('評価システム', () => {
         await commentTextarea.fill(commentText);
 
         // 投稿ボタンをクリック
-        const submitButton = page.locator('button[type="submit"]', { hasText: '投稿する' });
+        const submitButton = page.locator('[role="dialog"] button[type="submit"]');
         await submitButton.click();
 
         // ダイアログが閉じることを確認
@@ -137,7 +135,7 @@ test.describe('評価システム', () => {
         await expect(page.locator('[role="dialog"]')).toBeVisible();
 
         // 何も入力せずに投稿ボタンをクリック
-        const submitButton = page.locator('button[type="submit"]', { hasText: '投稿する' });
+        const submitButton = page.locator('[role="dialog"] button[type="submit"]');
         await submitButton.click();
 
         // バリデーションエラーが表示されることを確認
@@ -172,19 +170,19 @@ test.describe('評価システム', () => {
         await expect(page.locator('[role="dialog"]')).toBeVisible();
 
         // 良い評価を選択
-        await page.click('input[value="GOOD"]');
+        await page.getByRole('dialog').getByRole('button', { name: 'Good' }).click();
 
         // コメントを入力
         const commentTextarea = page.locator('textarea[name="comment"]');
         await commentTextarea.fill('画像付きテスト評価');
 
         // 画像アップロードエリアの存在確認
-        const imageUpload = page.locator('input[type="file"]');
-        const hasImageUpload = await imageUpload.count() > 0;
+        const imageUploadLabel = page.getByRole('dialog').locator('text=写真を追加する');
+        await expect(imageUploadLabel).toBeVisible();
 
-        if (hasImageUpload) {
-          await expect(imageUpload).toBeVisible();
-        }
+        // 隠しファイルインプットが存在することを確認
+        const imageUpload = page.locator('input[type="file"]');
+        expect(await imageUpload.count()).toBeGreaterThan(0);
 
         await page.screenshot({ path: screenshotDir + 'evaluation-image-upload.png', fullPage: true });
       }
@@ -378,7 +376,7 @@ test.describe('評価システム', () => {
         await page.waitForLoadState('networkidle');
 
         // 投稿タブがある場合はクリック
-        const postsTab = page.locator('text=投稿');
+        const postsTab = page.locator('a[href$="/posts"] button');
         const hasPostsTab = await postsTab.count() > 0;
         if (hasPostsTab) {
           await postsTab.click();
@@ -409,7 +407,7 @@ test.describe('評価システム', () => {
       await page.waitForLoadState('networkidle');
 
       // 投稿タブがある場合はクリック
-      const postsTab = page.locator('text=投稿');
+      const postsTab = page.locator('a[href$="/posts"] button');
       const hasPostsTab = await postsTab.count() > 0;
       if (hasPostsTab) {
         await postsTab.click();
@@ -452,7 +450,7 @@ test.describe('評価システム', () => {
       await page.waitForURL(/\/[^\/]+$/);
       await page.waitForLoadState('networkidle');
 
-      const postsTab = page.locator('text=投稿');
+      const postsTab = page.locator('a[href$="/posts"] button');
       const hasPostsTab = await postsTab.count() > 0;
       if (hasPostsTab) {
         await postsTab.click();

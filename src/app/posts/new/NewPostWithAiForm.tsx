@@ -48,13 +48,13 @@ const formSchema = z.object({
       (files) =>
         files.length === 0 ||
         files.every((file) => ["image/jpeg", "image/png"].includes(file.type)),
-      { message: "サポートされていないファイル形式です（JPEG/PNGのみ）。" }
+      { message: "サポートされていないファイル形式です（JPEG/PNGのみ）。" },
     )
     .refine(
       (files) =>
         files.length === 0 ||
         files.every((file) => file.size <= 5 * 1024 * 1024),
-      { message: "ファイルサイズは5MB以下にしてください。" }
+      { message: "ファイルサイズは5MB以下にしてください。" },
     ),
 });
 
@@ -83,7 +83,7 @@ export default function NewPostWithAiForm() {
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [hasIdentified, setHasIdentified] = useState(false);
   const [candidates, setCandidates] = useState<PlantIdentificationCandidate[]>(
-    []
+    [],
   );
 
   const [manualQuery, setManualQuery] = useState("");
@@ -98,7 +98,7 @@ export default function NewPostWithAiForm() {
   const images = form.watch("images");
   const canIdentify = images.length > 0 && !isIdentifying;
 
-useEffect(() => {
+  useEffect(() => {
     manualQueryRef.current = manualQuery;
   }, [manualQuery]);
 
@@ -129,6 +129,7 @@ useEffect(() => {
     setCandidates([]);
   };
 
+  // AIで判定を実行する
   const onIdentify = async () => {
     const firstImage = images[0];
     if (!firstImage) {
@@ -211,7 +212,8 @@ useEffect(() => {
     if (!selectedPlant) {
       error({
         title: "植物を選択してください",
-        description: "AI候補の選択、または検索/新規登録で植物を確定してください。",
+        description:
+          "AI候補の選択、または検索/新規登録で植物を確定してください。",
       });
       return;
     }
@@ -263,7 +265,7 @@ useEffect(() => {
         plantId,
         values.comment,
         values.type,
-        values.images
+        values.images,
       );
 
       if (!result.success) {
@@ -287,7 +289,8 @@ useEffect(() => {
       console.error(e);
       error({
         title: "投稿に失敗しました",
-        description: "再度試していただくか、サイト管理者にお問い合わせください。",
+        description:
+          "再度試していただくか、サイト管理者にお問い合わせください。",
       });
     } finally {
       setIsSubmitting(false);
@@ -423,12 +426,18 @@ useEffect(() => {
                       )}
                       <span className="ml-auto">
                         {c.matchedPlant ? (
-                          <Badge variant="default" className="bg-green-600 hover:bg-green-600">
+                          <Badge
+                            variant="default"
+                            className="bg-green-600 hover:bg-green-600"
+                          >
                             <CheckCircle2 className="w-3 h-3 mr-1" />
                             登録済み
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="border-amber-400 text-amber-600 bg-amber-50">
+                          <Badge
+                            variant="outline"
+                            className="border-amber-400 text-amber-600 bg-amber-50"
+                          >
                             <Plus className="w-3 h-3 mr-1" />
                             新規登録
                           </Badge>
@@ -480,16 +489,16 @@ useEffect(() => {
               !manualSuggestions.some(
                 (p) =>
                   normalizePlantName(p.name) ===
-                  normalizePlantName(manualQuery)
+                  normalizePlantName(manualQuery),
               ) && (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => selectNewPlantByName(manualQuery)}
-              >
-                「{normalizePlantName(manualQuery)}」を新規登録して選択
-              </Button>
-            )}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => selectNewPlantByName(manualQuery)}
+                >
+                  「{normalizePlantName(manualQuery)}」を新規登録して選択
+                </Button>
+              )}
           </div>
 
           {selectedPlant ? (
@@ -504,9 +513,7 @@ useEffect(() => {
                 この名前で投稿されます
               </p>
               <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">
-                  {selectedPlant.name}
-                </span>
+                <span className="text-lg font-bold">{selectedPlant.name}</span>
                 {selectedPlant.mode === "existing" ? (
                   <Badge
                     variant="default"

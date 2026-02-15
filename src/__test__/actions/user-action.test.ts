@@ -671,6 +671,8 @@ describe('User Actions', () => {
                     mainImageUrl: undefined,
                     isFavorite: false,
                     isHave: true,
+                    goodCount: 0,
+                    badCount: 0,
                 },
                 {
                     id: 2,
@@ -678,6 +680,8 @@ describe('User Actions', () => {
                     mainImageUrl: undefined,
                     isFavorite: false,
                     isHave: true,
+                    goodCount: 0,
+                    badCount: 0,
                 },
             ]);
 
@@ -832,6 +836,8 @@ describe('User Actions', () => {
                         mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
                         isFavorite: false,
                         isHave: false,
+                        goodCount: 0,
+                        badCount: 0,
                     },
                 },
                 {
@@ -851,6 +857,8 @@ describe('User Actions', () => {
                         mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
                         isFavorite: false,
                         isHave: false,
+                        goodCount: 0,
+                        badCount: 0,
                     },
                 },
             ]);
@@ -910,6 +918,8 @@ describe('User Actions', () => {
                     mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
                     isFavorite: true,
                     isHave: false,
+                    goodCount: 0,
+                    badCount: 0,
                 },
                 {
                     id: 2,
@@ -917,6 +927,8 @@ describe('User Actions', () => {
                     mainImageUrl: undefined,
                     isFavorite: true,
                     isHave: false,
+                    goodCount: 0,
+                    badCount: 0,
                 },
             ]);
         });

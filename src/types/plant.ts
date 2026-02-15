@@ -8,4 +8,6 @@ export type Plant = {
     family?: string;
     genus?: string;
     species?: string;
+    goodCount: number;
+    badCount: number;
 };

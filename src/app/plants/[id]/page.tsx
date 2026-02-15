@@ -1,5 +1,7 @@
+import { Suspense, cache } from "react";
 import Image from "next/image";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import RatingBar from "@/components/RatingBar";
 import { getPlant, getPlantImages } from "@/actions/plant-action";
 import { getEvaluations } from "@/actions/evaluation-action";
@@ -22,6 +24,10 @@ import {
 import PlantImageUploadDialog from "./PlantImageUploadDialog";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+
+// リクエスト単位で getEvaluations をキャッシュし、PlantRating と EvaluationsGrid で重複呼び出しを防止
+const getCachedEvaluations = cache(getEvaluations);
+
 export default async function PlantPage({
   params,
 }: {
@@ -38,17 +44,6 @@ export default async function PlantPage({
   if (!plant) {
     return notFound();
   }
-
-  // 評価を取得
-  const evaluations: Evaluation[] = await getEvaluations(plant.id);
-
-  // 評価をグループ化
-  const goodEvaluations = evaluations.filter(
-    (evaluation) => evaluation.type === EvaluationType.GOOD
-  );
-  const badEvaluations = evaluations.filter(
-    (evaluation) => evaluation.type === EvaluationType.BAD
-  );
 
   // 植物画像を取得
   const plantImages: string[] | undefined = await getPlantImages(plant.id);
@@ -126,13 +121,16 @@ export default async function PlantPage({
                   </span>
                 </div>
 
-                <div className="flex flex-col gap-2 mt-8">
-                  <span className="text-sm text-gray-500">評価</span>
-                  <RatingBar
-                    likes={goodEvaluations.length}
-                    dislikes={badEvaluations.length}
-                  />
-                </div>
+                <Suspense
+                  fallback={
+                    <div className="flex flex-col gap-2 mt-8">
+                      <span className="text-sm text-gray-500">評価</span>
+                      <Skeleton className="h-4 w-full rounded-full" />
+                    </div>
+                  }
+                >
+                  <PlantRating plantId={plant.id} />
+                </Suspense>
               </div>
             </div>
           </CardHeader>
@@ -161,40 +159,91 @@ export default async function PlantPage({
             </div>
 
             {/* Comments Grid */}
-            <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
-              <div>
-                <h3 className="text-lg font-semibold text-green-600 mb-2">
-                  良い評価 {"(" + goodEvaluations.length + ")"}
-                </h3>
-                <div className="space-y-4 max-h-[300px] md:max-h-[500px] overflow-y-auto">
-                  {goodEvaluations
-                    .filter((evaluation) => evaluation.comment)
-                    .map((evaluation) => (
-                      <EvaluationCard
-                        key={evaluation.id}
-                        evaluation={evaluation}
-                      />
-                    ))}
-                </div>
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-indigo-500 mb-2">
-                  悪い評価 {"(" + badEvaluations.length + ")"}
-                </h3>
-                <div className="space-y-4 max-h-[300px] md:max-h-[500px] overflow-y-auto">
-                  {badEvaluations
-                    .filter((evaluation) => evaluation.comment)
-                    .map((evaluation) => (
-                      <EvaluationCard
-                        key={evaluation.id}
-                        evaluation={evaluation}
-                      />
-                    ))}
-                </div>
-              </div>
-            </div>
+            <Suspense fallback={<EvaluationsSkeleton />}>
+              <EvaluationsGrid plantId={plant.id} />
+            </Suspense>
           </CardContent>
         </Card>
+      </div>
+    </div>
+  );
+}
+
+async function PlantRating({ plantId }: { plantId: number }) {
+  const evaluations = await getCachedEvaluations(plantId);
+  let goodCount = 0;
+  let badCount = 0;
+  for (const e of evaluations) {
+    if (e.type === EvaluationType.GOOD) goodCount++;
+    else if (e.type === EvaluationType.BAD) badCount++;
+  }
+  return (
+    <div className="flex flex-col gap-2 mt-8">
+      <span className="text-sm text-gray-500">評価</span>
+      <RatingBar likes={goodCount} dislikes={badCount} />
+    </div>
+  );
+}
+
+async function EvaluationsGrid({ plantId }: { plantId: number }) {
+  const evaluations = await getCachedEvaluations(plantId);
+  const goodEvaluations: Evaluation[] = [];
+  const badEvaluations: Evaluation[] = [];
+  for (const evaluation of evaluations) {
+    if (evaluation.type === EvaluationType.GOOD)
+      goodEvaluations.push(evaluation);
+    else if (evaluation.type === EvaluationType.BAD)
+      badEvaluations.push(evaluation);
+  }
+
+  return (
+    <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
+      <div>
+        <h3 className="text-lg font-semibold text-green-600 mb-2">
+          良い評価 {"(" + goodEvaluations.length + ")"}
+        </h3>
+        <div className="space-y-4 max-h-[300px] md:max-h-[500px] overflow-y-auto">
+          {goodEvaluations
+            .filter((evaluation) => evaluation.comment)
+            .map((evaluation) => (
+              <EvaluationCard key={evaluation.id} evaluation={evaluation} />
+            ))}
+        </div>
+      </div>
+      <div>
+        <h3 className="text-lg font-semibold text-indigo-500 mb-2">
+          悪い評価 {"(" + badEvaluations.length + ")"}
+        </h3>
+        <div className="space-y-4 max-h-[300px] md:max-h-[500px] overflow-y-auto">
+          {badEvaluations
+            .filter((evaluation) => evaluation.comment)
+            .map((evaluation) => (
+              <EvaluationCard key={evaluation.id} evaluation={evaluation} />
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EvaluationsSkeleton() {
+  return (
+    <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
+      <div>
+        <Skeleton className="h-6 w-32 mb-2" />
+        <div className="space-y-4">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+          ))}
+        </div>
+      </div>
+      <div>
+        <Skeleton className="h-6 w-32 mb-2" />
+        <div className="space-y-4">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 w-full rounded-lg" />
+          ))}
+        </div>
       </div>
     </div>
   );

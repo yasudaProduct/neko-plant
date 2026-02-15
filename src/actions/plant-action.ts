@@ -36,6 +36,9 @@ export async function searchPlants(
                     orderBy: { order: 'asc' },
                     take: 1,
                 },
+                evaluations: {
+                    select: { type: true },
+                },
             },
             orderBy: getSortOption(sortBy),
             skip: (page - 1) * pageSize,
@@ -43,7 +46,7 @@ export async function searchPlants(
         });
 
         return {
-            plants: plantsData.map(mapToPlant),
+            plants: plantsData.map(p => mapToPlant(p, countEvaluations(p.evaluations))),
             totalCount
         };
     }
@@ -136,10 +139,16 @@ export async function searchPlants(
         },
     });
 
+    // filteredPlants から評価集計Mapを作成（既存データの再利用）
+    const evalCountsMap = new Map<number, { goodCount: number; badCount: number }>();
+    for (const p of filteredPlants) {
+        evalCountsMap.set(p.id, countEvaluations(p.evaluations));
+    }
+
     // ID順序を維持するために並び替え
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const plantsMap = new Map(plantsData.map((p: any) => [p.id, p]));
-    const plants = paginatedIds.map(id => plantsMap.get(id)!).filter(p => p).map(mapToPlant);
+    const plants = paginatedIds.map(id => mapToPlant(plantsMap.get(id)!, evalCountsMap.get(id))).filter(p => p);
 
     return { plants, totalCount };
 }
@@ -163,17 +172,22 @@ export async function searchPlantName(name: string): Promise<{ id: number, name:
 export async function getPlant(id: number): Promise<Plant | undefined> {
     const supabase = await createClient();
 
-    const plant = await prisma.plants.findUnique({
-        where: { id: id },
-        include: {
-            plant_images: {
-                take: 1,
-                orderBy: {
-                    order: 'asc',
+    // 植物取得と認証チェックを並列実行
+    const [plant, { data: { user } }] = await Promise.all([
+        prisma.plants.findUnique({
+            where: { id: id },
+            include: {
+                plant_images: {
+                    take: 1,
+                    orderBy: {
+                        order: 'asc',
+                    },
                 },
             },
-        },
-    });
+        }),
+        supabase.auth.getUser(),
+    ]);
+
     if (!plant) {
         return undefined;
     }
@@ -181,7 +195,6 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
     // 認証ユーザーの場合はfavoriteとhaveを取得
     let isFavorite = false
     let isHave = false
-    const { data: { user } } = await supabase.auth.getUser();
     if (user != null) {
 
         const publicUser = await prisma.public_users.findFirst({
@@ -190,20 +203,22 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
             },
         });
 
-        const favorite = await prisma.plant_favorites.findFirst({
-            where: {
-                user_id: publicUser!.id,
-                plant_id: id,
-            },
-        });
+        // favoriteとhaveを並列取得
+        const [favorite, have] = await Promise.all([
+            prisma.plant_favorites.findFirst({
+                where: {
+                    user_id: publicUser!.id,
+                    plant_id: id,
+                },
+            }),
+            prisma.plant_have.findFirst({
+                where: {
+                    user_id: publicUser!.id,
+                    plant_id: id,
+                },
+            }),
+        ]);
         isFavorite = favorite != null
-
-        const have = await prisma.plant_have.findFirst({
-            where: {
-                user_id: publicUser!.id,
-                plant_id: id,
-            },
-        });
         isHave = have != null
     }
 
@@ -217,6 +232,8 @@ export async function getPlant(id: number): Promise<Plant | undefined> {
         species: plant.species ?? undefined,
         isFavorite: isFavorite,
         isHave: isHave,
+        goodCount: 0,
+        badCount: 0,
     };
 }
 
@@ -594,14 +611,26 @@ function getSortOption(sortBy: string) {
     }
 }
 
+// 評価の集計
+function countEvaluations(evaluations: { type: string }[]): { goodCount: number; badCount: number } {
+    let goodCount = 0, badCount = 0;
+    for (const e of evaluations) {
+        if (e.type === 'good') goodCount++;
+        else if (e.type === 'bad') badCount++;
+    }
+    return { goodCount, badCount };
+}
+
 // Plantマッパー
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function mapToPlant(plant: any): Plant {
+function mapToPlant(plant: any, evalCounts?: { goodCount: number; badCount: number }): Plant {
     return {
         id: plant.id,
         name: plant.name,
         mainImageUrl: plant.plant_images && plant.plant_images.length > 0 ? STORAGE_PATH.PLANT + plant.plant_images[0].image_url : undefined,
         isFavorite: false,
         isHave: false,
+        goodCount: evalCounts?.goodCount ?? 0,
+        badCount: evalCounts?.badCount ?? 0,
     };
 }

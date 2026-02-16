@@ -126,15 +126,12 @@ test.describe('ヘッダーナビゲーション - 未認証 @public', () => {
 
 test.describe('ヘッダーナビゲーション - 認証済み @user', () => {
 
-  test('認証済みユーザーにはユーザーアバターと植物追加ボタンが表示される', async ({ page }) => {
+  test('認証済みユーザーにはユーザーアバターが表示される', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
     // ユーザーアバターが表示されることを確認
     await expect(page.locator('[data-testid="user-avatar"]')).toBeVisible();
-
-    // 植物追加ボタンが表示されることを確認
-    await expect(page.locator('text=植物を追加')).toBeVisible();
 
     // ログインボタンが表示されていないことを確認
     await expect(page.locator('text=ログイン')).not.toBeVisible();
@@ -166,7 +163,6 @@ test.describe('セッション永続化 @user', () => {
 
     // リロード後も認証状態が維持されることを確認
     await expect(page.locator('[data-testid="user-avatar"]')).toBeVisible();
-    await expect(page.locator('text=植物を追加')).toBeVisible();
 
     await page.screenshot({ path: screenshotDir + 'session-persistence.png', fullPage: true });
   });

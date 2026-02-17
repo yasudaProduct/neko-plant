@@ -123,9 +123,14 @@ export default function NewPostWithAiForm() {
 
   const handleImageChange = (files: File[]) => {
     form.setValue("images", files, { shouldValidate: true });
-    // 画像が変わったらAI判定結果をリセット
+    // 画像が変わったら全入力をリセット
+    form.setValue("type", undefined as unknown as EvaluationType);
+    form.setValue("comment", "");
     setHasIdentified(false);
     setCandidates([]);
+    setSelectedPlant(null);
+    setManualQuery("");
+    setManualSuggestions([]);
   };
 
   // AIで判定を実行する

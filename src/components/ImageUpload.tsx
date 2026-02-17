@@ -16,14 +16,11 @@ export default function ImageUpload({
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { files, displayUrls } = getImageData(e);
     if (files && files.length > 0) {
-      if (selectedFiles.length >= maxCount) {
-        alert(`最大${maxCount}枚までしかアップロードできません。`);
-        return;
-      }
-      const newFiles = [...selectedFiles, ...files];
-      setSelectedFiles(newFiles);
-      setPreview([...preview, ...displayUrls]);
-      onImageChange(newFiles);
+      const limited = files.slice(0, maxCount);
+      const limitedUrls = displayUrls.slice(0, maxCount);
+      setSelectedFiles(limited);
+      setPreview(limitedUrls);
+      onImageChange(limited);
     }
   };
 

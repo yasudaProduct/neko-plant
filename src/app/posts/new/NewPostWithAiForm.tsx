@@ -18,7 +18,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
@@ -124,9 +123,14 @@ export default function NewPostWithAiForm() {
 
   const handleImageChange = (files: File[]) => {
     form.setValue("images", files, { shouldValidate: true });
-    // 画像が変わったらAI判定結果をリセット
+    // 画像が変わったら全入力をリセット
+    form.setValue("type", undefined as unknown as EvaluationType);
+    form.setValue("comment", "");
     setHasIdentified(false);
     setCandidates([]);
+    setSelectedPlant(null);
+    setManualQuery("");
+    setManualSuggestions([]);
   };
 
   // AIで判定を実行する
@@ -297,268 +301,306 @@ export default function NewPostWithAiForm() {
     }
   };
 
+  const StepNumber = ({
+    step,
+    label,
+  }: {
+    step: number;
+    label: string;
+  }) => (
+    <div className="flex items-center gap-2 mb-3">
+      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-green-600 text-white text-xs font-bold shrink-0">
+        {step}
+      </span>
+      <span className="text-sm font-semibold text-gray-700">{label}</span>
+    </div>
+  );
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="images"
-          render={() => (
-            <FormItem>
-              <FormLabel>写真</FormLabel>
-              <ImageUpload
-                onImageChange={handleImageChange}
-                maxCount={MAX_IMAGES}
-              />
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="type"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>猫に対する安全性</FormLabel>
-              <div className="flex gap-4">
-                <Button
-                  type="button"
-                  variant={
-                    field.value === EvaluationType.GOOD
-                      ? "destructive"
-                      : "outline"
-                  }
-                  onClick={() => field.onChange(EvaluationType.GOOD)}
-                >
-                  <Heart
-                    className={`w-4 h-4 ${
-                      field.value === EvaluationType.GOOD
-                        ? "text-white"
-                        : "text-red-500"
-                    }`}
-                  />
-                  安全
-                </Button>
-                <Button
-                  type="button"
-                  variant={
-                    field.value === EvaluationType.BAD ? "default" : "outline"
-                  }
-                  onClick={() => field.onChange(EvaluationType.BAD)}
-                >
-                  <Skull className="w-4 h-4 text-indigo-500" />
-                  危険
-                </Button>
-              </div>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-
-        <FormField
-          control={form.control}
-          name="comment"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>コメント</FormLabel>
-              <FormControl>
-                <Textarea
-                  {...field}
-                  placeholder="コメントを入力してください"
-                  className="h-32"
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {/* STEP 1: 写真 */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <StepNumber step={1} label="植物の写真を追加" />
+          <FormField
+            control={form.control}
+            name="images"
+            render={() => (
+              <FormItem>
+                <ImageUpload
+                  onImageChange={handleImageChange}
+                  maxCount={MAX_IMAGES}
                 />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <Label>植物名候補</Label>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!canIdentify}
-              onClick={onIdentify}
-            >
-              <Sparkles className="w-4 h-4" />
-              {isIdentifying ? "判定中..." : "AIで判定"}
-            </Button>
-          </div>
+        {/* STEP 2: 植物名 */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <StepNumber step={2} label="植物名を特定" />
 
-          {candidates.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              {hasIdentified
-                ? "植物を判定できませんでした。植物が写った写真で再度お試しいただくか、下の検索から植物を選択してください。"
-                : "「AIで判定」ボタンを押すと、写真から植物名の候補を表示します。"}
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {candidates.map((c) => {
-                const isSelected =
-                  (selectedPlant?.mode === "existing" &&
-                    c.matchedPlant?.id === selectedPlant.id) ||
-                  (selectedPlant?.mode === "new" &&
-                    normalizePlantName(selectedPlant.name) ===
-                      normalizePlantName(c.name));
-
-                return (
-                  <button
-                    key={`${c.name}-${c.matchedPlant?.id ?? "new"}`}
-                    type="button"
-                    onClick={() => selectCandidate(c)}
-                    className={`w-full text-left rounded-md border px-3 py-2 transition-colors ${
-                      isSelected
-                        ? "border-green-500 bg-green-50"
-                        : c.matchedPlant
-                          ? "border-green-200 hover:bg-green-50/50"
-                          : "border-amber-200 hover:bg-amber-50/50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{c.name}</span>
-                      {typeof c.confidence === "number" && (
-                        <span className="text-xs text-muted-foreground">
-                          {(c.confidence * 100).toFixed(0)}%
-                        </span>
-                      )}
-                      <span className="ml-auto">
-                        {c.matchedPlant ? (
-                          <Badge
-                            variant="default"
-                            className="bg-green-600 hover:bg-green-600"
-                          >
-                            <CheckCircle2 className="w-3 h-3 mr-1" />
-                            登録済み
-                          </Badge>
-                        ) : (
-                          <Badge
-                            variant="outline"
-                            className="border-amber-400 text-amber-600 bg-amber-50"
-                          >
-                            <Plus className="w-3 h-3 mr-1" />
-                            新規登録
-                          </Badge>
-                        )}
-                      </span>
-                    </div>
-                    {c.matchedPlant && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        <Link
-                          href={`/plants/${c.matchedPlant.id}`}
-                          className="underline"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          詳細を見る
-                        </Link>
-                      </div>
-                    )}
-                  </button>
-                );
-              })}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground">
+                写真からAIが植物名を判定します
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={!canIdentify}
+                onClick={onIdentify}
+              >
+                <Sparkles className="w-4 h-4" />
+                {isIdentifying ? "判定中..." : "AIで判定"}
+              </Button>
             </div>
-          )}
 
-          <div className="space-y-2">
-            <Label>候補にない場合（検索）</Label>
-            <Input
-              value={manualQuery}
-              onChange={(e) => setManualQuery(e.target.value)}
-              placeholder="植物名を検索（例：パキラ）"
-              maxLength={50}
-            />
+            {candidates.length === 0 ? (
+              <p className="text-sm text-muted-foreground bg-gray-50 rounded-md p-3">
+                {hasIdentified
+                  ? "植物を判定できませんでした。植物が写った写真で再度お試しいただくか、下の検索から植物を選択してください。"
+                  : "「AIで判定」ボタンを押すと、写真から植物名の候補を表示します。"}
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {candidates.map((c) => {
+                  const isSelected =
+                    (selectedPlant?.mode === "existing" &&
+                      c.matchedPlant?.id === selectedPlant.id) ||
+                    (selectedPlant?.mode === "new" &&
+                      normalizePlantName(selectedPlant.name) ===
+                        normalizePlantName(c.name));
 
-            {manualSuggestions.length > 0 && (
-              <div className="rounded-md border bg-white shadow-sm">
-                {manualSuggestions.map((p) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className="block w-full text-left px-3 py-2 hover:bg-gray-50"
-                    onClick={() => selectExistingPlant(p)}
-                  >
-                    {p.name}
-                  </button>
-                ))}
+                  return (
+                    <button
+                      key={`${c.name}-${c.matchedPlant?.id ?? "new"}`}
+                      type="button"
+                      onClick={() => selectCandidate(c)}
+                      className={`w-full text-left rounded-md border px-3 py-2 transition-colors ${
+                        isSelected
+                          ? "border-green-500 bg-green-50"
+                          : c.matchedPlant
+                            ? "border-green-200 hover:bg-green-50/50"
+                            : "border-amber-200 hover:bg-amber-50/50"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{c.name}</span>
+                        {typeof c.confidence === "number" && (
+                          <span className="text-xs text-muted-foreground">
+                            {(c.confidence * 100).toFixed(0)}%
+                          </span>
+                        )}
+                        <span className="ml-auto">
+                          {c.matchedPlant ? (
+                            <Badge
+                              variant="default"
+                              className="bg-green-600 hover:bg-green-600"
+                            >
+                              <CheckCircle2 className="w-3 h-3 mr-1" />
+                              登録済み
+                            </Badge>
+                          ) : (
+                            <Badge
+                              variant="outline"
+                              className="border-amber-400 text-amber-600 bg-amber-50"
+                            >
+                              <Plus className="w-3 h-3 mr-1" />
+                              新規登録
+                            </Badge>
+                          )}
+                        </span>
+                      </div>
+                      {c.matchedPlant && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          <Link
+                            href={`/plants/${c.matchedPlant.id}`}
+                            className="underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            詳細を見る
+                          </Link>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
-            {manualQuery.trim().length > 0 &&
-              !manualSuggestions.some(
-                (p) =>
-                  normalizePlantName(p.name) ===
-                  normalizePlantName(manualQuery),
-              ) && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => selectNewPlantByName(manualQuery)}
-                >
-                  「{normalizePlantName(manualQuery)}」を新規登録して選択
-                </Button>
-              )}
-          </div>
+            <div className="border-t border-gray-100 pt-3 space-y-2">
+              <Label className="text-xs text-muted-foreground">
+                候補にない場合（検索）
+              </Label>
+              <Input
+                value={manualQuery}
+                onChange={(e) => setManualQuery(e.target.value)}
+                placeholder="植物名を検索（例：パキラ）"
+                maxLength={50}
+              />
 
-          {selectedPlant ? (
-            <div
-              className={`rounded-lg border-2 px-4 py-3 ${
-                selectedPlant.mode === "existing"
-                  ? "border-green-400 bg-green-50"
-                  : "border-amber-400 bg-amber-50"
-              }`}
-            >
-              <p className="text-xs text-muted-foreground mb-1">
-                この名前で投稿されます
-              </p>
-              <div className="flex items-center gap-2">
-                <span className="text-lg font-bold">{selectedPlant.name}</span>
-                {selectedPlant.mode === "existing" ? (
-                  <Badge
-                    variant="default"
-                    className="bg-green-600 hover:bg-green-600"
-                  >
-                    <CheckCircle2 className="w-3 h-3 mr-1" />
-                    登録済み
-                  </Badge>
-                ) : (
-                  <Badge
-                    variant="outline"
-                    className="border-amber-400 text-amber-600 bg-amber-50"
-                  >
-                    <Plus className="w-3 h-3 mr-1" />
-                    新規登録
-                  </Badge>
-                )}
-              </div>
-              {selectedPlant.mode === "existing" && (
-                <Link
-                  href={`/plants/${selectedPlant.id}`}
-                  className="text-xs text-green-700 underline mt-1 inline-block"
-                >
-                  この植物の詳細を見る
-                </Link>
+              {manualSuggestions.length > 0 && (
+                <div className="rounded-md border bg-white shadow-sm">
+                  {manualSuggestions.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className="block w-full text-left px-3 py-2 hover:bg-gray-50"
+                      onClick={() => selectExistingPlant(p)}
+                    >
+                      {p.name}
+                    </button>
+                  ))}
+                </div>
               )}
-              <p className="text-xs text-muted-foreground mt-2">
-                AIの判定は参考です。必ず正しい植物名を選択してください。
-              </p>
+
+              {manualQuery.trim().length > 0 &&
+                !manualSuggestions.some(
+                  (p) =>
+                    normalizePlantName(p.name) ===
+                    normalizePlantName(manualQuery),
+                ) && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => selectNewPlantByName(manualQuery)}
+                  >
+                    「{normalizePlantName(manualQuery)}」を新規登録して選択
+                  </Button>
+                )}
             </div>
-          ) : (
-            <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-center">
-              <p className="text-sm text-muted-foreground">
-                未選択（投稿前に植物を確定してください）
-              </p>
-            </div>
-          )}
+
+            {selectedPlant ? (
+              <div
+                className={`rounded-lg border-2 px-4 py-3 ${
+                  selectedPlant.mode === "existing"
+                    ? "border-green-400 bg-green-50"
+                    : "border-amber-400 bg-amber-50"
+                }`}
+              >
+                <p className="text-xs text-muted-foreground mb-1">
+                  この名前で投稿されます
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-lg font-bold">
+                    {selectedPlant.name}
+                  </span>
+                  {selectedPlant.mode === "existing" ? (
+                    <Badge
+                      variant="default"
+                      className="bg-green-600 hover:bg-green-600"
+                    >
+                      <CheckCircle2 className="w-3 h-3 mr-1" />
+                      登録済み
+                    </Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className="border-amber-400 text-amber-600 bg-amber-50"
+                    >
+                      <Plus className="w-3 h-3 mr-1" />
+                      新規登録
+                    </Badge>
+                  )}
+                </div>
+                {selectedPlant.mode === "existing" && (
+                  <Link
+                    href={`/plants/${selectedPlant.id}`}
+                    className="text-xs text-green-700 underline mt-1 inline-block"
+                  >
+                    この植物の詳細を見る
+                  </Link>
+                )}
+                <p className="text-xs text-muted-foreground mt-2">
+                  AIの判定は参考です。必ず正しい植物名を選択してください。
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-center">
+                <p className="text-sm text-muted-foreground">
+                  未選択（投稿前に植物を確定してください）
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* STEP 3: 安全性 */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <StepNumber step={3} label="猫に対する安全性を評価" />
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <div className="flex gap-4">
+                  <Button
+                    type="button"
+                    variant={
+                      field.value === EvaluationType.GOOD
+                        ? "destructive"
+                        : "outline"
+                    }
+                    onClick={() => field.onChange(EvaluationType.GOOD)}
+                  >
+                    <Heart
+                      className={`w-4 h-4 ${
+                        field.value === EvaluationType.GOOD
+                          ? "text-white"
+                          : "text-red-500"
+                      }`}
+                    />
+                    安全
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={
+                      field.value === EvaluationType.BAD ? "default" : "outline"
+                    }
+                    onClick={() => field.onChange(EvaluationType.BAD)}
+                  >
+                    <Skull className="w-4 h-4 text-indigo-500" />
+                    危険
+                  </Button>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {/* STEP 4: コメント */}
+        <div className="rounded-lg border border-gray-200 bg-white p-4">
+          <StepNumber step={4} label="コメントを入力" />
+          <FormField
+            control={form.control}
+            name="comment"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Textarea
+                    {...field}
+                    placeholder="この植物と猫についてのコメントを入力してください"
+                    className="h-32"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <Button
           type="submit"
           disabled={isSubmitting || !selectedPlant}
           className="w-full"
+          size="lg"
         >
-          {isSubmitting ? "投稿中..." : "投稿"}
+          {isSubmitting ? "投稿中..." : "投稿する"}
         </Button>
       </form>
     </Form>

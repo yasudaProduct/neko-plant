@@ -16,13 +16,11 @@ test.describe('AI判定付き投稿フォーム @user', () => {
     // ページタイトル確認
     await expect(page.locator('text=写真から評価を投稿')).toBeVisible();
 
-    // フォーム要素の確認
-    // "写真" ラベルは複数存在しうるため、より特定できるロケーターに変更
-    // 画像アップロードフィールド直前のlabel要素の"text=写真"をターゲット
-    await expect(page.locator('label:has-text("写真")').first()).toBeVisible();
-    await expect(page.locator('text=猫に対する安全性')).toBeVisible();
-    await expect(page.locator('text=コメント')).toBeVisible();
-    await expect(page.locator('text=植物名候補')).toBeVisible();
+    // フォーム要素の確認（ステップ番号付きラベル）
+    await expect(page.locator('text=植物の写真を追加')).toBeVisible();
+    await expect(page.locator('text=植物名を特定')).toBeVisible();
+    await expect(page.locator('text=猫に対する安全性を評価')).toBeVisible();
+    await expect(page.locator('text=コメントを入力')).toBeVisible();
 
     // AIで判定ボタンが無効状態（画像未選択）
     const identifyButton = page.getByRole('button', { name: 'AIで判定' });

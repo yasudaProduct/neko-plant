@@ -69,14 +69,14 @@ export default function PlantSearch() {
             sortBy,
             currentPage,
             PAGE_SIZE,
-            evaluationFilter
+            evaluationFilter,
           );
         } else {
           result = await getPlants(
             sortBy,
             currentPage,
             PAGE_SIZE,
-            evaluationFilter
+            evaluationFilter,
           );
         }
         setPlants(result.plants);
@@ -84,6 +84,7 @@ export default function PlantSearch() {
       } catch (error) {
         console.error("植物の取得中にエラーが発生しました:", error);
       } finally {
+        console.log("isSearching", isSearching);
         setIsSearching(false);
       }
     };
@@ -305,6 +306,7 @@ export default function PlantSearch() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-6">
           {isSearching ? (
+            // 読み込み中のスケルトン
             <>
               {Array.from({ length: PAGE_SIZE }).map((_, index) => (
                 <Card key={`skeleton-${index}`} className="w-full h-full">
@@ -322,6 +324,7 @@ export default function PlantSearch() {
               ))}
             </>
           ) : plants.length === 0 ? (
+            // 検索結果がない場合
             query ? (
               <div className="col-span-3 text-center py-8">
                 <p className="text-muted-foreground">
@@ -329,22 +332,15 @@ export default function PlantSearch() {
                 </p>
               </div>
             ) : (
-              <>
-                {Array.from({ length: PAGE_SIZE }).map((_, index) => (
-                  <Card key={`skeleton-${index}`} className="w-full h-full">
-                    <CardContent>
-                      <CardHeader>
-                        <Skeleton className="w-full h-48" />
-                      </CardHeader>
-                      <CardContent>
-                        <Skeleton className="h-[20px] rounded-full" />
-                      </CardContent>
-                    </CardContent>
-                  </Card>
-                ))}
-              </>
+              // 検索条件なしで植物が0件の場合
+              <div className="col-span-3 text-center py-8">
+                <p className="text-muted-foreground">
+                  植物が登録されていません
+                </p>
+              </div>
             )
           ) : (
+            // 検索結果がある場合
             <>
               {plants.map((plant) => (
                 <Link key={plant.id} href={`/plants/${plant.id}`}>

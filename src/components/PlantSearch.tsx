@@ -95,6 +95,11 @@ export default function PlantSearch() {
     setEvaluationFilter(parseSafetyFilter(searchParams.get("filter")));
   }, [searchParams]);
 
+  // URLの検索クエリが変更されたら入力欄を同期（初期表示・ブラウザ戻る等）
+  useEffect(() => {
+    setSearchQuery(query);
+  }, [query]);
+
   useEffect(() => {
     const fetchPlantName = async () => {
       const names = await searchPlantName(searchQuery);
@@ -111,6 +116,9 @@ export default function PlantSearch() {
     e.preventDefault();
     setIsSuggestOpen(false);
 
+    // 検索ボタンで検索する場合はフィルターを「全て」にする
+    setEvaluationFilter("all");
+
     // URLのクエリパラメータを更新
     const params = new URLSearchParams();
     if (searchQuery.trim()) {
@@ -119,26 +127,24 @@ export default function PlantSearch() {
     if (currentSort !== "name") {
       params.set("sort", currentSort);
     }
-    if (evaluationFilter !== "all") {
-      params.set("filter", evaluationFilter);
-    }
-    // 検索時は常に1ページ目に戻る
-
+    // filterは検索時は「全て」なのでURLに含めない
     router.push(`/?${params.toString()}`);
   };
 
   const handleFilterChange = (value: SafetyFilter) => {
     setEvaluationFilter(value);
 
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === "all") {
-      params.delete("filter");
-    } else {
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) {
+      params.set("q", searchQuery.trim());
+    }
+    if (currentSort !== "evaluation_desc") {
+      params.set("sort", currentSort);
+    }
+    if (value !== "all") {
       params.set("filter", value);
     }
     // フィルター変更時は1ページ目に戻す
-    params.delete("page");
-
     router.push(`/?${params.toString()}`);
   };
 
@@ -146,15 +152,17 @@ export default function PlantSearch() {
   const handleSortChange = (value: string) => {
     setCurrentSort(value);
 
-    const params = new URLSearchParams(searchParams.toString());
-    if (value !== "name") {
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) {
+      params.set("q", searchQuery.trim());
+    }
+    if (value !== "evaluation_desc") {
       params.set("sort", value);
-    } else {
-      params.delete("sort");
+    }
+    if (evaluationFilter !== "all") {
+      params.set("filter", evaluationFilter);
     }
     // ソート変更時は1ページ目に戻る
-    params.delete("page");
-
     router.push(`/?${params.toString()}`);
   };
 

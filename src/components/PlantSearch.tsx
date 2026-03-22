@@ -69,14 +69,14 @@ export default function PlantSearch() {
             sortBy,
             currentPage,
             PAGE_SIZE,
-            evaluationFilter
+            evaluationFilter,
           );
         } else {
           result = await getPlants(
             sortBy,
             currentPage,
             PAGE_SIZE,
-            evaluationFilter
+            evaluationFilter,
           );
         }
         setPlants(result.plants);
@@ -84,6 +84,7 @@ export default function PlantSearch() {
       } catch (error) {
         console.error("植物の取得中にエラーが発生しました:", error);
       } finally {
+        console.log("isSearching", isSearching);
         setIsSearching(false);
       }
     };
@@ -93,6 +94,11 @@ export default function PlantSearch() {
   useEffect(() => {
     setEvaluationFilter(parseSafetyFilter(searchParams.get("filter")));
   }, [searchParams]);
+
+  // URLの検索クエリが変更されたら入力欄を同期（初期表示・ブラウザ戻る等）
+  useEffect(() => {
+    setSearchQuery(query);
+  }, [query]);
 
   useEffect(() => {
     const fetchPlantName = async () => {
@@ -110,6 +116,9 @@ export default function PlantSearch() {
     e.preventDefault();
     setIsSuggestOpen(false);
 
+    // 検索ボタンで検索する場合はフィルターを「全て」にする
+    setEvaluationFilter("all");
+
     // URLのクエリパラメータを更新
     const params = new URLSearchParams();
     if (searchQuery.trim()) {
@@ -118,26 +127,24 @@ export default function PlantSearch() {
     if (currentSort !== "name") {
       params.set("sort", currentSort);
     }
-    if (evaluationFilter !== "all") {
-      params.set("filter", evaluationFilter);
-    }
-    // 検索時は常に1ページ目に戻る
-
+    // filterは検索時は「全て」なのでURLに含めない
     router.push(`/?${params.toString()}`);
   };
 
   const handleFilterChange = (value: SafetyFilter) => {
     setEvaluationFilter(value);
 
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === "all") {
-      params.delete("filter");
-    } else {
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) {
+      params.set("q", searchQuery.trim());
+    }
+    if (currentSort !== "evaluation_desc") {
+      params.set("sort", currentSort);
+    }
+    if (value !== "all") {
       params.set("filter", value);
     }
     // フィルター変更時は1ページ目に戻す
-    params.delete("page");
-
     router.push(`/?${params.toString()}`);
   };
 
@@ -145,15 +152,17 @@ export default function PlantSearch() {
   const handleSortChange = (value: string) => {
     setCurrentSort(value);
 
-    const params = new URLSearchParams(searchParams.toString());
-    if (value !== "name") {
+    const params = new URLSearchParams();
+    if (searchQuery.trim()) {
+      params.set("q", searchQuery.trim());
+    }
+    if (value !== "evaluation_desc") {
       params.set("sort", value);
-    } else {
-      params.delete("sort");
+    }
+    if (evaluationFilter !== "all") {
+      params.set("filter", evaluationFilter);
     }
     // ソート変更時は1ページ目に戻る
-    params.delete("page");
-
     router.push(`/?${params.toString()}`);
   };
 
@@ -305,6 +314,7 @@ export default function PlantSearch() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-6">
           {isSearching ? (
+            // 読み込み中のスケルトン
             <>
               {Array.from({ length: PAGE_SIZE }).map((_, index) => (
                 <Card key={`skeleton-${index}`} className="w-full h-full">
@@ -322,6 +332,7 @@ export default function PlantSearch() {
               ))}
             </>
           ) : plants.length === 0 ? (
+            // 検索結果がない場合
             query ? (
               <div className="col-span-3 text-center py-8">
                 <p className="text-muted-foreground">
@@ -329,22 +340,15 @@ export default function PlantSearch() {
                 </p>
               </div>
             ) : (
-              <>
-                {Array.from({ length: PAGE_SIZE }).map((_, index) => (
-                  <Card key={`skeleton-${index}`} className="w-full h-full">
-                    <CardContent>
-                      <CardHeader>
-                        <Skeleton className="w-full h-48" />
-                      </CardHeader>
-                      <CardContent>
-                        <Skeleton className="h-[20px] rounded-full" />
-                      </CardContent>
-                    </CardContent>
-                  </Card>
-                ))}
-              </>
+              // 検索条件なしで植物が0件の場合
+              <div className="col-span-3 text-center py-8">
+                <p className="text-muted-foreground">
+                  植物が登録されていません
+                </p>
+              </div>
             )
           ) : (
+            // 検索結果がある場合
             <>
               {plants.map((plant) => (
                 <Link key={plant.id} href={`/plants/${plant.id}`}>

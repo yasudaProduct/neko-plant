@@ -95,25 +95,25 @@ file_size_limit = "50MiB"
 # enabled = true
 
 [storage.buckets.plants]
-public = false
+public = true
 file_size_limit = "50MiB"
 allowed_mime_types = ["image/png", "image/jpeg"]
 objects_path = "./storage/plants"
 
 [storage.buckets.user_profiles]
-public = false
+public = true
 file_size_limit = "50MiB"
 allowed_mime_types = ["image/png", "image/jpeg"]
 objects_path = "./storage/user_profiles"
 
 [storage.buckets.user_pets]
-public = false
+public = true
 file_size_limit = "50MiB"
 allowed_mime_types = ["image/png", "image/jpeg"]
 objects_path = "./storage/user_pets"
 
 [storage.buckets.evaluations]
-public = false
+public = true
 file_size_limit = "50MiB"
 allowed_mime_types = ["image/png", "image/jpeg"]
 objects_path = "./storage/evaluations"

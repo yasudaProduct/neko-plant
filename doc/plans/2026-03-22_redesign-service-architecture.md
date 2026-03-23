@@ -1,632 +1,485 @@
-# サービスアーキテクチャ再設計 詳細設計書
+# サービス再設計 詳細設計書
 
 作成日: 2026-03-22
+更新日: 2026-03-23
 
 ---
 
-## 1. 現状の課題
+## 1. 再設計の方針
 
-### 1.1 Server Actions の肥大化
+### 1.1 基本原則
 
-現在のアーキテクチャでは Server Actions（`src/actions/`）が以下の全責務を担っている:
+1. **アーキテクチャは変更しない** — 現行の Server Actions → Prisma 直接パターンを維持
+2. **サービスレイヤーは導入しない** — 必要に迫られない限り現行構造を踏襲
+3. **既存データモデルは使えるものを利用** — ただし負債は徹底的に解消し再作成
+4. **段階的導入はしない** — このブランチで完成させてリリース
+5. **フォトSNSコンセプト（concept-photo-sns-v2.md）に完全準拠**
 
-- 認証・認可チェック
-- バリデーション
-- ビジネスロジック
-- Prisma によるデータアクセス
-- Supabase Storage 操作
-- レスポンス整形
+### 1.2 コンセプト変更の要約
 
-ファイルごとの規模:
-
-| ファイル | 行数(概算) | 責務 |
-|---------|-----------|------|
-| `plant-action.ts` | ~500行 | 植物CRUD, 検索, お気に入り, 所持 |
-| `evaluation-action.ts` | ~300行 | 評価CRUD, リアクション |
-| `user-action.ts` | ~450行 | ユーザープロフィール, ペット管理, コレクション |
-| `plant-identification-action.ts` | ~210行 | AI植物判定 |
-| `news-action.ts` | ~70行 | Notion連携 |
-| `neko-action.ts` | ~20行 | 猫種マスタ取得 |
-
-**問題点:**
-- 1つの関数内にバリデーション→認証→DB操作→ストレージ操作→整形が混在
-- テスタビリティが低い（Server Action全体をモックしないとテストできない）
-- 同じパターンの認証チェック・エラーハンドリングが各関数で重複
-- ビジネスロジックの再利用が困難
-
-### 1.2 データモデルの課題
-
-| テーブル | 課題 |
-|---------|------|
-| `evaluations` | 「評価」と「投稿」の概念が混在。写真起点投稿の導入で「投稿 = 評価」の前提が崩れつつある |
-| `plant_images` | evaluationsの画像とは別管理。同一植物の画像が2系統に分散 |
-| `plant_have` | PKの命名にスペース混入（`plant_ have_pkey`）。設計上の負債 |
-| `plant_favorites` | 機能的に問題なし。そのまま利用可 |
-| `neko` / `pets` | 猫種マスタとペット管理。現行で問題なし |
-
-### 1.3 型定義の分散
-
-`src/types/` に型定義があるが、Prismaの生成型との二重管理が発生している箇所がある。
+| 項目 | v1（現行） | v2（フォトSNS） |
+|------|-----------|-----------------|
+| 主な行動 | 植物を検索 → 評価を読む | フィードを眺める → 投稿する |
+| 安全性の表現 | good/bad の明示的評価 | 共存実績の多さ（ポジティブリスト） |
+| コンテンツの主役 | 植物データ | 猫と植物の写真 |
+| ユーザー体験 | データベース検索ツール | SNSフィード |
 
 ---
 
-## 2. 再設計の方針
+## 2. データモデル変更
 
-### 2.1 基本原則
+### 2.1 テーブル判断一覧
 
-1. **Server Actions は薄いコントローラーにする** — バリデーションと認証のみを担当し、ビジネスロジックはServiceレイヤーに委譲
-2. **Service レイヤーの導入** — ビジネスロジックを独立した関数群として切り出し、テスタビリティと再利用性を向上
-3. **Repository パターンは導入しない** — Prisma自体がリポジトリ的役割を果たすため、薄いラッパーは不要
-4. **データモデルは負債を解消** — `plant_have` の命名問題の修正、投稿モデルの再設計
-5. **段階的導入はしない** — このブランチで完成させる
+| テーブル | 判断 | 理由 |
+|---------|------|------|
+| `plants` | **維持** | 植物マスタとして引き続き利用 |
+| `public_users` | **維持** | ユーザー管理の基盤 |
+| `neko` | **維持** | 猫種マスタ |
+| `pets` | **維持** | 猫プロフィール。投稿との紐付けに活用 |
+| `posts` | **新規作成** | フォトSNSのコアテーブル（evaluationsを置き換え） |
+| `post_images` | **新規作成** | 投稿画像（plant_imagesを置き換え） |
+| `post_likes` | **新規作成** | いいね（evaluation_reactions, plant_favoritesを置き換え） |
+| `evaluations` | **削除** | postsで置き換え |
+| `evaluation_reactions` | **削除** | post_likesで置き換え |
+| `plant_images` | **削除** | post_imagesに統合 |
+| `plant_favorites` | **削除** | post_likesに統合 |
+| `plant_have` | **削除** | 投稿から自動推定（PK名スペース混入の負債も解消） |
+| `evaluation_type` enum | **削除** | good/bad評価は廃止 |
+| `reaction_type` enum | **削除** | いいねは単一種類のみ |
+| `mood` enum | **削除** | 未使用 |
 
-### 2.2 ディレクトリ構成（変更後）
+### 2.2 新規テーブル定義
 
-```
-src/
-├── actions/                    # Server Actions (薄いコントローラー)
-│   ├── plant-action.ts         # 植物関連エントリポイント
-│   ├── post-action.ts          # 投稿関連エントリポイント（evaluation-action.tsから改名）
-│   ├── user-action.ts          # ユーザー関連エントリポイント
-│   ├── plant-identification-action.ts  # AI判定（そのまま）
-│   ├── news-action.ts          # ニュース（そのまま）
-│   └── neko-action.ts          # 猫種マスタ（そのまま）
-├── services/                   # ビジネスロジック（新規）
-│   ├── plant-service.ts        # 植物ドメインロジック
-│   ├── post-service.ts         # 投稿ドメインロジック
-│   ├── user-service.ts         # ユーザードメインロジック
-│   ├── pet-service.ts          # ペット管理ロジック
-│   ├── storage-service.ts      # Supabase Storage操作の共通化
-│   └── auth-service.ts         # 認証・認可ヘルパー
-├── app/                        # ページ（変更なし）
-├── components/                 # UIコンポーネント（変更なし）
-├── hooks/                      # クライアントフック（変更なし）
-├── contexts/                   # コンテキスト（変更なし）
-├── lib/                        # ライブラリ設定（変更なし）
-└── types/                      # 型定義（整理）
-```
-
----
-
-## 3. Service レイヤー詳細設計
-
-### 3.1 設計パターン
-
-各サービスは **純粋な関数群のモジュール** として実装する（クラスは使わない）。
-
-```typescript
-// services/plant-service.ts のイメージ
-import { prisma } from "@/lib/prisma";
-
-export async function findPlants(params: FindPlantsParams): Promise<PlantWithCounts[]> {
-  // ビジネスロジック + Prismaクエリ
-}
-
-export async function findPlantById(id: number, userId?: number): Promise<PlantDetail | null> {
-  // ...
-}
-```
-
-Server Action側は薄くなる:
-
-```typescript
-// actions/plant-action.ts のイメージ
-"use server";
-
-import { getCurrentUser } from "@/services/auth-service";
-import { findPlants } from "@/services/plant-service";
-
-export async function getPlants(page: number, filter: string) {
-  const user = await getCurrentUser(); // 任意認証（未ログインも許可）
-  return findPlants({ page, filter, userId: user?.id });
-}
-```
-
-### 3.2 各サービスの責務
-
-#### `auth-service.ts` — 認証・認可
-
-```typescript
-// 現在のセッションからユーザーを取得（未ログインならnull）
-export async function getCurrentUser(): Promise<AuthenticatedUser | null>
-
-// 現在のセッションからユーザーを取得（未ログインならエラー）
-export async function requireCurrentUser(): Promise<AuthenticatedUser>
-
-// 管理者権限チェック（権限なしならエラー）
-export async function requireAdmin(): Promise<AuthenticatedUser>
-```
-
-**目的:** 各Server Actionで重複している認証チェックパターンを1箇所に集約。
-
-#### `plant-service.ts` — 植物ドメイン
-
-```typescript
-// 植物一覧（ページネーション + フィルタ + 評価集計）
-export async function findPlants(params: {
-  page: number;
-  perPage?: number;
-  filter?: "safe" | "danger" | "all";
-  sort?: "name" | "rating" | "newest";
-  userId?: number;  // お気に入り・所持判定用
-}): Promise<{ plants: PlantWithCounts[]; totalCount: number }>
-
-// 植物名検索（オートコンプリート）
-export async function searchPlantsByName(query: string): Promise<PlantSummary[]>
-
-// 植物詳細
-export async function findPlantById(id: number, userId?: number): Promise<PlantDetail | null>
-
-// 植物作成
-export async function createPlant(data: CreatePlantInput): Promise<Plant>
-
-// 植物更新
-export async function updatePlant(id: number, data: UpdatePlantInput): Promise<Plant>
-
-// お気に入り追加/削除
-export async function toggleFavorite(userId: number, plantId: number): Promise<boolean>
-
-// 所持追加/削除
-export async function toggleOwnership(userId: number, plantId: number): Promise<boolean>
-```
-
-#### `post-service.ts` — 投稿ドメイン（旧evaluation）
-
-「投稿」は、ユーザーが植物に対して行う安全性評価投稿を指す。
-現行の `evaluations` テーブルを引き続き使用するが、概念的には「投稿（post）」として扱う。
-
-```typescript
-// 植物に紐づく投稿一覧
-export async function findPostsByPlantId(plantId: number, params: {
-  page?: number;
-  perPage?: number;
-}): Promise<{ posts: PostWithDetails[]; totalCount: number }>
-
-// ユーザーの投稿一覧
-export async function findPostsByUserId(userId: number): Promise<PostWithDetails[]>
-
-// 投稿作成（画像アップロード含む）
-export async function createPost(data: {
-  userId: number;
-  plantId: number;
-  type: "good" | "bad";
-  comment: string;
-  images?: File[];
-}): Promise<PostWithDetails>
-
-// 投稿削除（画像のStorage削除含む）
-export async function deletePost(postId: number, userId: number): Promise<void>
-
-// リアクション追加/削除
-export async function toggleReaction(params: {
-  evaluationId: number;
-  userId: number;
-  type: "good" | "bad";
-}): Promise<{ added: boolean }>
-```
-
-#### `user-service.ts` — ユーザードメイン
-
-```typescript
-// ユーザープロフィール取得（alias_id指定）
-export async function findUserByAliasId(aliasId: string): Promise<UserProfile | null>
-
-// ユーザープロフィール取得（auth_id指定）
-export async function findUserByAuthId(authId: string): Promise<UserProfile | null>
-
-// ユーザーデータ取得（ロール含む）
-export async function getUserWithRole(authId: string): Promise<UserWithRole | null>
-
-// プロフィール更新
-export async function updateProfile(userId: number, data: UpdateProfileInput): Promise<UserProfile>
-
-// ユーザーの植物コレクション
-export async function getUserPlants(userId: number): Promise<PlantSummary[]>
-
-// ユーザーのお気に入り植物
-export async function getUserFavorites(userId: number): Promise<PlantSummary[]>
-```
-
-#### `pet-service.ts` — ペット管理
-
-```typescript
-// ユーザーのペット一覧
-export async function findPetsByUserId(userId: number): Promise<Pet[]>
-
-// ペット作成
-export async function createPet(userId: number, data: CreatePetInput): Promise<Pet>
-
-// ペット更新
-export async function updatePet(petId: number, userId: number, data: UpdatePetInput): Promise<Pet>
-
-// ペット削除
-export async function deletePet(petId: number, userId: number): Promise<void>
-
-// 猫種一覧（マスタ）
-export async function getAllNekoSpecies(): Promise<NekoSpecies[]>
-```
-
-#### `storage-service.ts` — ストレージ操作共通化
-
-```typescript
-// 画像アップロード（汎用）
-export async function uploadImage(params: {
-  bucket: string;
-  path: string;
-  file: File;
-}): Promise<string>  // 公開URL
-
-// 画像削除
-export async function deleteImage(params: {
-  bucket: string;
-  path: string;
-}): Promise<void>
-
-// 評価投稿の画像アップロード（パス生成含む）
-export async function uploadEvaluationImages(
-  evaluationId: number,
-  files: File[]
-): Promise<string[]>
-
-// プロフィール画像アップロード
-export async function uploadProfileImage(
-  userId: number,
-  file: File
-): Promise<string>
-
-// ペット画像アップロード
-export async function uploadPetImage(
-  petId: number,
-  file: File
-): Promise<string>
-```
-
----
-
-## 4. データモデル変更
-
-### 4.1 変更が必要なテーブル
-
-#### `plant_have` → `plant_owns`（再作成）
-
-**理由:** PK名・FK名にスペースが混入しており、負債になっている。テーブル名も意味が不明瞭。
+#### `posts` — 投稿（コアテーブル）
 
 ```prisma
-// 変更前
-model plant_have {
-  id         Int          @id(map: "plant_ have_pkey") @default(autoincrement())
-  plant_id   Int
-  user_id    Int
-  created_at DateTime     @default(now()) @db.Timestamptz(6)
-  plants     plants       @relation(fields: [plant_id], references: [id], onDelete: Cascade, map: "plant_ have_plant_id_fkey")
-  users      public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, map: "plant_ have_user_id_fkey")
+model posts {
+  id          Int          @id @default(autoincrement())
+  user_id     Int
+  plant_id    Int
+  pet_id      Int?
+  comment     String?      @db.VarChar
+  created_at  DateTime     @default(now()) @db.Timestamptz(6)
+  users       public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  plants      plants       @relation(fields: [plant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  pets        pets?        @relation(fields: [pet_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  post_images post_images[]
+  post_likes  post_likes[]
+
+  @@index([plant_id])
+  @@index([user_id])
+  @@index([created_at(sort: Desc)])
   @@schema("public")
 }
+```
 
-// 変更後
-model plant_owns {
+#### `post_images` — 投稿画像
+
+```prisma
+model post_images {
+  id         Int      @id @default(autoincrement())
+  post_id    Int
+  image_url  String   @db.VarChar
+  order      Int      @default(0)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  posts      posts    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([post_id])
+  @@schema("public")
+}
+```
+
+#### `post_likes` — いいね
+
+```prisma
+model post_likes {
   id         Int          @id @default(autoincrement())
-  plant_id   Int
+  post_id    Int
   user_id    Int
   created_at DateTime     @default(now()) @db.Timestamptz(6)
-  plants     plants       @relation(fields: [plant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  posts      posts        @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   users      public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@unique([user_id, plant_id])  // 同一ユーザーの重複所持を防止
+  @@unique([post_id, user_id])
   @@schema("public")
 }
 ```
 
-**マイグレーション手順:**
-1. `plant_owns` テーブルを新規作成
-2. `plant_have` のデータを `plant_owns` へ移行
-3. `plant_have` テーブルを削除
-4. RLSポリシーを `plant_owns` に再設定
+### 2.3 既存テーブルの変更
 
-#### `plant_favorites` — ユニーク制約追加
+#### `plants` — リレーション更新
 
 ```prisma
-// 変更後（ユニーク制約追加のみ）
-model plant_favorites {
-  id         Int          @id @default(autoincrement())
-  user_id    Int
-  plant_id   Int
-  created_at DateTime     @default(now()) @db.Timestamptz(6)
-  plants     plants       @relation(fields: [plant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users      public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@unique([user_id, plant_id])  // 追加: 重複お気に入り防止
-  @@schema("public")
+model plants {
+  // 既存フィールドは変更なし
+  // リレーション変更:
+  // - evaluations     → 削除
+  // - plant_favorites → 削除
+  // - plant_have      → 削除
+  // - plant_images    → 削除
+  // + posts           posts[]  ← 追加
 }
 ```
 
-#### `evaluation_reactions` — ユニーク制約追加
+#### `pets` — リレーション追加
 
 ```prisma
-// 変更後（ユニーク制約追加のみ）
-model evaluation_reactions {
-  id            Int           @id @default(autoincrement())
-  evaluation_id Int
-  user_id       Int
-  created_at    DateTime      @default(now()) @db.Timestamptz(6)
-  type          reaction_type
-  evaluations   evaluations   @relation(fields: [evaluation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users         public_users  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@unique([evaluation_id, user_id])  // 追加: 同一ユーザーの重複リアクション防止
-  @@schema("public")
+model pets {
+  // 既存フィールドは変更なし
+  // + posts posts[]  ← 追加（投稿との紐付け）
 }
 ```
 
-### 4.2 変更不要なテーブル（そのまま利用）
+#### `public_users` — リレーション更新
 
-| テーブル | 理由 |
-|---------|------|
-| `plants` | 問題なし。分類学フィールドも適切 |
-| `evaluations` | 投稿の実体テーブルとして引き続き利用。テーブル名は変更しない（アプリ層で「post」として扱う） |
-| `plant_images` | 植物ギャラリー用として維持。評価画像とは用途が異なる |
-| `public_users` | 問題なし |
-| `neko` | 猫種マスタ。問題なし |
-| `pets` | 問題なし |
+```prisma
+model public_users {
+  // 既存フィールドは変更なし
+  // リレーション変更:
+  // - evaluation_reactions → 削除
+  // - evaluations          → 削除
+  // - plant_favorites      → 削除
+  // - plant_have           → 削除
+  // - plant_images         → 削除
+  // + posts                posts[]       ← 追加
+  // + post_likes           post_likes[]  ← 追加
+}
+```
 
-### 4.3 RLSポリシーの更新
+### 2.4 データ移行
 
-`plant_owns`（新テーブル）に対して、既存の `plant_have` と同等のRLSポリシーを設定:
+| 移行元 | 移行先 | 方針 |
+|--------|--------|------|
+| `evaluations` | `posts` | comment を移行。type(good/bad) は移行しない |
+| evaluations の Storage 画像 | `post_images` | 評価に紐づく画像を投稿画像として移行 |
+| `plant_images`（is_approved=true） | `post_images` | 承認済み画像を投稿として移行 |
+| `evaluation_reactions`（type=good） | `post_likes` | good リアクションのみ like として移行 |
+| `plant_favorites` | — | 移行しない（post_likesとは概念が異なる） |
+| `plant_have` | — | 移行不要（投稿から自動推定） |
+
+移行はPrismaマイグレーションSQL内で `INSERT ... SELECT` を使って実行する。
+
+---
+
+## 3. 安全性指標の算出ロジック
+
+### 共存実績スコア
 
 ```sql
--- plant_owns: 自分のデータのみ閲覧可
-CREATE POLICY "Users can view own plant_owns"
-  ON public.plant_owns FOR SELECT
-  USING (user_id = (SELECT id FROM public.users WHERE auth_id = auth.uid()));
+-- 共存猫数（ユニーク猫数）
+SELECT COUNT(DISTINCT pet_id) FROM posts WHERE plant_id = ? AND pet_id IS NOT NULL
+
+-- 共存投稿数
+SELECT COUNT(*) FROM posts WHERE plant_id = ?
 ```
+
+### 表示ランク
+
+| 共存猫数 | 表示 |
+|---------|------|
+| 50以上 | 「多くの猫と暮らしています」（高い共存実績） |
+| 10〜49 | 「XX匹の猫と暮らしています」（共存実績あり） |
+| 1〜9 | 「XX匹の猫との暮らしが報告されています」（少数の実績） |
+| 0 | 「猫との共存情報がありません ⚠️ 注意してください」 |
 
 ---
 
-## 5. Server Actions リファクタリング詳細
+## 4. Server Actions 変更
 
-### 5.1 変更前後の比較
+### 4.1 ファイル変更一覧
 
-#### 例: `getPlants`（植物一覧取得）
-
-**変更前（plant-action.ts）:**
-```typescript
-export async function getPlants(page: number, filter: string, sort: string) {
-  // 1. Supabaseセッション取得
-  // 2. ユーザーID取得（任意）
-  // 3. Prismaクエリ構築（where, orderBy, include, skip, take）
-  // 4. お気に入り・所持判定
-  // 5. 評価集計
-  // 6. レスポンス整形
-  // → 全部が1つの関数に詰め込まれている
-}
-```
-
-**変更後:**
-```typescript
-// actions/plant-action.ts — 薄いコントローラー
-export async function getPlants(page: number, filter: string, sort: string) {
-  const user = await getCurrentUser();
-  return findPlants({ page, filter, sort, userId: user?.id });
-}
-
-// services/plant-service.ts — ビジネスロジック
-export async function findPlants(params: FindPlantsParams) {
-  const where = buildPlantFilter(params.filter);
-  const orderBy = buildPlantSort(params.sort);
-  const [plants, totalCount] = await Promise.all([
-    prisma.plants.findMany({ where, orderBy, skip, take, include: { ... } }),
-    prisma.plants.count({ where }),
-  ]);
-  return { plants: plants.map(p => toPlantWithCounts(p, params.userId)), totalCount };
-}
-```
-
-### 5.2 ファイル名の変更
-
-| 変更前 | 変更後 | 理由 |
+| 変更前 | 変更後 | 内容 |
 |--------|--------|------|
-| `evaluation-action.ts` | `post-action.ts` | ユーザー向け概念として「投稿」に統一 |
-| その他 | 変更なし | — |
+| `evaluation-action.ts` | `post-action.ts` | 完全書き換え。posts/post_images/post_likes を操作 |
+| `plant-action.ts` | `plant-action.ts` | 大幅修正。favorite/have/評価集計を削除、共存実績集計を追加 |
+| `user-action.ts` | `user-action.ts` | 大幅修正。evaluation/favorite/have関連を削除、post関連を追加 |
+| `plant-identification-action.ts` | `plant-identification-action.ts` | 変更なし |
+| `news-action.ts` | `news-action.ts` | 変更なし |
+| `neko-action.ts` | `neko-action.ts` | 変更なし |
 
----
-
-## 6. エラーハンドリング統一
-
-### 6.1 現状
-
-各Server Actionでtry-catchと`ActionResult`型を独自に構築している。
-
-### 6.2 改善
-
-サービスレイヤーでは**例外をスロー**し、Server Actionレイヤーで**キャッチして`ActionResult`に変換**する。
+### 4.2 `post-action.ts`（新規 — evaluation-action.ts を置き換え）
 
 ```typescript
-// services/ ではビジネスエラーを例外としてスロー
-export class AppError extends Error {
-  constructor(
-    public code: ActionErrorCode,
-    message: string,
-  ) {
-    super(message);
-  }
-}
+// 投稿一覧（フィード）
+export async function getFeedPosts(page?: number, pageSize?: number):
+  Promise<{ posts: Post[]; totalCount: number }>
 
-export class NotFoundError extends AppError {
-  constructor(message = "リソースが見つかりません") {
-    super("NOT_FOUND", message);
-  }
-}
+// 植物別投稿一覧
+export async function getPostsByPlantId(plantId: number, page?: number, pageSize?: number):
+  Promise<{ posts: Post[]; totalCount: number }>
 
-export class UnauthorizedError extends AppError {
-  constructor(message = "認証が必要です") {
-    super("UNAUTHORIZED", message);
-  }
-}
+// 投稿作成
+export async function createPost(
+  plantId: number, petId: number | null, comment: string | null, images: File[]
+): Promise<ActionResult<{ postId: number }>>
 
-export class ForbiddenError extends AppError {
-  constructor(message = "権限がありません") {
-    super("FORBIDDEN", message);
-  }
-}
+// 投稿削除
+export async function deletePost(postId: number): Promise<ActionResult>
 
-export class ValidationError extends AppError {
-  constructor(message: string) {
-    super("VALIDATION_ERROR", message);
-  }
-}
+// いいね追加
+export async function addLike(postId: number): Promise<ActionResult>
+
+// いいね削除
+export async function deleteLike(postId: number): Promise<ActionResult>
 ```
+
+### 4.3 `plant-action.ts`（修正）
 
 ```typescript
-// actions/ ではキャッチして統一的にActionResultへ変換
-import { AppError } from "@/services/errors";
+// 維持（修正あり）
+export async function getPlants(sortBy?, page?, pageSize?):
+  Promise<{ plants: Plant[]; totalCount: number }>
+  // → goodCount/badCount を coexistenceCatCount/coexistencePostCount に変更
+  // → filter の "safe"/"danger" を廃止
+  // → "coexistence" ソート（共存実績順）を追加
 
-async function handleAction<T>(fn: () => Promise<T>): Promise<ActionResult<T>> {
-  try {
-    const data = await fn();
-    return { success: true, data };
-  } catch (e) {
-    if (e instanceof AppError) {
-      return { success: false, code: e.code, message: e.message };
-    }
-    console.error("Unexpected error:", e);
-    return { success: false, code: "INTERNAL_ERROR", message: "予期しないエラーが発生しました" };
-  }
-}
+export async function searchPlants(query, sortBy?, page?, pageSize?):
+  Promise<{ plants: Plant[]; totalCount: number }>
+  // → 同上
 
-// 使用例
-export async function getPlant(id: number) {
-  return handleAction(async () => {
-    const user = await getCurrentUser();
-    return findPlantById(id, user?.id);
-  });
-}
+export async function searchPlantName(name):
+  Promise<{ id: number; name: string }[]>
+  // → 変更なし
+
+export async function getPlant(id):
+  Promise<Plant | undefined>
+  // → isFavorite/isHave/goodCount/badCount を削除
+  // → coexistenceCatCount/coexistencePostCount を追加
+  // → 関連投稿一覧を追加
+
+export async function addPlant(name, image?): Promise<ActionResult<{ plantId: number }>>
+  // → 変更なし
+
+export async function updatePlant(id, plant): Promise<ActionResult<{ plantId: number }>>
+  // → 変更なし
+
+export async function deletePlant(id): Promise<ActionResult>
+  // → 変更なし
+
+// 削除する関数
+// - getPlantImages → 投稿画像に統合
+// - addPlantImage → 投稿フローに統合
+// - addFavorite / deleteFavorite → post_likes に置き換え
+// - addHave / deleteHave → 投稿から自動推定
+```
+
+### 4.4 `user-action.ts`（修正）
+
+```typescript
+// 維持（変更なし）
+export async function getUserProfile(aliasId): Promise<UserProfile | undefined>
+export async function getUserProfileByAuthId(): Promise<UserProfile | undefined>
+export async function getUserData(authId): Promise<UserData | null>
+export async function getUserPets(userId): Promise<Pet[] | undefined>
+export async function updateUser(name, aliasId): void
+export async function updateUserImage(image): void
+export async function addPet(name, speciesId, image?, sex?, birthday?, age?): void
+export async function updatePet(petId, name, speciesId, image?, sex?, birthday?, age?): Promise<ActionResult>
+export async function deletePet(petId): void
+
+// 修正
+export async function getUserPosts(userId):
+  Promise<(Post & { plant: Plant })[] | undefined>
+  // → getUserEvaluations を置き換え。posts テーブルから取得
+
+export async function getUserPostImages(userId):
+  Promise<{ id: number; postId: number; plantName: string; imageUrl: string; createdAt: Date }[] | undefined>
+  // → post_images テーブルから取得に変更
+
+// 削除する関数
+// - getUserPlants → 投稿から自動集計に変更（getUserPosts で代替）
+// - deleteHavePlant → plant_have 廃止
+// - getUserEvaluations → getUserPosts に置き換え
+// - getUserFavoritePlants → plant_favorites 廃止
+// - deleteFavoritePlant → plant_favorites 廃止
+// - deletePostImage → post-action.ts に移動
 ```
 
 ---
 
-## 7. 実装タスク一覧
+## 5. 型定義の変更
 
-### Phase A: 基盤構築
+### 5.1 `types/post.ts`（新規 — evaluation.ts を置き換え）
 
-| # | タスク | 詳細 |
-|---|--------|------|
-| A-1 | `services/errors.ts` 作成 | AppError, NotFoundError, UnauthorizedError, ForbiddenError, ValidationError |
-| A-2 | `services/auth-service.ts` 作成 | getCurrentUser, requireCurrentUser, requireAdmin |
-| A-3 | `services/storage-service.ts` 作成 | uploadImage, deleteImage, 各種画像アップロード関数 |
-| A-4 | `handleAction` ヘルパー作成 | actions内の共通エラーハンドリング |
+```typescript
+export type Post = {
+  id: number;
+  comment: string | null;
+  createdAt: Date;
+  pet?: Pet;
+  imageUrls: string[];
+  likeCount: number;
+  isLiked: boolean;
+  user: { aliasId: string; name: string; imageSrc?: string };
+  plant?: { id: number; name: string };
+};
+```
 
-### Phase B: データモデル変更
+### 5.2 `types/plant.ts`（修正）
 
-| # | タスク | 詳細 |
-|---|--------|------|
-| B-1 | `plant_owns` テーブル作成 | Prismaスキーマ変更 + マイグレーション |
-| B-2 | `plant_have` → `plant_owns` データ移行 | マイグレーションSQLでデータコピー |
-| B-3 | `plant_have` テーブル削除 | Prismaスキーマから削除 |
-| B-4 | `plant_favorites` ユニーク制約追加 | `@@unique([user_id, plant_id])` |
-| B-5 | `evaluation_reactions` ユニーク制約追加 | `@@unique([evaluation_id, user_id])` |
-| B-6 | RLSポリシー更新 | `plant_owns` にRLS設定 |
+```typescript
+export type Plant = {
+  id: number;
+  name: string;
+  mainImageUrl?: string;
+  scientific_name?: string;
+  family?: string;
+  genus?: string;
+  species?: string;
+  coexistenceCatCount: number;   // 共存猫数（旧 goodCount を置き換え）
+  coexistencePostCount: number;  // 共存投稿数（旧 badCount を置き換え）
+  // 削除: isFavorite, isHave, goodCount, badCount
+};
+```
 
-### Phase C: サービスレイヤー実装
+### 5.3 削除するファイル
 
-| # | タスク | 詳細 |
-|---|--------|------|
-| C-1 | `services/plant-service.ts` 実装 | plant-action.tsからロジック移行 |
-| C-2 | `services/post-service.ts` 実装 | evaluation-action.tsからロジック移行 |
-| C-3 | `services/user-service.ts` 実装 | user-action.tsからロジック移行 |
-| C-4 | `services/pet-service.ts` 実装 | user-action.tsのペット関連を分離 |
+| ファイル | 理由 |
+|---------|------|
+| `types/evaluation.ts` | `types/post.ts` に置き換え |
 
-### Phase D: Server Actions リファクタリング
+### 5.4 変更なしのファイル
 
-| # | タスク | 詳細 |
-|---|--------|------|
-| D-1 | `plant-action.ts` リファクタリング | plant-serviceへ委譲、plant_have→plant_owns対応 |
-| D-2 | `evaluation-action.ts` → `post-action.ts` | post-serviceへ委譲、ファイル名変更 |
-| D-3 | `user-action.ts` リファクタリング | user-service, pet-serviceへ委譲 |
-| D-4 | 呼び出し元の更新 | import パスの変更（evaluation-action → post-action） |
-
-### Phase E: テスト
-
-| # | タスク | 詳細 |
-|---|--------|------|
-| E-1 | サービスレイヤーのユニットテスト | Prismaモック使用。各サービスの主要関数をテスト |
-| E-2 | 既存テストの更新 | import変更への追従、新しいテーブル名への対応 |
-| E-3 | E2Eテストの動作確認 | 既存フローが壊れていないことを確認 |
-
-### Phase F: クリーンアップ
-
-| # | タスク | 詳細 |
-|---|--------|------|
-| F-1 | 旧コードの削除 | evaluation-action.ts（post-action.tsに移行済み） |
-| F-2 | 型定義の整理 | types/ の重複排除、Prisma生成型の活用 |
-| F-3 | ビルド確認 | `npm run build` の成功を確認 |
+| ファイル | 理由 |
+|---------|------|
+| `types/common.ts` | ActionResult, ActionErrorCode はそのまま利用 |
+| `types/user.ts` | UserProfile, UserData はそのまま利用 |
+| `types/neko.ts` | Pet, NekoSpecies はそのまま利用 |
 
 ---
 
-## 8. 影響範囲
+## 6. ページ・ルーティング変更
 
-### 8.1 変更が必要なファイル
+### 6.1 ルート変更一覧
+
+| ルート | 変更 | 内容 |
+|--------|------|------|
+| `/` (ホーム) | **大幅修正** | 植物一覧 → フィード（新着投稿タイムライン）に変更 |
+| `/plants` | **修正** | 共存実績ベースのソート・表示に変更。safe/dangerフィルタ廃止 |
+| `/plants/[id]` | **修正** | 評価一覧 → 関連投稿一覧、共存実績表示に変更 |
+| `/plants/[id]/edit` | 変更なし | — |
+| `/plants/new` | 変更なし | — |
+| `/posts/new` | **修正** | good/bad選択を廃止。猫選択を追加。フォトSNS投稿フローに |
+| `/[aliasId]` | **修正** | ユーザーの投稿ギャラリーに変更 |
+| `/[aliasId]/posts` | **修正** | 投稿一覧をpost対応に変更 |
+| `/admin/evaluations` | **修正** | `/admin/posts` に変更。投稿モデレーション |
+| `/admin/plant-images` | **削除** | post_imagesに統合（admin/postsで管理） |
+| `/settings/*` | 変更なし | — |
+| `/news/*` | 変更なし | — |
+| `/(auth-pages)/*` | 変更なし | — |
+| `/contact` | 変更なし | — |
+| `/privacy`, `/terms` | 変更なし | — |
+
+### 6.2 ホームページ（フィード）の設計
+
+- **レイアウト:** カード型の縦スクロールフィード
+- **各投稿カード:**
+  - 投稿者情報（アイコン、名前）
+  - 写真（メイン）
+  - 植物名タグ（タップで植物ページへ）
+  - 猫の名前・種類
+  - いいねボタン + 数
+  - コメント（あれば）
+  - 投稿日時
+- **ページネーション:** 無限スクロール or ページネーション
+
+### 6.3 植物詳細ページの変更
+
+| 要素 | v1 | v2 |
+|------|----|----|
+| 安全性表示 | good/bad カウント | 共存実績サマリー |
+| メインコンテンツ | 評価一覧 | 関連投稿ギャラリー |
+| お気に入りボタン | あり | 廃止 |
+| 所持ボタン | あり | 廃止（投稿から自動推定） |
+| 植物情報 | 学名・科・属・種 | 維持 |
+
+---
+
+## 7. Storage バケット変更
+
+### 7.1 変更方針
+
+| バケット | 変更 | 内容 |
+|---------|------|------|
+| `plants` | **廃止** | plant_images 用。post_images に統合 |
+| `evaluations` | **リネーム or 廃止** | `posts` バケットに移行 |
+| `posts` | **新規作成** | 投稿画像用の統一バケット |
+| `user_profiles` | 変更なし | — |
+| `user_pets` | 変更なし | — |
+
+### 7.2 Storage パス設計
+
+```
+posts/{post_id}/{image_name}     ← 投稿画像
+user_profiles/{user_id}/{name}   ← ユーザープロフィール画像（既存）
+user_pets/{pet_id}/{name}        ← ペット画像（既存）
+```
+
+---
+
+## 8. 実装タスク一覧
+
+このブランチで一括実装する。推奨順序:
+
+| # | タスク | 詳細 |
+|---|--------|------|
+| 1 | Prismaスキーマ変更 | posts, post_images, post_likes 追加。旧テーブル削除。enum削除 |
+| 2 | マイグレーション実行 | データ移行SQL含む。`npx prisma migrate dev` |
+| 3 | 型定義の更新 | `types/post.ts` 新規作成、`types/plant.ts` 修正、`types/evaluation.ts` 削除 |
+| 4 | `post-action.ts` 作成 | `evaluation-action.ts` を置き換え。CRUD + いいね |
+| 5 | `plant-action.ts` 修正 | favorite/have/評価集計を削除、共存実績集計を追加 |
+| 6 | `user-action.ts` 修正 | evaluation/favorite/have 関連を削除、post 関連を追加 |
+| 7 | ホームページ変更 | フィード型UIに変更 |
+| 8 | 投稿フロー変更 | `/posts/new` をフォトSNS投稿フローに修正 |
+| 9 | 植物詳細ページ変更 | 共存実績表示 + 関連投稿ギャラリー |
+| 10 | 植物一覧ページ変更 | 共存実績ベースの表示・ソート |
+| 11 | ユーザープロフィール変更 | 投稿ギャラリー化 |
+| 12 | 管理者ページ変更 | evaluations → posts 対応 |
+| 13 | コンポーネント更新 | 評価関連コンポーネントを投稿対応に書き換え |
+| 14 | Storage バケット対応 | posts バケット作成、パス変更 |
+| 15 | 旧ファイル削除 | `evaluation-action.ts`, `types/evaluation.ts`, 旧コンポーネント |
+| 16 | テスト更新 | ユニットテスト + E2Eテストの修正 |
+| 17 | ビルド確認 | `npm run build` の成功を確認 |
+
+---
+
+## 9. 影響範囲
+
+### 9.1 変更が必要なファイル
 
 | カテゴリ | ファイル | 変更内容 |
 |---------|---------|---------|
-| スキーマ | `prisma/schema.prisma` | plant_owns追加、plant_have削除、ユニーク制約追加 |
-| サービス(新規) | `src/services/*.ts` | 6ファイル新規作成 |
-| アクション | `src/actions/plant-action.ts` | サービスへの委譲 |
-| アクション | `src/actions/evaluation-action.ts` → `post-action.ts` | 改名＋サービスへの委譲 |
-| アクション | `src/actions/user-action.ts` | サービスへの委譲 |
-| ページ | `evaluation-action` をimportしている全ページ | import先を `post-action` に変更 |
-| テスト | 既存テストファイル | import変更追従 |
+| スキーマ | `prisma/schema.prisma` | posts系追加、旧テーブル・enum削除 |
+| アクション | `src/actions/post-action.ts` | 新規作成（evaluation-action.ts の置き換え） |
+| アクション | `src/actions/plant-action.ts` | 共存実績対応、favorite/have削除 |
+| アクション | `src/actions/user-action.ts` | post対応、evaluation/favorite/have削除 |
+| 型定義 | `src/types/post.ts` | 新規作成 |
+| 型定義 | `src/types/plant.ts` | 共存実績フィールドに変更 |
+| 型定義 | `src/types/evaluation.ts` | 削除 |
+| ページ | `src/app/page.tsx` | フィード化 |
+| ページ | `src/app/plants/[id]/page.tsx` | 共存実績 + 投稿ギャラリー |
+| ページ | `src/app/plants/page.tsx` | 共存実績ベース表示 |
+| ページ | `src/app/posts/new/page.tsx` | フォトSNS投稿フロー |
+| ページ | `src/app/[aliasId]/page.tsx` | 投稿ギャラリー |
+| ページ | `src/app/[aliasId]/posts/page.tsx` | post対応 |
+| ページ | `src/app/admin/evaluations/page.tsx` | posts対応に変更 |
+| コンポーネント | evaluation関連コンポーネント | post対応に書き換え |
 
-### 8.2 変更不要なファイル
+### 9.2 変更不要なファイル
 
-- `src/app/` のページ構成（ルーティング変更なし）
-- `src/components/` のUIコンポーネント（データの受け渡し方は同じ）
-- `src/hooks/useUser.ts`（Supabase Auth依存のため変更なし）
-- `src/lib/`（Prisma, Supabase設定はそのまま）
-- `src/actions/plant-identification-action.ts`（独立性が高いためそのまま）
-- `src/actions/news-action.ts`（Notion連携で独立性が高い）
-- `src/actions/neko-action.ts`（1関数のみで分離不要）
-
----
-
-## 9. テスト戦略
-
-### 9.1 サービスレイヤーのテスト
-
-サービス関数は Prisma をモックすることで独立してテスト可能になる。
-
-```typescript
-// __tests__/services/plant-service.test.ts
-import { vi } from "vitest";
-import { findPlants, createPlant } from "@/services/plant-service";
-
-vi.mock("@/lib/prisma", () => ({
-  prisma: {
-    plants: {
-      findMany: vi.fn(),
-      count: vi.fn(),
-      create: vi.fn(),
-    },
-  },
-}));
-
-describe("findPlants", () => {
-  it("フィルタなしで全植物を返す", async () => { ... });
-  it("safeフィルタで安全な植物のみ返す", async () => { ... });
-  it("ページネーションが正しく動作する", async () => { ... });
-});
-```
-
-### 9.2 Server Actions のテスト
-
-Server Actions は薄いため、統合テスト的に確認:
-
-```typescript
-// __tests__/actions/plant-action.test.ts
-describe("getPlants", () => {
-  it("未ログインでも植物一覧を取得できる", async () => { ... });
-  it("ログイン時はお気に入り情報が含まれる", async () => { ... });
-});
-```
+| ファイル | 理由 |
+|---------|------|
+| `src/actions/plant-identification-action.ts` | 独立性が高い。投稿フローから呼ぶだけ |
+| `src/actions/news-action.ts` | Notion連携で独立 |
+| `src/actions/neko-action.ts` | 猫種マスタ取得のみ |
+| `src/app/settings/*` | プロフィール・アカウント設定は変更なし |
+| `src/app/news/*` | ニュースは独立 |
+| `src/app/(auth-pages)/*` | 認証フローは変更なし |
+| `src/hooks/useUser.ts` | Supabase Auth依存で変更なし |
+| `src/lib/*` | Prisma, Supabase設定は変更なし |
+| `src/types/common.ts` | ActionResult等はそのまま利用 |
+| `src/types/user.ts` | ユーザー型は変更なし |
+| `src/types/neko.ts` | ペット型は変更なし |
 
 ---
 
@@ -634,8 +487,10 @@ describe("getPlants", () => {
 
 | リスク | 対策 |
 |--------|------|
-| `plant_have` → `plant_owns` のデータ移行漏れ | マイグレーションSQL内でINSERT...SELECTを使い、件数を検証 |
+| データ移行漏れ（evaluations → posts） | マイグレーションSQL内で INSERT...SELECT + 件数検証 |
+| Storage画像の移行 | 既存バケットの画像パスを維持するか、新バケットへコピーするか要判断 |
 | import先変更の漏れ | `npm run build` で型エラーとして検出。grepで全箇所確認 |
-| evaluation-action → post-action の改名による影響 | 全ファイルのimportを一括置換後にビルド確認 |
-| RLSポリシーの設定漏れ | plant_ownsに対して既存plant_haveと同等のポリシーを適用 |
-| Server Actionsの"use server"ディレクティブ消失 | リファクタリング時に各ファイル先頭の"use server"を維持 |
+| evaluation-action を参照するコンポーネントの修正漏れ | ビルドエラーで検出 |
+| RLSポリシーの設定 | 新テーブル（posts, post_images, post_likes）にRLS設定が必要 |
+| 既存ユーザーのお気に入りデータ消失 | plant_favorites は移行しない方針。事前告知が望ましい |
+| "use server" ディレクティブ | post-action.ts 作成時に先頭に記載を忘れない |

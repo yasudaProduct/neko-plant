@@ -5,13 +5,17 @@ import Footer from "@/components/Footer";
 import ProgressBar from "@/components/ProgressBar";
 import { Toaster } from "@/components/ui/toaster";
 import { AuthDialogProvider } from "@/contexts/AuthDialogContext";
-import { M_PLUS_Rounded_1c } from "next/font/google";
+import localFont from "next/font/local";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { headers } from "next/headers";
 
-const RampartOneFont = M_PLUS_Rounded_1c({
-  subsets: ["latin"],
-  weight: ["400", "700"],
+const RampartOneFont = localFont({
+  src: [
+    { path: "./fonts/GeistVF.woff", weight: "400", style: "normal" },
+    { path: "./fonts/GeistVF.woff", weight: "700", style: "normal" },
+  ],
+  variable: "--font-mplus",
+  display: "swap",
 });
 
 export const metadata: Metadata = {

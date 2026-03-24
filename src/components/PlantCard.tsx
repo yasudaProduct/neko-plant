@@ -1,22 +1,19 @@
-import { Heart, Leaf, MessageSquare, Skull } from "lucide-react";
+import { Cat, Leaf } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import Image from "next/image";
 
 export interface PlantCardProps {
   name: string;
   imageSrc?: string;
-  isSafe: boolean;
-  likes: number;
-  dislikes: number;
-  reviewCount: number;
+  coexistenceCatCount: number;
+  coexistencePostCount: number;
 }
 
 export default function PlantCard({
   name,
   imageSrc,
-  likes,
-  dislikes,
-  reviewCount,
+  coexistenceCatCount,
+  coexistencePostCount,
 }: PlantCardProps) {
   return (
     <Card
@@ -24,7 +21,7 @@ export default function PlantCard({
       data-testid="plant-card"
     >
       <div className="relative w-full h-48 max-md:h-32">
-        {imageSrc ? (
+        {imageSrc && imageSrc !== "/images/plant_default.png" ? (
           <div className="relative h-full w-full">
             <Image
               src={imageSrc}
@@ -44,7 +41,6 @@ export default function PlantCard({
         ) : (
           <div className="w-full h-full bg-gray-200 flex items-center justify-center">
             <Leaf className="w-10 h-10 text-gray-400" />
-            <span className="text-gray-400 ml-2">No image</span>
           </div>
         )}
       </div>
@@ -53,22 +49,15 @@ export default function PlantCard({
         <CardTitle className="text-md mb-2 sm:text-lg md:text-xl">
           {name}
         </CardTitle>
-        <div className="flex items-center justify-between text-sm">
-          <span className="flex items-center gap-1">
-            <Heart className="h-4 w-4 text-red-600" />
-            {likes}
-          </span>
-          <span className="flex items-center gap-1">
-            <Skull className="h-4 w-4 text-indigo-600" />
-            {dislikes}
-          </span>
-          <div className="flex items-center gap-1">
-            <span className="hidden sm:block">レビュー {reviewCount}件</span>
-            <span className="block sm:hidden flex items-center gap-1">
-              <MessageSquare className="h-4 w-4 text-gray-600" />
-              {reviewCount}
-            </span>
-          </div>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <Cat className="h-4 w-4 text-green-600" />
+          {coexistenceCatCount > 0 ? (
+            <span>{coexistenceCatCount}匹の猫と共存</span>
+          ) : coexistencePostCount > 0 ? (
+            <span>{coexistencePostCount}件の投稿あり</span>
+          ) : (
+            <span className="text-amber-600">⚠️ 共存情報なし</span>
+          )}
         </div>
       </CardContent>
     </Card>

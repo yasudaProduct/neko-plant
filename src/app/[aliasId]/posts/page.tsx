@@ -1,115 +1,82 @@
-import { Heart, Skull, Star, Image as ImageIcon } from "lucide-react";
+import { Image as ImageIcon, Leaf } from "lucide-react";
 import Link from "next/link";
 import {
-  getUserEvaluations,
-  getUserPostImages,
+  getUserPosts,
   getUserProfile,
 } from "@/actions/user-action";
 import { notFound } from "next/navigation";
 import Image from "next/image";
-import PlantImageButtom from "./PlantImageButtom";
-import PlantEvalButtom from "./PlantEvalButtom";
+import PostDeleteButton from "./PostDeleteButton";
 
-export default async function ProfilePage({
+export default async function ProfilePostsPage({
   params,
 }: {
   params: Promise<{ aliasId: string }>;
 }) {
   const { aliasId } = await params;
 
-  // ユーザー情報取得
   const userProfile = await getUserProfile(aliasId);
   if (!userProfile) {
     return notFound();
   }
 
-  // 投稿評価一覧取得
-  const evaluations = await getUserEvaluations(userProfile.id);
-
-  // 投稿画像一覧取得
-  const postImages = await getUserPostImages(userProfile.id);
+  const posts = await getUserPosts(userProfile.id);
 
   return (
     <div className="space-y-6">
-      {/* 評価一覧 */}
-      <div className="lg:min-w-[500px] pt-6">
-        <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
-          <Star className="text-yellow-500" />
-          評価一覧
-        </h2>
-        <div className="overflow-y-auto max-h-[300px]">
-          {evaluations &&
-            evaluations.map((evaluation) => (
-              <div
-                key={evaluation.id}
-                className="flex items-center gap-2 bg-gray-50 p-4 rounded-lg mb-4 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex flex-col gap-2">
-                  <div className="flex flex-row gap-2">
-                    {evaluation.type === "good" ? (
-                      <Heart className="w-4 h-4 text-red-500" />
-                    ) : (
-                      <Skull className="w-4 h-4 text-indigo-500" />
-                    )}
-                    <p>{evaluation.comment}</p>
-                    <Link href={`/plants/${evaluation.plant.id}`}>
-                      <p className="text-sm hover:cursor-pointer">
-                        {"[" + evaluation.plant.name + "]"}
-                      </p>
-                    </Link>
-                  </div>
-                  {evaluation.imageUrls && evaluation.imageUrls.length > 0 && (
-                    <div className="flex flex-row gap-2">
-                      {evaluation.imageUrls.map((imageUrl) => (
-                        <Image
-                          key={imageUrl}
-                          src={imageUrl}
-                          alt="評価画像"
-                          width={50}
-                          height={50}
-                        />
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="ml-auto">
-                  <PlantEvalButtom evaluationId={evaluation.id} />
-                </div>
-              </div>
-            ))}
-        </div>
-      </div>
-
       {/* 投稿一覧 */}
       <div className="lg:min-w-[500px] pt-6">
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
           <ImageIcon className="text-green-500" />
           投稿一覧
         </h2>
-        <div className="overflow-y-auto max-h-[300px]">
-          {postImages &&
-            postImages.map((postImage) => (
-              <div
-                key={postImage.id}
-                className="flex items-center gap-2 bg-gray-50 p-4 rounded-lg mb-4 hover:bg-gray-100 transition-colors"
-              >
-                <Link href={`/plants/${postImage.plantId}`}>
+        <div className="space-y-4">
+          {posts.length === 0 && (
+            <p className="text-muted-foreground text-sm">まだ投稿がありません</p>
+          )}
+          {posts.map((post) => (
+            <div
+              key={post.id}
+              className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              {/* 投稿画像 */}
+              {post.imageUrls.length > 0 ? (
+                <Link href={`/plants/${post.plant?.id}`}>
                   <Image
-                    src={postImage.imageUrl}
+                    src={post.imageUrls[0]}
                     alt="投稿画像"
-                    width={100}
-                    height={100}
+                    width={80}
+                    height={80}
+                    className="w-20 h-20 rounded-lg object-cover"
                   />
                 </Link>
-                <div className="flex flex-col gap-2">
-                  <p>{postImage.plantName}</p>
-                  <p>{postImage.createdAt.toLocaleString()}</p>
+              ) : (
+                <div className="w-20 h-20 rounded-lg bg-gray-200 flex items-center justify-center">
+                  <Leaf className="w-8 h-8 text-gray-400" />
                 </div>
-                <div className="flex items-center gap-2 ml-auto">
-                  <PlantImageButtom postImageId={postImage.id} />
-                </div>
+              )}
+
+              <div className="flex flex-col gap-1 flex-1">
+                {post.plant && (
+                  <Link href={`/plants/${post.plant.id}`}>
+                    <p className="text-sm font-medium hover:underline text-green-700">
+                      {post.plant.name}
+                    </p>
+                  </Link>
+                )}
+                {post.comment && (
+                  <p className="text-sm text-gray-600 line-clamp-2">{post.comment}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {post.createdAt.toLocaleDateString("ja-JP")}
+                </p>
               </div>
-            ))}
+
+              <div className="flex items-center gap-2 ml-auto">
+                <PostDeleteButton postId={post.id} />
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

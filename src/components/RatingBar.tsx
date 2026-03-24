@@ -1,45 +1,32 @@
-import { Heart, Skull } from "lucide-react";
+import { Cat } from "lucide-react";
 
-export default function RatingBar({
-  likes,
-  dislikes,
+export default function CoexistenceBar({
+  catCount,
+  postCount,
 }: {
-  likes: number;
-  dislikes: number;
+  catCount: number;
+  postCount: number;
 }) {
-  const total = likes + dislikes;
-  const likePercent = (likes / total) * 100;
-  const dislikePercent = (dislikes / total) * 100;
+  const getLabel = () => {
+    if (catCount >= 50) {
+      return { text: "多くの猫と暮らしています 🐱🌿", color: "text-green-700" };
+    } else if (catCount >= 10) {
+      return { text: `${catCount}匹の猫と暮らしています`, color: "text-green-600" };
+    } else if (catCount >= 1) {
+      return { text: `${catCount}匹の猫との暮らしが報告されています`, color: "text-green-500" };
+    } else if (postCount > 0) {
+      return { text: `${postCount}件の投稿があります`, color: "text-gray-600" };
+    } else {
+      return { text: "猫との共存情報がありません ⚠️ 注意してください", color: "text-amber-600" };
+    }
+  };
+
+  const { text, color } = getLabel();
+
   return (
     <div className="flex items-center gap-2 mb-6">
-      <div className="flex items-center gap-1">
-        <Heart className="w-8 h-8 text-red-500" />
-        <span className="text-md">{likes}</span>
-      </div>
-      {total > 0 ? (
-        <div className="flex-1 h-2 rounded-full overflow-hidden flex">
-          <div
-            className="h-full bg-red-500"
-            style={{
-              width: `${likePercent}%`,
-            }}
-          />
-          <div
-            className="h-full bg-indigo-500"
-            style={{
-              width: `${dislikePercent}%`,
-            }}
-          />
-        </div>
-      ) : (
-        <div className="flex-1 h-5 overflow-hidden flex items-center justify-center">
-          <div className="text-sm text-gray-500">評価がまだありません</div>
-        </div>
-      )}
-      <div className="flex items-center gap-1">
-        <Skull className="w-8 h-8 text-indigo-500" />
-        <span className="text-md">{dislikes}</span>
-      </div>
+      <Cat className="w-6 h-6 text-green-600 shrink-0" />
+      <span className={`text-sm font-medium ${color}`}>{text}</span>
     </div>
   );
 }

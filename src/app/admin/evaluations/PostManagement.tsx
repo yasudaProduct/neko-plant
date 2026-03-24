@@ -1,17 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { deleteEvaluation } from "../actions";
+import { deleteAdminPost } from "../actions";
 
-interface EvaluationManagementProps {
-  evaluation: {
+interface PostManagementProps {
+  post: {
     id: number;
-    type: "good" | "bad";
     comment: string | null;
     createdAt: Date;
-    reactionCount: number;
+    likeCount: number;
+    imageCount: number;
     plant: {
       id: number;
       name: string;
@@ -24,21 +23,21 @@ interface EvaluationManagementProps {
   };
 }
 
-export default function EvaluationManagement({ evaluation }: EvaluationManagementProps) {
+export default function PostManagement({ post }: PostManagementProps) {
   const [isDeleted, setIsDeleted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDelete = async () => {
-    if (!confirm("この評価を削除してもよろしいですか？")) {
+    if (!confirm("この投稿を削除してもよろしいですか？")) {
       return;
     }
 
     setIsLoading(true);
     try {
-      await deleteEvaluation(evaluation.id);
+      await deleteAdminPost(post.id);
       setIsDeleted(true);
     } catch (error) {
-      console.error("Failed to delete evaluation:", error);
+      console.error("Failed to delete post:", error);
     } finally {
       setIsLoading(false);
     }
@@ -47,10 +46,7 @@ export default function EvaluationManagement({ evaluation }: EvaluationManagemen
   if (isDeleted) {
     return (
       <li className="px-6 py-4 bg-red-50">
-        <div className="text-center">
-          <Badge variant="destructive">削除済み</Badge>
-          <p className="text-sm text-red-700 mt-2">評価が削除されました</p>
-        </div>
+        <div className="text-center text-sm text-red-700">投稿が削除されました</div>
       </li>
     );
   }
@@ -61,29 +57,28 @@ export default function EvaluationManagement({ evaluation }: EvaluationManagemen
         <div className="flex-1">
           <div className="flex items-center space-x-2 mb-2">
             <h3 className="text-lg font-medium text-gray-900">
-              {evaluation.plant.name}
+              {post.plant.name}
             </h3>
-            <Badge variant={evaluation.type === "good" ? "default" : "destructive"}>
-              {evaluation.type === "good" ? "良い評価" : "悪い評価"}
-            </Badge>
+            <span className="text-xs text-gray-500">
+              画像{post.imageCount}枚 · いいね{post.likeCount}件
+            </span>
           </div>
-          
-          {evaluation.user && (
+
+          {post.user && (
             <p className="text-sm text-gray-600 mb-2">
-              投稿者: {evaluation.user.name} (@{evaluation.user.aliasId})
+              投稿者: {post.user.name} (@{post.user.aliasId})
             </p>
           )}
-          
-          {evaluation.comment && (
-            <p className="text-gray-700 mb-2">{evaluation.comment}</p>
+
+          {post.comment && (
+            <p className="text-gray-700 mb-2 text-sm">{post.comment}</p>
           )}
-          
-          <div className="flex items-center space-x-4 text-sm text-gray-500">
-            <span>リアクション: {evaluation.reactionCount}件</span>
-            <span>{new Date(evaluation.createdAt).toLocaleDateString("ja-JP")}</span>
-          </div>
+
+          <span className="text-sm text-gray-500">
+            {new Date(post.createdAt).toLocaleDateString("ja-JP")}
+          </span>
         </div>
-        
+
         <div className="ml-4">
           <Button
             onClick={handleDelete}

@@ -6,7 +6,7 @@ import Link from "next/link";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Heart, Skull, Sparkles, CheckCircle2, Plus } from "lucide-react";
+import { Sparkles, CheckCircle2, Plus, Cat } from "lucide-react";
 
 import ImageUpload from "@/components/ImageUpload";
 import { Button } from "@/components/ui/button";
@@ -23,22 +23,20 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
-import { EvaluationType } from "@/types/evaluation";
 import { ActionErrorCode } from "@/types/common";
-import { addEvaluation } from "@/actions/evaluation-action";
+import { createPost } from "@/actions/post-action";
 import { addPlant, searchPlantName } from "@/actions/plant-action";
+import { getUserProfileByAuthId, getUserPets } from "@/actions/user-action";
 import {
   identifyPlantFromImage,
   type PlantIdentificationCandidate,
 } from "@/actions/plant-identification-action";
+import { Pet } from "@/types/neko";
 
-const MAX_IMAGES = 3;
+const MAX_IMAGES = 5;
 
 const formSchema = z.object({
-  comment: z.string().min(1, { message: "コメントを入力してください" }),
-  type: z.nativeEnum(EvaluationType, {
-    required_error: "安全性を選択してください",
-  }),
+  comment: z.string().optional(),
   images: z
     .array(z.instanceof(File))
     .min(1, { message: "写真を1枚以上追加してください" })
@@ -74,7 +72,6 @@ export default function NewPostWithAiForm() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       comment: "",
-      type: undefined,
       images: [],
     },
   });
@@ -92,10 +89,23 @@ export default function NewPostWithAiForm() {
   const manualQueryRef = useRef(manualQuery);
 
   const [selectedPlant, setSelectedPlant] = useState<SelectedPlant>(null);
+  const [selectedPetId, setSelectedPetId] = useState<number | null>(null);
+  const [userPets, setUserPets] = useState<Pet[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const images = form.watch("images");
   const canIdentify = images.length > 0 && !isIdentifying;
+
+  // ユーザーのペット一覧を取得
+  useEffect(() => {
+    const fetchPets = async () => {
+      const profile = await getUserProfileByAuthId();
+      if (!profile) return;
+      const pets = await getUserPets(profile.id);
+      setUserPets(pets || []);
+    };
+    fetchPets();
+  }, []);
 
   useEffect(() => {
     manualQueryRef.current = manualQuery;
@@ -123,9 +133,6 @@ export default function NewPostWithAiForm() {
 
   const handleImageChange = (files: File[]) => {
     form.setValue("images", files, { shouldValidate: true });
-    // 画像が変わったら全入力をリセット
-    form.setValue("type", undefined as unknown as EvaluationType);
-    form.setValue("comment", "");
     setHasIdentified(false);
     setCandidates([]);
     setSelectedPlant(null);
@@ -133,7 +140,6 @@ export default function NewPostWithAiForm() {
     setManualSuggestions([]);
   };
 
-  // AIで判定を実行する
   const onIdentify = async () => {
     const firstImage = images[0];
     if (!firstImage) {
@@ -192,7 +198,6 @@ export default function NewPostWithAiForm() {
       });
       return;
     }
-
     setSelectedPlant({ mode: "new", name: candidate.name });
   };
 
@@ -265,10 +270,10 @@ export default function NewPostWithAiForm() {
         return;
       }
 
-      const result = await addEvaluation(
+      const result = await createPost(
         plantId,
-        values.comment,
-        values.type,
+        selectedPetId,
+        values.comment ?? null,
         values.images,
       );
 
@@ -278,12 +283,10 @@ export default function NewPostWithAiForm() {
       }
 
       success({
-        title: "評価を投稿しました",
+        title: "投稿しました",
         description: (
           <Link href={`/plants/${plantId}`} className="underline">
-            {selectedPlant.mode === "existing"
-              ? selectedPlant.name
-              : selectedPlant.name}
+            {selectedPlant.name}の投稿を見る
           </Link>
         ),
       });
@@ -515,9 +518,6 @@ export default function NewPostWithAiForm() {
                     この植物の詳細を見る
                   </Link>
                 )}
-                <p className="text-xs text-muted-foreground mt-2">
-                  AIの判定は参考です。必ず正しい植物名を選択してください。
-                </p>
               </div>
             ) : (
               <div className="rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 px-4 py-3 text-center">
@@ -529,53 +529,52 @@ export default function NewPostWithAiForm() {
           </div>
         </div>
 
-        {/* STEP 3: 安全性 */}
+        {/* STEP 3: 猫を選択 */}
         <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <StepNumber step={3} label="猫に対する安全性を評価" />
-          <FormField
-            control={form.control}
-            name="type"
-            render={({ field }) => (
-              <FormItem>
-                <div className="flex gap-4">
-                  <Button
-                    type="button"
-                    variant={
-                      field.value === EvaluationType.GOOD
-                        ? "destructive"
-                        : "outline"
-                    }
-                    onClick={() => field.onChange(EvaluationType.GOOD)}
-                  >
-                    <Heart
-                      className={`w-4 h-4 ${
-                        field.value === EvaluationType.GOOD
-                          ? "text-white"
-                          : "text-red-500"
-                      }`}
-                    />
-                    安全
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={
-                      field.value === EvaluationType.BAD ? "default" : "outline"
-                    }
-                    onClick={() => field.onChange(EvaluationType.BAD)}
-                  >
-                    <Skull className="w-4 h-4 text-indigo-500" />
-                    危険
-                  </Button>
-                </div>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          <StepNumber step={3} label="一緒にいる猫を選択（任意）" />
+          {userPets.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              猫が登録されていません。
+              <Link href="/settings/profile" className="text-green-600 underline ml-1">
+                プロフィールから猫を登録
+              </Link>
+              できます。
+            </p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setSelectedPetId(null)}
+                className={`flex items-center gap-1 rounded-full border px-3 py-1 text-sm transition-colors ${
+                  selectedPetId === null
+                    ? "border-gray-400 bg-gray-100 text-gray-700"
+                    : "border-gray-200 hover:bg-gray-50"
+                }`}
+              >
+                なし
+              </button>
+              {userPets.map((pet) => (
+                <button
+                  key={pet.id}
+                  type="button"
+                  onClick={() => setSelectedPetId(pet.id)}
+                  className={`flex items-center gap-1 rounded-full border px-3 py-1 text-sm transition-colors ${
+                    selectedPetId === pet.id
+                      ? "border-green-500 bg-green-50 text-green-700"
+                      : "border-gray-200 hover:bg-gray-50"
+                  }`}
+                >
+                  <Cat className="w-3 h-3" />
+                  {pet.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* STEP 4: コメント */}
         <div className="rounded-lg border border-gray-200 bg-white p-4">
-          <StepNumber step={4} label="コメントを入力" />
+          <StepNumber step={4} label="コメントを入力（任意）" />
           <FormField
             control={form.control}
             name="comment"

@@ -1,8 +1,7 @@
 "use server";
 
-import { Evaluation, EvaluationType } from "@/types/evaluation";
 import { Pet, SexType } from "@/types/neko";
-import { Plant } from "@/types/plant";
+import { Post } from "@/types/post";
 import { UserProfile, UserData, UserRole } from "@/types/user";
 import { STORAGE_PATH } from "@/lib/const";
 import prisma from "@/lib/prisma";
@@ -11,6 +10,7 @@ import { generateImageName } from "@/lib/utils";
 import { pets } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { ActionErrorCode, ActionResult } from "@/types/common";
+import { sex as PrismaSexType } from "@prisma/client";
 
 export async function getUserProfile(aliasId: string): Promise<UserProfile | undefined> {
     const userData = await prisma.public_users.findFirst({
@@ -56,7 +56,6 @@ export async function getUserProfileByAuthId(): Promise<UserProfile | undefined>
         },
     });
 
-    // TODO public_usersのテーブルにデータがない場合は登録ページに飛ばしてもいい
     if (!userData) {
         return undefined;
     }
@@ -91,7 +90,7 @@ export async function getUserData(authId: string): Promise<UserData | null> {
 }
 
 export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
-    const pets = await prisma.pets.findMany({
+    const petsData = await prisma.pets.findMany({
         where: {
             user_id: userId,
         },
@@ -103,11 +102,11 @@ export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
         },
     });
 
-    if (pets.length === 0) {
+    if (petsData.length === 0) {
         return undefined;
     }
 
-    return pets.map((pet) => ({
+    return petsData.map((pet) => ({
         id: pet.id,
         name: pet.name,
         imageSrc: pet.image ? STORAGE_PATH.USER_PET + pet.image : undefined,
@@ -139,7 +138,6 @@ export async function updateUser(name: string, aliasId: string) {
         throw new Error("ユーザーが見つかりません");
     }
 
-    // 入力チェック
     if (name.length > 20) {
         throw new Error("名前は7文字以内で入力してください");
     }
@@ -151,7 +149,7 @@ export async function updateUser(name: string, aliasId: string) {
     if (!aliasId.match(/^[a-zA-Z]+$/)) {
         throw new Error("ユーザーIDは英数字で入力してください");
     }
-    // ユーザー情報を更新
+
     await prisma.public_users.update({
         where: {
             id: userData.id,
@@ -186,12 +184,10 @@ export async function updateUserImage(image: File) {
         throw new Error("ユーザーが見つかりません");
     }
 
-    await prisma.$transaction(async (prisma) => {
-
+    await prisma.$transaction(async (tx) => {
         const imageName = generateImageName("profile");
         const imagePath = `${userData.auth_id}/${imageName}`;
 
-        // 1. 画像をアップロード
         const { error } = await supabase.storage
             .from("user_profiles")
             .upload(imagePath, image, {
@@ -202,8 +198,7 @@ export async function updateUserImage(image: File) {
             throw error;
         }
 
-        // 2. ユーザーの画像を更新
-        await prisma.public_users.update({
+        await tx.public_users.update({
             where: {
                 id: userData.id,
             },
@@ -211,10 +206,9 @@ export async function updateUserImage(image: File) {
                 image: imagePath,
             },
         });
-    })
+    });
 
     revalidatePath(`/settings/profile`);
-
 }
 
 export async function addPet(name: string, speciesId: number, image?: File, sex?: SexType, birthday?: string, age?: number) {
@@ -232,29 +226,23 @@ export async function addPet(name: string, speciesId: number, image?: File, sex?
         },
     });
 
-    // TODO userIdを取得するのめんどくさくない？ authIdをpublic_usersの主キーにした方がいい？
-
     if (!userData) {
         throw new Error("ユーザーが見つかりません");
     }
 
-    await prisma.$transaction(async (prisma) => {
-
-        // ネコを作成
-        const neko = await prisma.pets.create({
+    await prisma.$transaction(async (tx) => {
+        const neko = await tx.pets.create({
             data: {
                 name: name,
                 neko_id: speciesId,
                 user_id: userData.id,
-                sex: sex as SexType,
+                sex: sex as PrismaSexType,
                 age: age,
                 birthday: birthday ? new Date(birthday) : undefined,
             } as pets,
         });
 
-        // 画像をアップロード
         if (image) {
-
             const imageSrc: string = `${userData.auth_id}/${neko.id}_${generateImageName("pet")}`;
 
             const { error } = await supabase.storage
@@ -267,8 +255,7 @@ export async function addPet(name: string, speciesId: number, image?: File, sex?
                 throw error;
             }
 
-            // 画像のURLを更新
-            await prisma.pets.update({
+            await tx.pets.update({
                 where: {
                     id: neko.id,
                 },
@@ -277,7 +264,7 @@ export async function addPet(name: string, speciesId: number, image?: File, sex?
                 },
             });
         }
-    })
+    });
 
     revalidatePath(`/${userData.alias_id}`);
 }
@@ -301,8 +288,6 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
         },
     });
 
-    // TODO userIdを取得するのめんどくさくない？ authIdをpublic_usersの主キーにした方がいい？
-
     if (!userData) {
         return {
             success: false,
@@ -312,10 +297,8 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
     }
 
     try {
-        await prisma.$transaction(async (prisma) => {
-
-            // ネコを更新
-            const pet = await prisma.pets.findUnique({
+        await prisma.$transaction(async (tx) => {
+            const pet = await tx.pets.findUnique({
                 where: {
                     id: petId,
                     user_id: userData.id,
@@ -330,7 +313,7 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
                 };
             }
 
-            await prisma.pets.update({
+            await tx.pets.update({
                 where: {
                     id: petId,
                     user_id: userData.id,
@@ -338,15 +321,13 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
                 data: {
                     name: name,
                     neko_id: speciesId,
-                    sex: sex as SexType,
+                    sex: sex as PrismaSexType,
                     birthday: birthday ? new Date(birthday) : undefined,
                     age: age,
                 },
             });
 
-            // 画像をアップロード
             if (image) {
-
                 const imageSrc: string = `${userData.auth_id}/${petId}_${generateImageName("pet")}`;
 
                 const { error } = await supabase.storage
@@ -359,8 +340,7 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
                     throw error;
                 }
 
-                // 画像のURLを更新
-                await prisma.pets.update({
+                await tx.pets.update({
                     where: {
                         id: petId,
                     },
@@ -369,7 +349,7 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
                     },
                 });
             }
-        })
+        });
 
         revalidatePath(`/${userData.alias_id}`);
         return {
@@ -418,269 +398,82 @@ export async function deletePet(petId: number) {
     return petData;
 }
 
-export async function getUserPlants(userId: number): Promise<Plant[] | undefined> {
-    const plants = await prisma.plant_have.findMany({
-        where: {
-            user_id: userId,
-        },
-        include: {
-            plants: {
-                include: {
-                    plant_images: {
-                        orderBy: {
-                            created_at: "asc",
-                        },
-                        take: 1,
-                    },
-                },
-            },
-        },
-        orderBy: {
-            id: "asc",
-        },
-    });
-
-    return plants.map((plant) => ({
-        id: plant.plant_id,
-        name: plant.plants.name,
-        mainImageUrl: plant.plants.plant_images?.[0]?.image_url ? STORAGE_PATH.PLANT + plant.plants.plant_images[0].image_url : undefined,
-        isFavorite: false,
-        isHave: true,
-        goodCount: 0,
-        badCount: 0,
-    }));
-}
-
-export async function deleteHavePlant(plantId: number) {
+export async function getUserPosts(userId: number): Promise<Post[]> {
     const supabase = await createClient();
-    const {
-        data: { user } } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!user) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    const userData = await prisma.public_users.findFirst({
-        where: {
-            auth_id: user.id,
-        },
-    });
-
-    if (!userData) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    await prisma.plant_have.deleteMany({
-        where: {
-            plant_id: plantId,
-            user_id: userData.id,
-        },
-    });
-
-    revalidatePath(`/${userData.alias_id}`);
-}
-
-export async function getUserEvaluations(userId: number): Promise<(Evaluation & { plant: Plant })[] | undefined> {
-    const supabase = await createClient();
-
-    const evaluations = await prisma.evaluations.findMany({
-        where: {
-            user_id: userId,
-        },
-        include: {
-            plants: {
-                include: {
-                    plant_images: {
-                        orderBy: {
-                            created_at: "asc",
-                        },
-                        take: 1,
-                    },
-                },
-            },
-            users: true,
-        },
-        orderBy: {
-            id: "asc",
-        },
-    });
-
-    return await Promise.all(evaluations.map(async (evaluation) => ({
-        id: evaluation.id,
-        type: evaluation.type as EvaluationType,
-        comment: evaluation.comment ?? "",
-        createdAt: evaluation.created_at,
-        imageUrls: (await supabase.storage.from("evaluations").list(
-            `${evaluation.id}`, {
-            sortBy: { column: 'name', order: 'desc' },
-        })).data?.map(file => STORAGE_PATH.EVALUATION + `${evaluation.id}/${file.name}`),
-        user: {
-            aliasId: evaluation.users?.alias_id ?? "",
-            name: evaluation.users?.name ?? "",
-            imageSrc: evaluation.users?.image ? STORAGE_PATH.USER_PROFILE + evaluation.users.image : undefined,
-        },
-        plant: {
-            id: evaluation.plants?.id,
-            name: evaluation.plants?.name,
-            mainImageUrl: evaluation.plants?.plant_images?.[0]?.image_url
-                ? STORAGE_PATH.PLANT + evaluation.plants.plant_images[0].image_url
-                : undefined,
-            isFavorite: false,
-            isHave: false,
-            goodCount: 0,
-            badCount: 0,
-        },
-    })));
-}
-
-export async function getUserFavoritePlants(userId: number): Promise<Plant[] | undefined> {
-    const favoritePlants = await prisma.plant_favorites.findMany({
-        where: {
-            user_id: userId,
-        },
-        include: {
-            plants: {
-                include: {
-                    plant_images: {
-                        orderBy: {
-                            created_at: "asc",
-                        },
-                        take: 1,
-                    },
-                },
-            },
-        },
-        orderBy: {
-            id: "asc",
-        },
-    });
-
-    return favoritePlants.map((favoritePlant) => ({
-        id: favoritePlant.plant_id,
-        name: favoritePlant.plants.name,
-        mainImageUrl: favoritePlant.plants.plant_images?.[0]?.image_url ? STORAGE_PATH.PLANT + favoritePlant.plants.plant_images[0].image_url : undefined,
-        isFavorite: true,
-        isHave: false,
-        goodCount: 0,
-        badCount: 0,
-    }));
-}
-
-export async function deleteFavoritePlant(plantId: number) {
-    const supabase = await createClient();
-    const {
-        data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    const userData = await prisma.public_users.findFirst({
-        where: {
-            auth_id: user.id,
-        },
-    });
-
-    if (!userData) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    await prisma.plant_favorites.deleteMany({
-        where: {
-            plant_id: plantId,
-            user_id: userData.id,
-        },
-    });
-
-    revalidatePath(`/${userData.alias_id}`);
-}
-
-export async function getUserPostImages(userId: number): Promise<({ id: number, plantId: number, plantName: string, imageUrl: string, createdAt: Date })[] | undefined> {
-    const supabase = await createClient();
-    const {
-        data: { user }
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    const userData = await prisma.public_users.findFirst({
-        where: {
-            auth_id: user.id,
-        },
-    });
-
-    if (!userData) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    const plantImages = await prisma.plant_images.findMany({
-        where: {
-            user_id: userId,
-        },
-        include: {
-            plants: true,
-        },
-        orderBy: {
-            id: "asc",
-        },
-    });
-
-    return plantImages.map((plantImage: { id: number, image_url: string, plant_id: number, created_at: Date, plants: { id: number, name: string } }) => ({
-        id: plantImage.id,
-        plantId: plantImage.plants.id,
-        plantName: plantImage.plants.name,
-        imageUrl: STORAGE_PATH.PLANT + plantImage.image_url,
-        createdAt: plantImage.created_at,
-    }));
-}
-
-export async function deletePostImage(postImageId: number): Promise<{ success: boolean }> {
-    const supabase = await createClient();
-    const {
-        data: { user }
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    const userData = await prisma.public_users.findFirst({
-        where: {
-            auth_id: user.id,
-        },
-    });
-
-    if (!userData) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    try {
-
-        await prisma.$transaction(async (prisma) => {
-
-            // TODO 存在しなかったらplantImageはどうなる？
-            const plantImage = await prisma.plant_images.delete({
-                where: {
-                    id: postImageId,
-                    user_id: userData.id,
-                },
-            });
-
-            const { error } = await supabase.storage.from("plants").remove([plantImage.image_url]);
-
-            if (error) {
-                throw error;
-            }
+    let currentUserId: number | undefined;
+    if (user) {
+        const currentUser = await prisma.public_users.findFirst({
+            where: { auth_id: user.id },
+            select: { id: true },
         });
-
-        revalidatePath(`/${userData.alias_id}`);
-
-        return { success: true };
-
-    } catch (error) {
-        console.error(error);
-        return { success: false, };
+        currentUserId = currentUser?.id;
     }
+
+    const postsData = await prisma.posts.findMany({
+        where: { user_id: userId },
+        include: {
+            users: { select: { alias_id: true, name: true, image: true } },
+            plants: { select: { id: true, name: true } },
+            pets: { include: { neko: true } },
+            post_images: { orderBy: { order: "asc" } },
+            post_likes: { select: { user_id: true } },
+        },
+        orderBy: { created_at: "desc" },
+    });
+
+    return postsData.map((post) => ({
+        id: post.id,
+        comment: post.comment,
+        createdAt: post.created_at,
+        pet: post.pets
+            ? {
+                id: post.pets.id,
+                name: post.pets.name,
+                imageSrc: post.pets.image ? STORAGE_PATH.USER_PET + post.pets.image : undefined,
+                neko: post.pets.neko,
+                sex: post.pets.sex as SexType ?? undefined,
+                birthday: post.pets.birthday ?? undefined,
+                age: post.pets.age ?? undefined,
+            }
+            : undefined,
+        imageUrls: post.post_images.map((img) => STORAGE_PATH.POST + img.image_url),
+        likeCount: post.post_likes.length,
+        isLiked: currentUserId
+            ? post.post_likes.some((like) => like.user_id === currentUserId)
+            : false,
+        user: {
+            aliasId: post.users?.alias_id ?? "",
+            name: post.users?.name ?? "",
+            imageSrc: post.users?.image ? STORAGE_PATH.USER_PROFILE + post.users.image : undefined,
+        },
+        plant: post.plants
+            ? { id: post.plants.id, name: post.plants.name }
+            : undefined,
+    }));
+}
+
+export async function getUserPostImages(userId: number): Promise<{ id: number, postId: number, plantName: string, imageUrl: string, createdAt: Date }[]> {
+    const postImages = await prisma.post_images.findMany({
+        where: {
+            posts: { user_id: userId },
+        },
+        include: {
+            posts: {
+                include: {
+                    plants: { select: { id: true, name: true } },
+                },
+            },
+        },
+        orderBy: { id: "asc" },
+    });
+
+    return postImages.map((img) => ({
+        id: img.id,
+        postId: img.post_id,
+        plantName: img.posts?.plants?.name ?? "",
+        imageUrl: STORAGE_PATH.POST + img.image_url,
+        createdAt: img.created_at,
+    }));
 }

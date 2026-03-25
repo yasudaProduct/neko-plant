@@ -10,8 +10,7 @@ export default async function UsersAdmin() {
     include: {
       _count: {
         select: {
-          evaluations: true,
-          plant_images: true,
+          posts: true,
           pets: true,
         },
       },
@@ -21,7 +20,7 @@ export default async function UsersAdmin() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-8">ユーザー管理</h1>
-      
+
       <div className="mb-4">
         <p className="text-sm text-gray-600">
           総ユーザー数: {users.length}人
@@ -38,10 +37,9 @@ export default async function UsersAdmin() {
                 name: user.name,
                 aliasId: user.alias_id,
                 image: user.image ? STORAGE_PATH.USER_PROFILE + user.image : null,
-                role: user.role || 'user',
+                role: user.role || "user",
                 createdAt: user.created_at,
-                evaluationCount: user._count.evaluations,
-                imageCount: user._count.plant_images,
+                postCount: user._count.posts,
                 petCount: user._count.pets,
               }}
             />

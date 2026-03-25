@@ -5,57 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getUserData } from "@/actions/user-action";
 import prisma from "@/lib/prisma";
 
-export async function approveImage(imageId: number) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("認証が必要です");
-  }
-
-  const userData = await getUserData(user.id);
-  if (!userData || userData.role !== "admin") {
-    throw new Error("管理者権限が必要です");
-  }
-
-  await prisma.plant_images.update({
-    where: {
-      id: imageId,
-    },
-    data: {
-      is_approved: true,
-    },
-  });
-
-  revalidatePath("/admin/plant-images");
-}
-
-export async function rejectImage(imageId: number) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("認証が必要です");
-  }
-
-  const userData = await getUserData(user.id);
-  if (!userData || userData.role !== "admin") {
-    throw new Error("管理者権限が必要です");
-  }
-
-  await prisma.plant_images.delete({
-    where: {
-      id: imageId,
-    },
-  });
-
-  revalidatePath("/admin/plant-images");
-}
-
 export async function updateUserRole(userId: number, role: string) {
   const supabase = await createClient();
   const {
@@ -83,7 +32,7 @@ export async function updateUserRole(userId: number, role: string) {
   revalidatePath("/admin/users");
 }
 
-export async function deleteEvaluation(evaluationId: number) {
+export async function deleteAdminPost(postId: number) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -98,10 +47,22 @@ export async function deleteEvaluation(evaluationId: number) {
     throw new Error("管理者権限が必要です");
   }
 
-  await prisma.evaluations.delete({
-    where: {
-      id: evaluationId,
-    },
+  const post = await prisma.posts.findUnique({
+    where: { id: postId },
+    include: { post_images: true },
+  });
+
+  if (!post) {
+    throw new Error("投稿が見つかりません");
+  }
+
+  // Storage 画像を削除
+  for (const img of post.post_images) {
+    await supabase.storage.from("posts").remove([img.image_url]);
+  }
+
+  await prisma.posts.delete({
+    where: { id: postId },
   });
 
   revalidatePath("/admin/evaluations");

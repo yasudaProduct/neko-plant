@@ -329,17 +329,46 @@ model auth_users {
   @@schema("auth")
 }
 
-model evaluations {
-  id                   Int                    @id @default(autoincrement())
-  plant_id             Int
-  user_id              Int
-  type                 evaluation_type
-  comment              String?                @db.VarChar
-  created_at           DateTime               @default(now()) @db.Timestamptz(6)
-  evaluation_reactions evaluation_reactions[]
-  plants               plants                 @relation(fields: [plant_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_plant")
-  users                public_users           @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+model posts {
+  id          Int          @id @default(autoincrement())
+  user_id     Int
+  plant_id    Int
+  pet_id      Int?
+  comment     String?      @db.VarChar
+  created_at  DateTime     @default(now()) @db.Timestamptz(6)
+  users       public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  plants      plants       @relation(fields: [plant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  pets        pets?        @relation(fields: [pet_id], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  post_images post_images[]
+  post_likes  post_likes[]
 
+  @@index([plant_id])
+  @@index([user_id])
+  @@index([created_at(sort: Desc)])
+  @@schema("public")
+}
+
+model post_images {
+  id         Int      @id @default(autoincrement())
+  post_id    Int
+  image_url  String   @db.VarChar
+  order      Int      @default(0)
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  posts      posts    @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([post_id])
+  @@schema("public")
+}
+
+model post_likes {
+  id         Int          @id @default(autoincrement())
+  post_id    Int
+  user_id    Int
+  created_at DateTime     @default(now()) @db.Timestamptz(6)
+  posts      posts        @relation(fields: [post_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  users      public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([post_id, user_id])
   @@schema("public")
 }
 
@@ -367,101 +396,44 @@ model pets {
   sex        sex?
   neko       neko         @relation(fields: [neko_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   users      public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  posts      posts[]
 
   @@schema("public")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model plants {
-  id              Int               @id(map: "plant_pkey") @default(autoincrement())
-  name            String            @db.VarChar
-  created_at      DateTime          @default(now()) @db.Timestamptz(6)
-  scientific_name String?           @db.VarChar(255)
-  family          String?           @db.VarChar(100)
-  genus           String?           @db.VarChar(100)
-  species         String?           @db.VarChar(100)
-  updated_at      DateTime?         @default(now()) @updatedAt @db.Timestamptz(6)
-  evaluations     evaluations[]
-  plant_favorites plant_favorites[]
-  plant_have      plant_have[]
-  plant_images    plant_images[]
+  id              Int       @id(map: "plant_pkey") @default(autoincrement())
+  name            String    @db.VarChar
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  scientific_name String?   @db.VarChar(255)
+  family          String?   @db.VarChar(100)
+  genus           String?   @db.VarChar(100)
+  species         String?   @db.VarChar(100)
+  updated_at      DateTime? @default(now()) @updatedAt @db.Timestamptz(6)
+  posts           posts[]
 
   @@schema("public")
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model public_users {
-  id                   Int                    @id @default(autoincrement())
-  auth_id              String                 @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  alias_id             String                 @db.VarChar
-  name                 String                 @db.VarChar
-  image                String?                @db.VarChar
-  role                 String?                @default("user") @db.VarChar(50)
-  created_at           DateTime               @default(now()) @db.Timestamptz(6)
-  evaluation_reactions evaluation_reactions[]
-  evaluations          evaluations[]
-  pets                 pets[]
-  plant_favorites      plant_favorites[]
-  plant_have           plant_have[]
-  plant_images         plant_images[]
-  users                auth_users             @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id         Int          @id @default(autoincrement())
+  auth_id    String       @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alias_id   String       @db.VarChar
+  name       String       @db.VarChar
+  image      String?      @db.VarChar
+  role       String?      @default("user") @db.VarChar(50)
+  created_at DateTime     @default(now()) @db.Timestamptz(6)
+  pets       pets[]
+  posts      posts[]
+  post_likes post_likes[]
+  users      auth_users   @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("users")
   @@schema("public")
 }
 
-model plant_favorites {
-  id         Int          @id @default(autoincrement())
-  user_id    Int
-  plant_id   Int
-  created_at DateTime     @default(now()) @db.Timestamptz(6)
-  plants     plants       @relation(fields: [plant_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users      public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@schema("public")
-}
-
-model plant_have {
-  id         Int          @id(map: "plant_ have_pkey") @default(autoincrement())
-  plant_id   Int
-  user_id    Int
-  created_at DateTime     @default(now()) @db.Timestamptz(6)
-  plants     plants       @relation(fields: [plant_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "plant_ have_plant_id_fkey")
-  users      public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "plant_ have_user_id_fkey")
-
-  @@schema("public")
-}
-
-model evaluation_reactions {
-  id            Int           @id @default(autoincrement())
-  evaluation_id Int
-  user_id       Int
-  created_at    DateTime      @default(now()) @db.Timestamptz(6)
-  type          reaction_type
-  evaluations   evaluations   @relation(fields: [evaluation_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users         public_users  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@schema("public")
-}
-
-model plant_images {
-  id          Int          @id(map: "plants_images_pkey") @default(autoincrement())
-  plant_id    Int
-  user_id     Int
-  image_url   String       @db.VarChar
-  caption     String?      @db.VarChar
-  alt_text    String?      @db.VarChar
-  created_at  DateTime     @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
-  is_approved Boolean      @default(false)
-  order       Int          @default(0)
-  plants      plants       @relation(fields: [plant_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_plant")
-  users       public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user")
-
-  @@index([plant_id], map: "idx_plant_images_plant_id")
-  @@index([user_id], map: "idx_plant_images_user_id")
-  @@schema("public")
-}
 
 enum aal_level {
   aal1
@@ -504,31 +476,10 @@ enum one_time_token_type {
   @@schema("auth")
 }
 
-enum evaluation_type {
-  good
-  bad
-
-  @@schema("public")
-}
-
-enum mood {
-  good
-  bad
-
-  @@schema("public")
-}
-
 /// This enum is commented in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 enum sex {
   male
   female
-
-  @@schema("public")
-}
-
-enum reaction_type {
-  good
-  bad
 
   @@schema("public")
 }

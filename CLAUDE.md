@@ -23,7 +23,7 @@ npm run seed:e2e         # E2Eテストデータのシード
 # データベース
 npx prisma generate      # Prismaクライアント生成
 npx prisma db pull       # スキーマ変更の取得
-supabase db push         # リモート(本番)Supabaseへのマイグレーション適用
+npx prisma migrate dev   # publicスキーマの開発用マイグレーション作成・適用
 
 # リント
 npm run lint             # ESLint
@@ -74,5 +74,7 @@ npm run lint             # ESLint
 
 ### データベース変更のルール
 データベースに変更を加える際は、以下のルールに従ってください：
-- Prismaスキーマファイル（`prisma/schema.prisma`）を変更し、Prismaの機能を使用してマイグレーションを行う
-- Supabaseのマイグレーション機能は使用しない
+- `public` スキーマの業務テーブル・カラム・FK・index・enum は `prisma/schema.prisma` を変更し、Prisma Migrate で管理する
+- `auth` / `storage` スキーマ、RLS、Policy、Trigger、Function、Grant など Supabase 固有機能は `supabase/migrations/*.sql` で管理する
+- `auth.users` など Supabase 管理オブジェクトを Prisma の管理対象に含めない
+- `supabase db diff` は差分確認や SQL の叩き台生成にのみ使い、生成結果は必ずレビューする

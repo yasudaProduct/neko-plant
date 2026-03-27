@@ -2,7 +2,20 @@ import { readFileSync } from 'fs';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 import prisma from '../src/lib/prisma';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+
+async function findAuthUserByEmail(
+    supabase: SupabaseClient,
+    email: string
+) {
+    const { data, error } = await supabase.auth.admin.listUsers();
+
+    if (error) {
+        throw new Error(`Failed to list auth users: ${error.message}`);
+    }
+
+    return data.users.find((user) => user.email === email) ?? null;
+}
 
 export async function main() {
     // Supabase Admin Client
@@ -31,27 +44,19 @@ export async function main() {
     console.log(' => users');
 
     // Supabase APIでユーザーを作成または取得
-    let authUser;
+    let authUser = await findAuthUserByEmail(supabase, e2eTestUserAddress);
 
-    // 既存のユーザーを確認
-    const existingUser = await prisma.auth_users.findFirst({
-        where: {
-            email: e2eTestUserAddress,
-        },
-    });
-
-    if (!existingUser) {
-        console.log(' => テストユーザーをauth_usersに作成します');
+    if (!authUser) {
+        console.log(' => テストユーザーをauth.usersに作成します');
         // Supabase Admin APIでユーザーを作成
-        const { data: newUser, error } = await supabase.auth.signUp({
+        const { data: newUser, error } = await supabase.auth.admin.createUser({
             email: e2eTestUserAddress,
             password: e2eTestUserPassword, // テスト用の固定パスワード
-            options: {
-                data: {
-                    name: 'テストユーザー',
-                    alias_id: 'testuser',
-                    image: null,
-                },
+            email_confirm: true,
+            user_metadata: {
+                name: 'テストユーザー',
+                alias_id: 'testuser',
+                image: null,
             },
         });
 
@@ -63,13 +68,7 @@ export async function main() {
             throw new Error('Failed to create test user');
         }
 
-        authUser = await prisma.auth_users.findFirst({
-            where: {
-                id: newUser.user.id,
-            },
-        });
-    } else {
-        authUser = existingUser;
+        authUser = newUser.user;
     }
 
     if (!authUser) {
@@ -114,27 +113,19 @@ export async function main() {
         console.log('✉️E2E_TEST_ADMIN_ADDRESS:', e2eTestAdminAddress);
         console.log('✉️E2E_TEST_ADMIN_PASSWORD:', e2eTestAdminPassword);
 
-        let adminAuthUser;
+        let adminAuthUser = await findAuthUserByEmail(supabase, e2eTestAdminAddress);
 
-        // 既存の管理者ユーザーを確認
-        const existingAdminUser = await prisma.auth_users.findFirst({
-            where: {
-                email: e2eTestAdminAddress,
-            },
-        });
-
-        if (!existingAdminUser) {
-            console.log(' => 管理者ユーザーをauth_usersに作成します');
+        if (!adminAuthUser) {
+            console.log(' => 管理者ユーザーをauth.usersに作成します');
             // Supabase Admin APIで管理者ユーザーを作成
-            const { data: newAdminUser, error } = await supabase.auth.signUp({
+            const { data: newAdminUser, error } = await supabase.auth.admin.createUser({
                 email: e2eTestAdminAddress,
                 password: e2eTestAdminPassword, // テスト用の固定パスワード
-                options: {
-                    data: {
-                        name: 'テスト管理者',
-                        alias_id: 'testadmin',
-                        image: null,
-                    },
+                email_confirm: true,
+                user_metadata: {
+                    name: 'テスト管理者',
+                    alias_id: 'testadmin',
+                    image: null,
                 },
             });
 
@@ -146,13 +137,7 @@ export async function main() {
                 throw new Error('Failed to create admin user');
             }
 
-            adminAuthUser = await prisma.auth_users.findFirst({
-                where: {
-                    id: newAdminUser.user?.id,
-                },
-            });
-        } else {
-            adminAuthUser = existingAdminUser;
+            adminAuthUser = newAdminUser.user;
         }
 
         if (adminAuthUser) {

@@ -46,6 +46,14 @@ E2E_TEST_ADMIN_PASSWORD="adminpass"
 ## prisma
 
 ```bash
+npx prisma migrate dev
+```
+
+```bash
+npx prisma migrate deploy
+```
+
+```bash
 npx prisma db pull
 ```
 
@@ -58,7 +66,7 @@ npx prisma generate
 ### supabase cli
 
 ```bash
-
+# 差分確認やSQLの叩き台生成に使う（そのまま本番適用しない）
 supabase db diff -f <fileName>
 
 # storage, auth を含めて差分を出す
@@ -80,6 +88,34 @@ supabase migration repair --status applied [タイムスタンプ]
 
 # 指定したマイグレーションを適用させる前の状態に戻す（＝無効化）させる。
 supabase migration repair --status reverted [タイムスタンプ]
+```
+
+## マイグレーション方針
+
+- `public` スキーマの業務テーブル・カラム・FK・index・enum は Prisma で管理します。
+- `auth` / `storage` スキーマ、RLS、Policy、Trigger、Function、Grant は Supabase SQL migration で管理します。
+- `auth.users` など Supabase 管理オブジェクトは Prisma の管理対象に含めません。
+- `supabase db diff` は差分確認や SQL の叩き台生成用です。生成された SQL は必ずレビューしてください。
+
+### ローカル開発
+
+```bash
+# public スキーマの変更
+npx prisma migrate dev
+
+# Supabase 固有機能の変更をローカルへ反映
+supabase db reset
+```
+
+### 本番適用
+
+```bash
+# public スキーマの変更を適用
+npx prisma migrate deploy
+
+# auth / storage / RLS / trigger / function の変更を適用
+supabase db push --dry-run
+supabase db push
 ```
 
 ## テストについて

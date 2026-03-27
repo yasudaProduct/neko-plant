@@ -166,6 +166,15 @@ export async function createPost(
         return { success: true, message: "投稿しました。", data: { postId: post.id } };
     } catch (error) {
         console.error("createPost error", error);
+        const msg = error instanceof Error ? error.message : "";
+        if (msg.includes("Bucket not found")) {
+            return {
+                success: false,
+                code: ActionErrorCode.INTERNAL_SERVER_ERROR,
+                message:
+                    "画像の保存先ストレージ（posts バケット）が未設定です。ローカルでは supabase を再起動するかマイグレーションを適用し、本番では Storage に posts バケットを作成してください。",
+            };
+        }
         return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "投稿に失敗しました。" };
     }
 }

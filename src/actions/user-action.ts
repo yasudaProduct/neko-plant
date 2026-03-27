@@ -1,8 +1,7 @@
 "use server";
 
-import { Evaluation, EvaluationType } from "@/types/evaluation";
 import { Pet, SexType } from "@/types/neko";
-import { Plant } from "@/types/plant";
+import { Post } from "@/types/post";
 import { UserProfile, UserData, UserRole } from "@/types/user";
 import { STORAGE_PATH } from "@/lib/const";
 import prisma from "@/lib/prisma";
@@ -418,135 +417,70 @@ export async function deletePet(petId: number) {
     return petData;
 }
 
-export async function getUserPlants(userId: number): Promise<Plant[] | undefined> {
-    const plants = await prisma.plant_have.findMany({
-        where: {
-            user_id: userId,
-        },
-        include: {
-            plants: {
-                include: {
-                    plant_images: {
-                        orderBy: {
-                            created_at: "asc",
-                        },
-                        take: 1,
-                    },
-                },
-            },
-        },
-        orderBy: {
-            id: "asc",
-        },
-    });
-
-    return plants.map((plant) => ({
-        id: plant.plant_id,
-        name: plant.plants.name,
-        mainImageUrl: plant.plants.plant_images?.[0]?.image_url ? STORAGE_PATH.PLANT + plant.plants.plant_images[0].image_url : undefined,
-        isFavorite: false,
-        isHave: true,
-        goodCount: 0,
-        badCount: 0,
-    }));
-}
-
-export async function deleteHavePlant(plantId: number) {
+export async function getUserPosts(userId: number): Promise<(Post & { plant: { id: number; name: string } })[] | undefined> {
     const supabase = await createClient();
     const {
-        data: { user } } = await supabase.auth.getUser();
+        data: { user },
+    } = await supabase.auth.getUser();
+    const currentUser = user
+        ? await prisma.public_users.findFirst({ where: { auth_id: user.id }, select: { id: true } })
+        : null;
 
-    if (!user) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    const userData = await prisma.public_users.findFirst({
-        where: {
-            auth_id: user.id,
-        },
-    });
-
-    if (!userData) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    await prisma.plant_have.deleteMany({
-        where: {
-            plant_id: plantId,
-            user_id: userData.id,
-        },
-    });
-
-    revalidatePath(`/${userData.alias_id}`);
-}
-
-export async function getUserEvaluations(userId: number): Promise<(Evaluation & { plant: Plant })[] | undefined> {
-    const supabase = await createClient();
-
-    const evaluations = await prisma.evaluations.findMany({
-        where: {
-            user_id: userId,
-        },
+    const posts = await prisma.posts.findMany({
+        where: { user_id: userId },
         include: {
-            plants: {
-                include: {
-                    plant_images: {
-                        orderBy: {
-                            created_at: "asc",
-                        },
-                        take: 1,
-                    },
-                },
-            },
             users: true,
+            plants: true,
+            pets: { include: { neko: true } },
+            post_images: { orderBy: { order: "asc" } },
+            post_likes: { select: { user_id: true } },
         },
-        orderBy: {
-            id: "asc",
-        },
+        orderBy: { created_at: "desc" },
     });
 
-    return await Promise.all(evaluations.map(async (evaluation) => ({
-        id: evaluation.id,
-        type: evaluation.type as EvaluationType,
-        comment: evaluation.comment ?? "",
-        createdAt: evaluation.created_at,
-        imageUrls: (await supabase.storage.from("evaluations").list(
-            `${evaluation.id}`, {
-            sortBy: { column: 'name', order: 'desc' },
-        })).data?.map(file => STORAGE_PATH.EVALUATION + `${evaluation.id}/${file.name}`),
+    if (posts.length === 0) return undefined;
+
+    return posts.map((post) => ({
+        id: post.id,
+        comment: post.comment,
+        createdAt: post.created_at,
+        imageUrls: post.post_images.map((img) => STORAGE_PATH.POSTS + img.image_url),
+        likeCount: post.post_likes.length,
+        isLiked: currentUser ? post.post_likes.some((like) => like.user_id === currentUser.id) : false,
         user: {
-            aliasId: evaluation.users?.alias_id ?? "",
-            name: evaluation.users?.name ?? "",
-            imageSrc: evaluation.users?.image ? STORAGE_PATH.USER_PROFILE + evaluation.users.image : undefined,
+            aliasId: post.users.alias_id,
+            name: post.users.name,
+            imageSrc: post.users.image ? STORAGE_PATH.USER_PROFILE + post.users.image : undefined,
         },
+        pet: post.pets
+            ? {
+                id: post.pets.id,
+                name: post.pets.name,
+                imageSrc: post.pets.image ? STORAGE_PATH.USER_PET + post.pets.image : undefined,
+                neko: post.pets.neko,
+                sex: (post.pets.sex as SexType) ?? undefined,
+                birthday: post.pets.birthday ?? undefined,
+                age: post.pets.age ?? undefined,
+            }
+            : undefined,
         plant: {
-            id: evaluation.plants?.id,
-            name: evaluation.plants?.name,
-            mainImageUrl: evaluation.plants?.plant_images?.[0]?.image_url
-                ? STORAGE_PATH.PLANT + evaluation.plants.plant_images[0].image_url
-                : undefined,
-            isFavorite: false,
-            isHave: false,
-            goodCount: 0,
-            badCount: 0,
+            id: post.plants.id,
+            name: post.plants.name,
         },
-    })));
+    }));
 }
 
-export async function getUserFavoritePlants(userId: number): Promise<Plant[] | undefined> {
-    const favoritePlants = await prisma.plant_favorites.findMany({
+export async function getUserPostImages(userId: number): Promise<({ id: number; postId: number; plantName: string; imageUrl: string; createdAt: Date })[] | undefined> {
+    const postImages = await prisma.post_images.findMany({
         where: {
-            user_id: userId,
+            posts: {
+                user_id: userId,
+            },
         },
         include: {
-            plants: {
+            posts: {
                 include: {
-                    plant_images: {
-                        orderBy: {
-                            created_at: "asc",
-                        },
-                        take: 1,
-                    },
+                    plants: true,
                 },
             },
         },
@@ -555,132 +489,12 @@ export async function getUserFavoritePlants(userId: number): Promise<Plant[] | u
         },
     });
 
-    return favoritePlants.map((favoritePlant) => ({
-        id: favoritePlant.plant_id,
-        name: favoritePlant.plants.name,
-        mainImageUrl: favoritePlant.plants.plant_images?.[0]?.image_url ? STORAGE_PATH.PLANT + favoritePlant.plants.plant_images[0].image_url : undefined,
-        isFavorite: true,
-        isHave: false,
-        goodCount: 0,
-        badCount: 0,
+    if (postImages.length === 0) return undefined;
+    return postImages.map((postImage) => ({
+        id: postImage.id,
+        postId: postImage.post_id,
+        plantName: postImage.posts.plants.name,
+        imageUrl: STORAGE_PATH.POSTS + postImage.image_url,
+        createdAt: postImage.created_at,
     }));
-}
-
-export async function deleteFavoritePlant(plantId: number) {
-    const supabase = await createClient();
-    const {
-        data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    const userData = await prisma.public_users.findFirst({
-        where: {
-            auth_id: user.id,
-        },
-    });
-
-    if (!userData) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    await prisma.plant_favorites.deleteMany({
-        where: {
-            plant_id: plantId,
-            user_id: userData.id,
-        },
-    });
-
-    revalidatePath(`/${userData.alias_id}`);
-}
-
-export async function getUserPostImages(userId: number): Promise<({ id: number, plantId: number, plantName: string, imageUrl: string, createdAt: Date })[] | undefined> {
-    const supabase = await createClient();
-    const {
-        data: { user }
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    const userData = await prisma.public_users.findFirst({
-        where: {
-            auth_id: user.id,
-        },
-    });
-
-    if (!userData) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    const plantImages = await prisma.plant_images.findMany({
-        where: {
-            user_id: userId,
-        },
-        include: {
-            plants: true,
-        },
-        orderBy: {
-            id: "asc",
-        },
-    });
-
-    return plantImages.map((plantImage: { id: number, image_url: string, plant_id: number, created_at: Date, plants: { id: number, name: string } }) => ({
-        id: plantImage.id,
-        plantId: plantImage.plants.id,
-        plantName: plantImage.plants.name,
-        imageUrl: STORAGE_PATH.PLANT + plantImage.image_url,
-        createdAt: plantImage.created_at,
-    }));
-}
-
-export async function deletePostImage(postImageId: number): Promise<{ success: boolean }> {
-    const supabase = await createClient();
-    const {
-        data: { user }
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    const userData = await prisma.public_users.findFirst({
-        where: {
-            auth_id: user.id,
-        },
-    });
-
-    if (!userData) {
-        throw new Error("ユーザーが見つかりません");
-    }
-
-    try {
-
-        await prisma.$transaction(async (prisma) => {
-
-            // TODO 存在しなかったらplantImageはどうなる？
-            const plantImage = await prisma.plant_images.delete({
-                where: {
-                    id: postImageId,
-                    user_id: userData.id,
-                },
-            });
-
-            const { error } = await supabase.storage.from("plants").remove([plantImage.image_url]);
-
-            if (error) {
-                throw error;
-            }
-        });
-
-        revalidatePath(`/${userData.alias_id}`);
-
-        return { success: true };
-
-    } catch (error) {
-        console.error(error);
-        return { success: false, };
-    }
 }

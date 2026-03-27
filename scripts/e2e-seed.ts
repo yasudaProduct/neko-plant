@@ -20,11 +20,9 @@ export async function main() {
     console.log('✉️E2E_TEST_USER_PASSWORD:', e2eTestUserPassword);
 
     // usersテーブル以外をtruncate
-    await prisma.evaluation_reactions.deleteMany();
-    await prisma.plant_images.deleteMany();
-    await prisma.plant_have.deleteMany();
-    await prisma.plant_favorites.deleteMany();
-    await prisma.evaluations.deleteMany();
+    await prisma.post_likes.deleteMany();
+    await prisma.post_images.deleteMany();
+    await prisma.posts.deleteMany();
     await prisma.pets.deleteMany();
     await prisma.neko.deleteMany();
     await prisma.plants.deleteMany();

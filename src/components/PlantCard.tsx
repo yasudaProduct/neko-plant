@@ -1,22 +1,19 @@
-import { Heart, Leaf, MessageSquare, Skull } from "lucide-react";
+import { Cat, Leaf, MessageSquare } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import Image from "next/image";
 
 export interface PlantCardProps {
   name: string;
   imageSrc?: string;
-  isSafe: boolean;
-  likes: number;
-  dislikes: number;
-  reviewCount: number;
+  coexistenceCatCount: number;
+  coexistencePostCount: number;
 }
 
 export default function PlantCard({
   name,
   imageSrc,
-  likes,
-  dislikes,
-  reviewCount,
+  coexistenceCatCount,
+  coexistencePostCount,
 }: PlantCardProps) {
   return (
     <Card
@@ -55,20 +52,14 @@ export default function PlantCard({
         </CardTitle>
         <div className="flex items-center justify-between text-sm">
           <span className="flex items-center gap-1">
-            <Heart className="h-4 w-4 text-red-600" />
-            {likes}
+            <Cat className="h-4 w-4 text-green-600" />
+            {coexistenceCatCount}匹
           </span>
           <span className="flex items-center gap-1">
-            <Skull className="h-4 w-4 text-indigo-600" />
-            {dislikes}
+            <MessageSquare className="h-4 w-4 text-gray-600" />
+            {coexistencePostCount}件
           </span>
-          <div className="flex items-center gap-1">
-            <span className="hidden sm:block">レビュー {reviewCount}件</span>
-            <span className="block sm:hidden flex items-center gap-1">
-              <MessageSquare className="h-4 w-4 text-gray-600" />
-              {reviewCount}
-            </span>
-          </div>
+          <span className="hidden sm:block text-muted-foreground">共存実績</span>
         </div>
       </CardContent>
     </Card>

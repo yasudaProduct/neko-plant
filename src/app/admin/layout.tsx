@@ -40,22 +40,16 @@ export default async function AdminLayout({
                   ダッシュボード
                 </Link>
                 <Link
-                  href="/admin/plant-images"
-                  className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
-                >
-                  植物画像管理
-                </Link>
-                <Link
                   href="/admin/users"
                   className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
                   ユーザー管理
                 </Link>
                 <Link
-                  href="/admin/evaluations"
+                  href="/admin/posts"
                   className="border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700 inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium"
                 >
-                  評価管理
+                  投稿管理
                 </Link>
               </div>
             </div>

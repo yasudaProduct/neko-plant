@@ -10,13 +10,27 @@ export default async function UsersAdmin() {
     include: {
       _count: {
         select: {
-          evaluations: true,
-          plant_images: true,
+          posts: true,
           pets: true,
         },
       },
     },
   });
+
+  const postImages = await prisma.post_images.findMany({
+    select: {
+      posts: {
+        select: {
+          user_id: true,
+        },
+      },
+    },
+  });
+  const imageCountByUser = new Map<number, number>();
+  for (const item of postImages) {
+    const userId = item.posts.user_id;
+    imageCountByUser.set(userId, (imageCountByUser.get(userId) ?? 0) + 1);
+  }
 
   return (
     <div>
@@ -40,8 +54,8 @@ export default async function UsersAdmin() {
                 image: user.image ? STORAGE_PATH.USER_PROFILE + user.image : null,
                 role: user.role || 'user',
                 createdAt: user.created_at,
-                evaluationCount: user._count.evaluations,
-                imageCount: user._count.plant_images,
+                evaluationCount: user._count.posts,
+                imageCount: imageCountByUser.get(user.id) ?? 0,
                 petCount: user._count.pets,
               }}
             />

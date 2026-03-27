@@ -1,32 +1,14 @@
-import { Suspense, cache } from "react";
+import { Suspense } from "react";
 import Image from "next/image";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import RatingBar from "@/components/RatingBar";
-import { getPlant, getPlantImages } from "@/actions/plant-action";
-import { getEvaluations } from "@/actions/evaluation-action";
-import { Evaluation, EvaluationType } from "@/types/evaluation";
+import { getPlant } from "@/actions/plant-action";
+import { getPostsByPlantId } from "@/actions/post-action";
 import { Plant } from "@/types/plant";
 import { notFound } from "next/navigation";
-import { Leaf, Pencil } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
-import FavoriteButton from "./FavoriteButton";
-import HaveButton from "./HaveButton";
-import EvaluationCard from "./EvaluationCrad";
-import CommentFormDialog from "./CommentFormDialog";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
-import PlantImageUploadDialog from "./PlantImageUploadDialog";
+import { Cat, Leaf, MessageSquare, Pencil } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-
-// リクエスト単位で getEvaluations をキャッシュし、PlantRating と EvaluationsGrid で重複呼び出しを防止
-const getCachedEvaluations = cache(getEvaluations);
 
 export default async function PlantPage({
   params,
@@ -34,19 +16,12 @@ export default async function PlantPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  // 植物を取得
   const plant: Plant | undefined = await getPlant(Number(id));
   if (!plant) {
     return notFound();
   }
-
-  // 植物画像を取得
-  const plantImages: string[] | undefined = await getPlantImages(plant.id);
+  const { posts } = await getPostsByPlantId(plant.id, 1, 30);
 
   return (
     <div className="container mx-auto w-full 2xl:w-3/5">
@@ -54,37 +29,14 @@ export default async function PlantPage({
         <Card className="overflow-hidden">
           <CardHeader className="p-0">
             <div className="flex flex-col md:flex-row">
-              {plantImages && Array.isArray(plantImages) ? (
+              {plant.mainImageUrl ? (
                 <div className="w-full md:w-1/2 h-[300px] relative">
-                  <Carousel>
-                    <CarouselContent>
-                      {plantImages.map((imageUrl) => (
-                        <CarouselItem key={imageUrl} className="w-full">
-                          <div className="h-[300px] relative">
-                            <Image
-                              key={`blur-${imageUrl}`}
-                              src={imageUrl}
-                              alt={plant.name}
-                              fill
-                              className="object-cover blur-md"
-                              quality={90}
-                            />
-                            <Image
-                              key={`main-${imageUrl}`}
-                              src={imageUrl}
-                              alt={plant.name}
-                              fill
-                              className="h-full w-full md:w-1/2 object-contain absolute top-0 left-0"
-                              quality={90}
-                              priority
-                            />
-                          </div>
-                        </CarouselItem>
-                      ))}
-                    </CarouselContent>
-                    <CarouselPrevious className="absolute top-1/2 left-2" />
-                    <CarouselNext className="absolute top-1/2 right-2" />
-                  </Carousel>
+                  <Image
+                    src={plant.mainImageUrl}
+                    alt={plant.name}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
               ) : (
                 <div className="w-full md:w-1/2 h-[300px] bg-gray-100 flex items-center justify-center">
@@ -105,7 +57,7 @@ export default async function PlantPage({
                 <div className="text-sm text-gray-500">
                   <span className="text-sm text-gray-500 ml-4">
                     科：
-                    {plant.genus ? ` ${plant.genus}` : "未設定"}
+                    {plant.family ? ` ${plant.family}` : "未設定"}
                   </span>
                 </div>
                 <div className="text-sm text-gray-500">
@@ -124,44 +76,56 @@ export default async function PlantPage({
                 <Suspense
                   fallback={
                     <div className="flex flex-col gap-2 mt-8">
-                      <span className="text-sm text-gray-500">評価</span>
+                      <span className="text-sm text-gray-500">共存実績</span>
                       <Skeleton className="h-4 w-full rounded-full" />
                     </div>
                   }
                 >
-                  <PlantRating plantId={plant.id} />
+                  <PlantSummary plant={plant} />
                 </Suspense>
               </div>
             </div>
           </CardHeader>
           <CardContent className="p-6">
-            <div className="flex items-center gap-2 mb-4">
-              {user?.id && (
-                <>
-                  <div className="flex gap-2">
-                    <CommentFormDialog plantId={plant.id} />
-                    <PlantImageUploadDialog plantId={plant.id} />
-                    <Link href={`/plants/${plant.id}/edit`}>
-                      <Button variant="outline">
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-                    </Link>
-                  </div>
-                </>
-              )}
-              <div className="ml-auto flex items-center gap-2">
-                <FavoriteButton
-                  plantId={plant.id}
-                  isFavorite={plant.isFavorite}
-                />
-                <HaveButton plantId={plant.id} isHave={plant.isHave} />
-              </div>
+            <div className="flex justify-end mb-4">
+              <Link href={`/plants/${plant.id}/edit`}>
+                <Button variant="outline">
+                  <Pencil className="w-4 h-4" />
+                </Button>
+              </Link>
             </div>
 
-            {/* Comments Grid */}
-            <Suspense fallback={<EvaluationsSkeleton />}>
-              <EvaluationsGrid plantId={plant.id} />
-            </Suspense>
+            <h3 className="text-lg font-semibold mb-3">関連投稿</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {posts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  この植物の投稿はまだありません。
+                </p>
+              ) : (
+                posts.map((post) => (
+                  <Card key={post.id}>
+                    <CardHeader>
+                      <CardTitle className="text-base">
+                        {post.user.name}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      {post.imageUrls[0] && (
+                        <div className="relative h-48 w-full rounded-md overflow-hidden">
+                          <Image
+                            src={post.imageUrls[0]}
+                            alt={plant.name}
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      )}
+                      <p className="text-sm">{post.comment ?? "コメントなし"}</p>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -169,82 +133,27 @@ export default async function PlantPage({
   );
 }
 
-async function PlantRating({ plantId }: { plantId: number }) {
-  const evaluations = await getCachedEvaluations(plantId);
-  let goodCount = 0;
-  let badCount = 0;
-  for (const e of evaluations) {
-    if (e.type === EvaluationType.GOOD) goodCount++;
-    else if (e.type === EvaluationType.BAD) badCount++;
-  }
+function PlantSummary({ plant }: { plant: Plant }) {
+  const cats = plant.coexistenceCatCount;
+  const posts = plant.coexistencePostCount;
   return (
     <div className="flex flex-col gap-2 mt-8">
-      <span className="text-sm text-gray-500">評価</span>
-      <RatingBar likes={goodCount} dislikes={badCount} />
-    </div>
-  );
-}
-
-async function EvaluationsGrid({ plantId }: { plantId: number }) {
-  const evaluations = await getCachedEvaluations(plantId);
-  const goodEvaluations: Evaluation[] = [];
-  const badEvaluations: Evaluation[] = [];
-  for (const evaluation of evaluations) {
-    if (evaluation.type === EvaluationType.GOOD)
-      goodEvaluations.push(evaluation);
-    else if (evaluation.type === EvaluationType.BAD)
-      badEvaluations.push(evaluation);
-  }
-
-  return (
-    <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
-      <div>
-        <h3 className="text-lg font-semibold text-green-600 mb-2">
-          良い評価 {"(" + goodEvaluations.length + ")"}
-        </h3>
-        <div className="space-y-4 max-h-[300px] md:max-h-[500px] overflow-y-auto">
-          {goodEvaluations
-            .filter((evaluation) => evaluation.comment)
-            .map((evaluation) => (
-              <EvaluationCard key={evaluation.id} evaluation={evaluation} />
-            ))}
-        </div>
+      <span className="text-sm text-gray-500">共存実績</span>
+      <div className="flex items-center gap-4 text-sm">
+        <span className="flex items-center gap-1">
+          <Cat className="w-4 h-4 text-green-600" />
+          {cats}匹
+        </span>
+        <span className="flex items-center gap-1">
+          <MessageSquare className="w-4 h-4 text-gray-600" />
+          {posts}投稿
+        </span>
       </div>
-      <div>
-        <h3 className="text-lg font-semibold text-indigo-500 mb-2">
-          悪い評価 {"(" + badEvaluations.length + ")"}
-        </h3>
-        <div className="space-y-4 max-h-[300px] md:max-h-[500px] overflow-y-auto">
-          {badEvaluations
-            .filter((evaluation) => evaluation.comment)
-            .map((evaluation) => (
-              <EvaluationCard key={evaluation.id} evaluation={evaluation} />
-            ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EvaluationsSkeleton() {
-  return (
-    <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
-      <div>
-        <Skeleton className="h-6 w-32 mb-2" />
-        <div className="space-y-4">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-lg" />
-          ))}
-        </div>
-      </div>
-      <div>
-        <Skeleton className="h-6 w-32 mb-2" />
-        <div className="space-y-4">
-          {Array.from({ length: 2 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 w-full rounded-lg" />
-          ))}
-        </div>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        {cats === 0
+          ? "猫との共存情報がありません。注意してください。"
+          : `${cats}匹の猫との共存実績があります。`}
+      </p>
     </div>
   );
 }

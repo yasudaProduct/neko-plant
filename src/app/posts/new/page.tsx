@@ -18,7 +18,7 @@ export default async function NewPostPage() {
       <div className="container mx-auto px-4">
         <Card className="max-w-2xl mx-auto p-6">
           <h1 className="text-2xl font-bold text-center mb-6">
-            写真から評価を投稿
+            写真を投稿
           </h1>
           <NewPostWithAiForm />
         </Card>

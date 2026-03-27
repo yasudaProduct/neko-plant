@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Sprout, AlertTriangle, PawPrint } from "lucide-react";
+import { Search } from "lucide-react";
 import { useEffect, useState, useRef } from "react";
 import { Input } from "./ui/input";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,11 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "./ui/select";
-import {
-  getPlants,
-  searchPlantName,
-  searchPlants,
-} from "@/actions/plant-action";
+import { getPlants, searchPlantName, searchPlants } from "@/actions/plant-action";
 import { Plant } from "@/types/plant";
 import PlantCard from "./PlantCard";
 import Link from "next/link";
@@ -27,21 +23,12 @@ import { Pagination } from "./ui/pagination";
 // 1ページあたりの表示件数
 const PAGE_SIZE = 8;
 
-type SafetyFilter = "all" | "safe" | "danger";
-
-const parseSafetyFilter = (value: string | null): SafetyFilter => {
-  if (value === "safe") return "safe";
-  if (value === "danger") return "danger";
-  return "all";
-};
-
 export default function PlantSearch() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const query = searchParams.get("q") || "";
-  const sortBy = searchParams.get("sort") || "evaluation_desc";
+  const sortBy = searchParams.get("sort") || "coexistence_desc";
   const currentPage = Number(searchParams.get("page") || "1");
-  const initialFilter = parseSafetyFilter(searchParams.get("filter"));
 
   const [plants, setPlants] = useState<Plant[]>([]);
   const [plantSuggest, setPlantSuggest] = useState<
@@ -54,46 +41,24 @@ export default function PlantSearch() {
 
   const [currentSort, setCurrentSort] = useState<string>(sortBy);
   const [totalCount, setTotalCount] = useState<number>(0);
-  const [evaluationFilter, setEvaluationFilter] =
-    useState<SafetyFilter>(initialFilter);
 
-  // 初期ロード時と検索クエリが変更された時に植物を取得
   useEffect(() => {
     const fetchPlants = async () => {
       setIsSearching(true);
       try {
-        let result;
-        if (query) {
-          result = await searchPlants(
-            query,
-            sortBy,
-            currentPage,
-            PAGE_SIZE,
-            evaluationFilter,
-          );
-        } else {
-          result = await getPlants(
-            sortBy,
-            currentPage,
-            PAGE_SIZE,
-            evaluationFilter,
-          );
-        }
+        const result = query
+          ? await searchPlants(query, sortBy, currentPage, PAGE_SIZE)
+          : await getPlants(sortBy, currentPage, PAGE_SIZE);
         setPlants(result.plants);
         setTotalCount(result.totalCount);
       } catch (error) {
         console.error("植物の取得中にエラーが発生しました:", error);
       } finally {
-        console.log("isSearching", isSearching);
         setIsSearching(false);
       }
     };
     fetchPlants();
-  }, [query, sortBy, currentPage, evaluationFilter]);
-
-  useEffect(() => {
-    setEvaluationFilter(parseSafetyFilter(searchParams.get("filter")));
-  }, [searchParams]);
+  }, [query, sortBy, currentPage]);
 
   // URLの検索クエリが変更されたら入力欄を同期（初期表示・ブラウザ戻る等）
   useEffect(() => {
@@ -116,36 +81,14 @@ export default function PlantSearch() {
     e.preventDefault();
     setIsSuggestOpen(false);
 
-    // 検索ボタンで検索する場合はフィルターを「全て」にする
-    setEvaluationFilter("all");
-
-    // URLのクエリパラメータを更新
     const params = new URLSearchParams();
     if (searchQuery.trim()) {
       params.set("q", searchQuery);
     }
-    if (currentSort !== "name") {
+    if (currentSort !== "coexistence_desc") {
       params.set("sort", currentSort);
     }
-    // filterは検索時は「全て」なのでURLに含めない
-    router.push(`/?${params.toString()}`);
-  };
-
-  const handleFilterChange = (value: SafetyFilter) => {
-    setEvaluationFilter(value);
-
-    const params = new URLSearchParams();
-    if (searchQuery.trim()) {
-      params.set("q", searchQuery.trim());
-    }
-    if (currentSort !== "evaluation_desc") {
-      params.set("sort", currentSort);
-    }
-    if (value !== "all") {
-      params.set("filter", value);
-    }
-    // フィルター変更時は1ページ目に戻す
-    router.push(`/?${params.toString()}`);
+    router.push(`/plants?${params.toString()}`);
   };
 
   // ソート順変更処理
@@ -156,14 +99,10 @@ export default function PlantSearch() {
     if (searchQuery.trim()) {
       params.set("q", searchQuery.trim());
     }
-    if (value !== "evaluation_desc") {
+    if (value !== "coexistence_desc") {
       params.set("sort", value);
     }
-    if (evaluationFilter !== "all") {
-      params.set("filter", evaluationFilter);
-    }
-    // ソート変更時は1ページ目に戻る
-    router.push(`/?${params.toString()}`);
+    router.push(`/plants?${params.toString()}`);
   };
 
   // ページネーションのURLを生成する関数
@@ -176,7 +115,7 @@ export default function PlantSearch() {
       params.delete("page");
     }
 
-    return `/?${params.toString()}`;
+    return `/plants?${params.toString()}`;
   };
 
   // 総ページ数を計算
@@ -238,48 +177,6 @@ export default function PlantSearch() {
           )}
         </form>
 
-        {/* 安全/危険フィルター */}
-        <div className="flex justify-center gap-4 mt-6">
-          <Button
-            type="button"
-            onClick={() => handleFilterChange("all")}
-            className={`rounded-full px-6 py-2 transition-all duration-300 font-medium border flex items-center gap-2 hover:scale-105 ${
-              evaluationFilter === "all"
-                ? "bg-orange-100 border-orange-200 text-orange-700 shadow-inner"
-                : "bg-white border-orange-100 text-gray-500 hover:bg-orange-50 shadow-sm"
-            }`}
-            variant="ghost"
-          >
-            <PawPrint className="w-4 h-4" />
-            全て
-          </Button>
-          <Button
-            type="button"
-            onClick={() => handleFilterChange("safe")}
-            className={`rounded-full px-6 py-2 transition-all duration-300 font-medium border flex items-center gap-2 hover:scale-105 ${
-              evaluationFilter === "safe"
-                ? "bg-green-100 border-green-200 text-green-700 shadow-inner"
-                : "bg-white border-green-100 text-gray-500 hover:bg-green-50 shadow-sm"
-            }`}
-            variant="ghost"
-          >
-            <Sprout className="w-4 h-4" />
-            安全
-          </Button>
-          <Button
-            type="button"
-            onClick={() => handleFilterChange("danger")}
-            className={`rounded-full px-6 py-2 transition-all duration-300 font-medium border flex items-center gap-2 hover:scale-105 ${
-              evaluationFilter === "danger"
-                ? "bg-rose-100 border-rose-200 text-rose-700 shadow-inner"
-                : "bg-white border-rose-100 text-gray-500 hover:bg-rose-50 shadow-sm"
-            }`}
-            variant="ghost"
-          >
-            <AlertTriangle className="w-4 h-4" />
-            危険
-          </Button>
-        </div>
       </div>
       <div className="container mx-auto w-full xl:w-3/5 ">
         <div className="flex justify-between items-center mb-6">
@@ -298,8 +195,8 @@ export default function PlantSearch() {
                 <SelectValue placeholder="並び順を選択" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="evaluation_desc">
-                  評価数（多い順）
+                <SelectItem value="coexistence_desc">
+                  共存実績（多い順）
                 </SelectItem>
                 <SelectItem value="name">名前（昇順）</SelectItem>
                 <SelectItem value="name_desc">名前（降順）</SelectItem>
@@ -355,10 +252,8 @@ export default function PlantSearch() {
                   <PlantCard
                     name={plant.name}
                     imageSrc={plant.mainImageUrl || "/images/plant_default.png"}
-                    isSafe={plant.goodCount > 0}
-                    likes={plant.goodCount}
-                    dislikes={plant.badCount}
-                    reviewCount={plant.goodCount + plant.badCount}
+                    coexistenceCatCount={plant.coexistenceCatCount}
+                    coexistencePostCount={plant.coexistencePostCount}
                   />
                 </Link>
               ))}

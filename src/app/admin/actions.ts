@@ -20,16 +20,14 @@ export async function approveImage(imageId: number) {
     throw new Error("管理者権限が必要です");
   }
 
-  await prisma.plant_images.update({
-    where: {
-      id: imageId,
-    },
-    data: {
-      is_approved: true,
-    },
+  const image = await prisma.post_images.findUnique({
+    where: { id: imageId },
   });
-
-  revalidatePath("/admin/plant-images");
+  if (!image) {
+    throw new Error("画像が見つかりません");
+  }
+  // v2では承認状態を持たないため、承認操作は再検証のみ行う
+  revalidatePath("/admin/posts");
 }
 
 export async function rejectImage(imageId: number) {
@@ -47,13 +45,13 @@ export async function rejectImage(imageId: number) {
     throw new Error("管理者権限が必要です");
   }
 
-  await prisma.plant_images.delete({
+  await prisma.post_images.delete({
     where: {
       id: imageId,
     },
   });
 
-  revalidatePath("/admin/plant-images");
+  revalidatePath("/admin/posts");
 }
 
 export async function updateUserRole(userId: number, role: string) {
@@ -98,11 +96,11 @@ export async function deleteEvaluation(evaluationId: number) {
     throw new Error("管理者権限が必要です");
   }
 
-  await prisma.evaluations.delete({
+  await prisma.posts.delete({
     where: {
       id: evaluationId,
     },
   });
 
-  revalidatePath("/admin/evaluations");
+  revalidatePath("/admin/posts");
 }

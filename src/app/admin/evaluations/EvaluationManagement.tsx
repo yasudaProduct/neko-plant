@@ -8,7 +8,6 @@ import { deleteEvaluation } from "../actions";
 interface EvaluationManagementProps {
   evaluation: {
     id: number;
-    type: "good" | "bad";
     comment: string | null;
     createdAt: Date;
     reactionCount: number;
@@ -29,7 +28,7 @@ export default function EvaluationManagement({ evaluation }: EvaluationManagemen
   const [isLoading, setIsLoading] = useState(false);
 
   const handleDelete = async () => {
-    if (!confirm("この評価を削除してもよろしいですか？")) {
+    if (!confirm("この投稿を削除してもよろしいですか？")) {
       return;
     }
 
@@ -49,7 +48,7 @@ export default function EvaluationManagement({ evaluation }: EvaluationManagemen
       <li className="px-6 py-4 bg-red-50">
         <div className="text-center">
           <Badge variant="destructive">削除済み</Badge>
-          <p className="text-sm text-red-700 mt-2">評価が削除されました</p>
+          <p className="text-sm text-red-700 mt-2">投稿が削除されました</p>
         </div>
       </li>
     );
@@ -63,9 +62,7 @@ export default function EvaluationManagement({ evaluation }: EvaluationManagemen
             <h3 className="text-lg font-medium text-gray-900">
               {evaluation.plant.name}
             </h3>
-            <Badge variant={evaluation.type === "good" ? "default" : "destructive"}>
-              {evaluation.type === "good" ? "良い評価" : "悪い評価"}
-            </Badge>
+            <Badge variant="outline">投稿</Badge>
           </div>
           
           {evaluation.user && (
@@ -79,7 +76,7 @@ export default function EvaluationManagement({ evaluation }: EvaluationManagemen
           )}
           
           <div className="flex items-center space-x-4 text-sm text-gray-500">
-            <span>リアクション: {evaluation.reactionCount}件</span>
+            <span>いいね: {evaluation.reactionCount}件</span>
             <span>{new Date(evaluation.createdAt).toLocaleDateString("ja-JP")}</span>
           </div>
         </div>

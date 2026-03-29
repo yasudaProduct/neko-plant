@@ -70,7 +70,7 @@ export async function updateSession(request: NextRequest) {
   // CSPヘッダーを設定
   const cspHeader = [
     "default-src 'self'",
-    `script-src 'self'${isProd ? ` 'nonce-${nonce}'` : " 'unsafe-eval' 'unsafe-inline'"}`,
+    `script-src 'self' https://mcp.figma.com${isProd ? ` 'nonce-${nonce}'` : " 'unsafe-eval' 'unsafe-inline'"}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
     `connect-src 'self' https: wss:${isProd ? '' : ' ws:'}`,

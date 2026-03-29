@@ -14,7 +14,11 @@
       "Bash(npm test:*)",
       "Bash(npx playwright test:*)",
       "Bash(wc:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "mcp__plugin_figma_figma__get_metadata",
+      "mcp__plugin_figma_figma__generate_figma_design",
+      "Bash(curl -s \"http://localhost:3000/\")",
+      "Bash(open \"http://localhost:3000/#figmacapture=32d8d1ec-cd94-44c6-ae56-993f24402155&figmaendpoint=https%3A%2F%2Fmcp.figma.com%2Fmcp%2Fcapture%2F32d8d1ec-cd94-44c6-ae56-993f24402155%2Fsubmit&figmadelay=3000\")"
     ],
     "deny": []
   }

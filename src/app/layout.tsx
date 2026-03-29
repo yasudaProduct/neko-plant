@@ -79,6 +79,10 @@ export default async function RootLayout({
 
   return (
     <html lang="ja">
+      <head>
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+      </head>
       <body className={`${RampartOneFont.className} antialiased`}>
         <div className="flex flex-col min-h-screen bg-green-50">
           <ProgressBar>

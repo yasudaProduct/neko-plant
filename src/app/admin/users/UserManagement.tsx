@@ -14,8 +14,8 @@ interface UserManagementProps {
     image: string | null;
     role: string;
     createdAt: Date;
-    evaluationCount: number;
-    imageCount: number;
+    postCount: number;
+    likeCount: number;
     petCount: number;
   };
 }
@@ -88,7 +88,7 @@ export default function UserManagement({ user }: UserManagementProps) {
             </div>
             <p className="text-sm text-gray-500">@{user.aliasId}</p>
             <div className="text-xs text-gray-400 mt-1">
-              評価: {user.evaluationCount}件 | 画像: {user.imageCount}件 | ペット: {user.petCount}匹
+              投稿: {user.postCount}件 | いいね: {user.likeCount}件 | 猫: {user.petCount}匹
             </div>
             <p className="text-xs text-gray-400">
               登録日: {new Date(user.createdAt).toLocaleDateString("ja-JP")}

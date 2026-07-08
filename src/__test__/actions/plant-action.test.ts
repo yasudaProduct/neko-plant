@@ -1,950 +1,247 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { getPlants, searchPlants, getPlant, addPlant, addFavorite, deleteFavorite, addHave, deleteHave } from '@/actions/plant-action';
+import {
+    addPlant,
+    deletePlant,
+    getPlant,
+    searchPlantName,
+    searchPlants,
+    updatePlant,
+} from '@/actions/plant-action';
 import { createClient } from '@/lib/supabase/server';
 import prisma from '@/lib/prisma';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ActionErrorCode } from '@/types/common';
 
 // Prismaのモック
-vi.mock('@/lib/prisma', () => ({
-    default: {
+vi.mock('@/lib/prisma', () => {
+    const prisma = {
         plants: {
-            count: vi.fn(),
             findMany: vi.fn(),
-            findUnique: vi.fn(),
             findFirst: vi.fn(),
+            findUnique: vi.fn(),
+            count: vi.fn(),
             create: vi.fn(),
             update: vi.fn(),
-        },
-        plant_images: {
-            create: vi.fn(),
-        },
-        plant_favorites: {
-            create: vi.fn(),
             delete: vi.fn(),
-            findFirst: vi.fn(),
-            deleteMany: vi.fn(),
         },
-        plant_have: {
-            create: vi.fn(),
-            delete: vi.fn(),
-            findFirst: vi.fn(),
-            deleteMany: vi.fn(),
-        },
-        public_users: {
-            findFirst: vi.fn(),
-        },
-        $transaction: vi.fn((callback) => callback(prisma)),
-    },
-}));
+        $queryRaw: vi.fn(),
+    };
+    return { default: prisma };
+});
 
-// Supabaseクライアントのモック
 vi.mock('@/lib/supabase/server', () => ({
     createClient: vi.fn(),
 }));
 
-describe('Plant Actions', () => {
-    const mockPlants = [
-        {
-            id: 1,
-            name: 'テスト植物1',
-            created_at: new Date(),
-            updated_at: new Date(),
-            scientific_name: 'テスト植物1',
-            family: 'テスト植物1',
-            genus: 'テスト植物1',
-            species: 'テスト植物1',
-            plant_images: [
-                {
-                    id: 1,
-                    image_url: 'test1.jpg',
-                    order: 1,
-                },
-            ],
-            evaluations: [{ type: 'good' }, { type: 'bad' }],
-        },
-        {
-            id: 2,
-            name: 'テスト植物2',
-            image_src: 'test2.jpg',
-            created_at: new Date(),
-            updated_at: new Date(),
-            scientific_name: null,
-            family: null,
-            genus: null,
-            species: null,
-            plant_images: [
-                {
-                    id: 2,
-                    image_url: 'test2.jpg',
-                    order: 1,
-                },
-            ],
-            evaluations: [{ type: 'good' }],
-        },
-    ];
+vi.mock('next/cache', () => ({
+    revalidatePath: vi.fn(),
+}));
 
-    const mockPlant = {
-        id: 1,
-        name: 'テスト植物1',
-        image_src: 'test1.jpg',
-        created_at: new Date(),
-        updated_at: new Date(),
-        scientific_name: 'テスト植物1',
-        family: 'テスト植物1',
-        genus: 'テスト植物1',
-        species: 'テスト植物1',
+const mockUser = { id: 'test-auth-id' };
+
+function mockSupabase(user: { id: string } | null) {
+    const client = {
+        auth: {
+            getUser: vi.fn().mockResolvedValue({ data: { user } }),
+        },
     };
+    vi.mocked(createClient).mockResolvedValue(client as unknown as SupabaseClient);
+}
 
+// searchPlants用の詳細データ (post_plants経由の最新投稿画像を含む)
+const plantDetailRow = (id: number, name: string, imageUrl?: string) => ({
+    id,
+    name,
+    scientific_name: null,
+    family: null,
+    genus: null,
+    species: null,
+    post_plants: imageUrl
+        ? [{ posts: { post_images: [{ image_url: imageUrl }] } }]
+        : [],
+});
+
+describe('Plant Actions', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    describe('getPlants', () => {
-        it('植物一覧を取得できること', async () => {
-            vi.mocked(prisma.plants.count).mockResolvedValue(2);
-            vi.mocked(prisma.plants.findMany).mockResolvedValue(mockPlants);
+    describe('searchPlants', () => {
+        it('共存実績付きで植物を返す', async () => {
+            // 1回目: 件数 / 2回目: ページID / 3回目: 共存集計
+            vi.mocked(prisma.$queryRaw)
+                .mockResolvedValueOnce([{ count: BigInt(2) }] as any)
+                .mockResolvedValueOnce([{ id: 5 }, { id: 6 }] as any)
+                .mockResolvedValueOnce([
+                    { plant_id: 5, post_count: BigInt(3), cat_count: BigInt(2) },
+                ] as any);
+            vi.mocked(prisma.plants.findMany).mockResolvedValue([
+                plantDetailRow(6, 'モンステラ'),
+                plantDetailRow(5, 'パキラ', 'auth/1/1_a.png'),
+            ] as any);
 
-            const result = await getPlants('name', 1, 10);
+            const result = await searchPlants('', 'cats', 1, 9, 'all');
 
-            expect(result).toEqual({
-                plants: [
-                    {
-                        id: 1,
-                        name: 'テスト植物1',
-                        mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
-                        isFavorite: false,
-                        isHave: false,
-                        goodCount: 1,
-                        badCount: 1,
-                    },
-                    {
-                        id: 2,
-                        name: 'テスト植物2',
-                        mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test2.jpg',
-                        isFavorite: false,
-                        isHave: false,
-                        goodCount: 1,
-                        badCount: 0,
-                    },
-                ],
-                totalCount: 2,
-            });
+            expect(result.totalCount).toBe(2);
+            expect(result.plants).toHaveLength(2);
 
-            expect(prisma.plants.count).toHaveBeenCalled();
+            // IDの順序はRaw SQLの結果順 (5 -> 6) を維持する
+            expect(result.plants[0].id).toBe(5);
+            expect(result.plants[0].catCount).toBe(2);
+            expect(result.plants[0].postCount).toBe(3);
+            expect(result.plants[0].mainImageUrl).toContain('/storage/v1/object/public/posts/auth/1/1_a.png');
+
+            expect(result.plants[1].id).toBe(6);
+            expect(result.plants[1].catCount).toBe(0);
+            expect(result.plants[1].mainImageUrl).toBeUndefined();
         });
 
-        it('空の配列を返すこと', async () => {
-            vi.mocked(prisma.plants.count).mockResolvedValue(0);
-            vi.mocked(prisma.plants.findMany).mockResolvedValue([]);
+        it('結果が0件の場合は空配列を返す', async () => {
+            vi.mocked(prisma.$queryRaw)
+                .mockResolvedValueOnce([{ count: BigInt(0) }] as any)
+                .mockResolvedValueOnce([] as any);
 
-            const result = await getPlants('name', 1, 10);
+            const result = await searchPlants('存在しない植物', 'cats', 1, 9, 'all');
 
-            expect(result).toEqual({
-                plants: [],
-                totalCount: 0,
-            });
-        });
-
-        it('ソート順 名前降順', async () => {
-            const sortBy = 'name_desc';
-            vi.mocked(prisma.plants.count).mockResolvedValue(2);
-            vi.mocked(prisma.plants.findMany).mockResolvedValue(mockPlants);
-
-            await getPlants(sortBy, 1, 10);
-
-            expect(prisma.plants.findMany).toHaveBeenCalledWith({
-                include: {
-                    plant_images: {
-                        orderBy: {
-                            order: 'asc',
-                        },
-                        take: 1,
-                    },
-                    evaluations: {
-                        select: { type: true },
-                    },
-                },
-                orderBy: { name: 'desc' },
-                skip: 0,
-                take: 10,
-            });
-        });
-
-        it('ソート順 作成日降順', async () => {
-            const sortBy = 'created_at_desc';
-            vi.mocked(prisma.plants.count).mockResolvedValue(2);
-            vi.mocked(prisma.plants.findMany).mockResolvedValue(mockPlants);
-
-            await getPlants(sortBy, 1, 10);
-
-            expect(prisma.plants.findMany).toHaveBeenCalledWith({
-                include: {
-                    plant_images: {
-                        orderBy: {
-                            order: 'asc',
-                        },
-                        take: 1,
-                    },
-                    evaluations: {
-                        select: { type: true },
-                    },
-                },
-                orderBy: { created_at: 'desc' },
-                skip: 0,
-                take: 10,
-            });
-        });
-
-        it('ソート順 作成日昇順', async () => {
-            const sortBy = 'created_at';
-            vi.mocked(prisma.plants.count).mockResolvedValue(2);
-            vi.mocked(prisma.plants.findMany).mockResolvedValue(mockPlants);
-
-            await getPlants(sortBy, 1, 10);
-
-            expect(prisma.plants.findMany).toHaveBeenCalledWith({
-                include: {
-                    plant_images: {
-                        orderBy: {
-                            order: 'asc',
-                        },
-                        take: 1,
-                    },
-                    evaluations: {
-                        select: { type: true },
-                    },
-                },
-                orderBy: { created_at: 'asc' },
-                skip: 0,
-                take: 10,
-            });
-        });
-
-        it('ソート順 評価が多い順', async () => {
-            const sortBy = 'evaluation_desc';
-            vi.mocked(prisma.plants.count).mockResolvedValue(2);
-            vi.mocked(prisma.plants.findMany).mockResolvedValue(mockPlants);
-
-            await getPlants(sortBy, 1, 10);
-
-            expect(prisma.plants.findMany).toHaveBeenCalledWith({
-                include: {
-                    plant_images: {
-                        orderBy: {
-                            order: 'asc',
-                        },
-                        take: 1,
-                    },
-                    evaluations: {
-                        select: { type: true },
-                    },
-                },
-                orderBy: { evaluations: { _count: 'desc' } },
-                skip: 0,
-                take: 10,
-            });
+            expect(result).toEqual({ plants: [], totalCount: 0 });
+            expect(prisma.plants.findMany).not.toHaveBeenCalled();
         });
     });
 
-    describe('searchPlants', () => {
-        const mockSearchResult = [
-            {
-                id: 1,
-                name: 'テスト植物1',
-                created_at: new Date('2024-01-01'),
-                evaluations: [{ type: 'good' }, { type: 'good' }, { type: 'bad' }], // good: 2, bad: 1 => Safe
-            },
-            {
-                id: 2,
-                name: 'テスト植物2',
-                created_at: new Date('2024-01-02'),
-                evaluations: [{ type: 'good' }, { type: 'bad' }, { type: 'bad' }], // good: 1, bad: 2 => Danger
-            },
-        ];
+    describe('searchPlantName', () => {
+        it('名前の部分一致で検索する', async () => {
+            vi.mocked(prisma.plants.findMany).mockResolvedValue([
+                { id: 1, name: 'パキラ' },
+            ] as any);
 
-        const mockDetailResult1 = {
-            id: 1,
-            name: 'テスト植物1',
-            created_at: new Date('2024-01-01'),
-            updated_at: new Date(),
-            scientific_name: null,
-            family: null,
-            genus: null,
-            species: null,
-            plant_images: [
-                {
-                    id: 1,
-                    image_url: 'test1.jpg',
-                    order: 1,
-                },
-            ],
-        };
+            const result = await searchPlantName('パキ');
 
-        const mockDetailResult2 = {
-            id: 2,
-            name: 'テスト植物2',
-            created_at: new Date('2024-01-02'),
-            updated_at: new Date(),
-            scientific_name: null,
-            family: null,
-            genus: null,
-            species: null,
-            plant_images: [
-                {
-                    id: 2,
-                    image_url: 'test2.jpg',
-                    order: 1,
-                },
-            ],
-        };
-
-        it('検索クエリで植物を検索できること', async () => {
-            // 1回目のfindMany: IDと評価データの取得
-            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce([mockSearchResult[0]] as any);
-            // 2回目のfindMany: 詳細データの取得
-            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce([mockDetailResult1] as any);
-
-            const result = await searchPlants('テスト植物1', 'name', 1, 10);
-
-            expect(result.totalCount).toBe(1);
-            expect(result.plants).toHaveLength(1);
-            expect(result.plants[0].name).toBe('テスト植物1');
-            expect(result.plants[0].goodCount).toBe(2);
-            expect(result.plants[0].badCount).toBe(1);
-
-            // 1回目の呼び出し検証（検索条件）
-            expect(prisma.plants.findMany).toHaveBeenNthCalledWith(1, expect.objectContaining({
-                where: {
-                    name: {
-                        contains: 'テスト植物1',
-                        mode: 'insensitive',
-                    },
-                },
-                select: expect.any(Object),
-            }));
-        });
-
-        it('Safeフィルターでフィルタリングできること', async () => {
-            // 1回目: 全件返す
-            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce(mockSearchResult as any);
-            // 2回目: Safeな植物（ID: 1）のみの詳細を返す
-            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce([mockDetailResult1] as any);
-
-            const result = await searchPlants('', 'name', 1, 10, 'safe');
-
-            expect(result.totalCount).toBe(1);
-            expect(result.plants[0].name).toBe('テスト植物1');
-
-            // 2回目の呼び出し検証（IDフィルタリング）
-            expect(prisma.plants.findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
-                where: { id: { in: [1] } },
-            }));
-        });
-
-        it('Dangerフィルターでフィルタリングできること', async () => {
-            // 1回目: 全件返す
-            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce(mockSearchResult as any);
-            // 2回目: Dangerな植物（ID: 2）のみの詳細を返す
-            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce([mockDetailResult2] as any);
-
-            const result = await searchPlants('', 'name', 1, 10, 'danger');
-
-            expect(result.totalCount).toBe(1);
-            expect(result.plants[0].name).toBe('テスト植物2');
-
-            // 2回目の呼び出し検証（IDフィルタリング）
-            expect(prisma.plants.findMany).toHaveBeenNthCalledWith(2, expect.objectContaining({
-                where: { id: { in: [2] } },
-            }));
-        });
-
-        it('評価数順（evaluation_desc）でソートできること', async () => {
-            // 1回目: 全件返す
-            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce(mockSearchResult as any);
-            // 2回目: ソートされた順序（評価数が多い順：ID1(3件) -> ID2(3件) ... mockでは両方3件なので created_atなどで変わるかもだが、
-            // 実装上は length - length なので同点。
-            // テストデータを調整して明確な差をつける
-            const sortTestData = [
-                { ...mockSearchResult[0], evaluations: [{ type: 'good' }] }, // 1件
-                { ...mockSearchResult[1], evaluations: [{ type: 'good' }, { type: 'bad' }] }, // 2件
-            ];
-
-            vi.mocked(prisma.plants.findMany).mockReset(); // リセット
-            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce(sortTestData as any);
-            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce([mockDetailResult2, mockDetailResult1] as any);
-
-            const result = await searchPlants('query', 'evaluation_desc', 1, 10);
-
-            // 評価数が多い順（ID2 -> ID1）になっていることを期待
-            expect(result.plants[0].name).toBe('テスト植物2');
-            expect(result.plants[1].name).toBe('テスト植物1');
-        });
-
-        it('検索結果が0件の場合、空の配列を返すこと', async () => {
-            // 検索クエリありの場合は count ではなく findMany が呼ばれる
-            vi.mocked(prisma.plants.findMany).mockResolvedValueOnce([]);
-
-            const result = await searchPlants('存在しない植物', 'name', 1, 10);
-
-            expect(result).toEqual({
-                plants: [],
-                totalCount: 0,
-            });
-
-            // 2回目のfindManyは呼ばれないはず
-            expect(prisma.plants.findMany).toHaveBeenCalledTimes(1);
+            expect(result).toEqual([{ id: 1, name: 'パキラ' }]);
         });
     });
 
     describe('getPlant', () => {
-        it('植物の詳細を取得できること', async () => {
-            vi.mocked(prisma.plants.findUnique).mockResolvedValue(mockPlant);
-            vi.mocked(createClient).mockResolvedValue({
-                from: vi.fn().mockReturnThis(),
-                select: vi.fn().mockReturnThis(),
-                eq: vi.fn().mockReturnThis(),
-                single: vi.fn().mockResolvedValue({ data: null }),
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient);
+        it('植物と共存実績を返す', async () => {
+            vi.mocked(prisma.plants.findMany).mockResolvedValue([
+                plantDetailRow(5, 'パキラ'),
+            ] as any);
+            vi.mocked(prisma.$queryRaw).mockResolvedValue([
+                { plant_id: 5, post_count: BigInt(4), cat_count: BigInt(3) },
+            ] as any);
 
-            const result = await getPlant(1);
+            const plant = await getPlant(5);
 
-            expect(result).toEqual({
-                id: 1,
-                name: 'テスト植物1',
-                mainImageUrl: undefined,
-                isFavorite: false,
-                isHave: false,
-                scientific_name: 'テスト植物1',
-                family: 'テスト植物1',
-                genus: 'テスト植物1',
-                species: 'テスト植物1',
-                goodCount: 0,
-                badCount: 0,
-            });
-
-            expect(prisma.plants.findUnique).toHaveBeenCalledWith({
-                include: {
-                    plant_images: {
-                        orderBy: {
-                            order: 'asc',
-                        },
-                        take: 1,
-
-                    },
-                },
-                where: { id: 1 },
-            });
+            expect(plant).toBeDefined();
+            expect(plant?.name).toBe('パキラ');
+            expect(plant?.postCount).toBe(4);
+            expect(plant?.catCount).toBe(3);
         });
 
-        it('存在しない植物の場合はundefinedを返すこと', async () => {
-            vi.mocked(prisma.plants.findUnique).mockResolvedValue(null);
+        it('存在しない場合はundefined', async () => {
+            vi.mocked(prisma.plants.findMany).mockResolvedValue([] as any);
+            vi.mocked(prisma.$queryRaw).mockResolvedValue([] as any);
 
-            const result = await getPlant(999);
+            const plant = await getPlant(999);
 
-            expect(result).toBeUndefined();
+            expect(plant).toBeUndefined();
         });
     });
 
     describe('addPlant', () => {
-        const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
-        const mockUser = { id: 'test-user-id' };
+        it('未ログインの場合はAUTH_REQUIRED', async () => {
+            mockSupabase(null);
 
-        beforeEach(() => {
-            vi.clearAllMocks();
+            const result = await addPlant('パキラ');
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.AUTH_REQUIRED);
         });
 
-        it('植物の追加が成功すること', async () => {
-            // Supabaseのモック
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-                storage: {
-                    from: vi.fn().mockReturnThis(),
-                    upload: vi.fn().mockResolvedValue({ error: null }),
-                },
-            } as unknown as SupabaseClient;
+        it('名前が空の場合はVALIDATION_ERROR', async () => {
+            mockSupabase(mockUser);
 
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+            const result = await addPlant('');
 
-            // Prismaのモック
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
+        });
+
+        it('51文字以上はVALIDATION_ERROR', async () => {
+            mockSupabase(mockUser);
+
+            const result = await addPlant('あ'.repeat(51));
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
+        });
+
+        it('重複する場合はALREADY_EXISTSと既存IDを返す', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.plants.findFirst).mockResolvedValue({ id: 5, name: 'パキラ' } as any);
+
+            const result = await addPlant('パキラ');
+
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.code).toBe(ActionErrorCode.ALREADY_EXISTS);
+                expect(result.data?.plantId).toBe(5);
+            }
+        });
+
+        it('正常系: 植物を作成しIDを返す', async () => {
+            mockSupabase(mockUser);
             vi.mocked(prisma.plants.findFirst).mockResolvedValue(null);
-            vi.mocked(prisma.plants.create).mockResolvedValue({
-                id: 1,
-                name: 'テスト植物',
-                created_at: new Date(),
-                updated_at: new Date(),
-                scientific_name: null,
-                family: null,
-                genus: null,
-                species: null,
-            });
-            vi.mocked(prisma.plants.update).mockResolvedValue({
-                id: 1,
-                name: 'テスト植物',
-                created_at: new Date(),
-                updated_at: new Date(),
-                scientific_name: null,
-                family: null,
-                genus: null,
-                species: null,
-            });
-            vi.mocked(prisma.plant_images.create).mockResolvedValue({
-                id: 1,
-                image_url: 'test1.jpg',
-                created_at: new Date(),
-                updated_at: new Date(),
-                plant_id: 1,
-                user_id: 1,
-                caption: null,
-                alt_text: null,
-                is_approved: true,
-                order: 1,
-            });
+            vi.mocked(prisma.plants.create).mockResolvedValue({ id: 7, name: '新しい植物' } as any);
 
-            const result = await addPlant('テスト植物', mockFile);
+            const result = await addPlant('新しい植物');
 
-            expect(result).toEqual({
-                success: true,
-                data: {
-                    plantId: 1,
-                },
-            });
+            expect(result.success).toBe(true);
+            if (result.success) expect(result.data?.plantId).toBe(7);
+        });
+    });
 
-            expect(prisma.plants.findFirst).toHaveBeenCalledWith({
-                where: { name: 'テスト植物' },
-            });
-            expect(prisma.plants.create).toHaveBeenCalledWith({
-                data: { name: 'テスト植物' },
-            });
+    describe('updatePlant', () => {
+        it('別の植物と名前が重複する場合はALREADY_EXISTS', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.plants.findFirst).mockResolvedValue({ id: 2, name: 'パキラ' } as any);
+
+            const result = await updatePlant(1, { name: 'パキラ' });
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.ALREADY_EXISTS);
         });
 
-        it('未ログインの場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            const result = await addPlant('テスト植物', mockFile);
-
-            expect(result).toEqual({
-                success: false,
-                code: ActionErrorCode.AUTH_REQUIRED,
-            });
-        });
-
-        it('必須項目が不足している場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            const result = await addPlant('', mockFile);
-
-            expect(result).toEqual({
-                success: false,
-                code: ActionErrorCode.VALIDATION_ERROR,
-                message: '植物の名前は必須です。',
-            });
-        });
-
-        it('植物名が重複している場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.plants.findFirst).mockResolvedValue({
-                id: 1,
-                name: 'テスト植物',
-                created_at: new Date(),
-                updated_at: new Date(),
-                scientific_name: null,
-                family: null,
-                genus: null,
-                species: null,
-            });
-
-            const result = await addPlant('テスト植物', mockFile);
-
-            expect(result).toEqual({
-                success: false,
-                code: ActionErrorCode.ALREADY_EXISTS,
-                message: '植物名が重複しています。',
-                data: { plantId: 1 },
-            });
-        });
-
-        it('画像のアップロードに失敗した場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-                storage: {
-                    from: vi.fn().mockReturnThis(),
-                    upload: vi.fn().mockResolvedValue({ error: new Error('アップロードエラー') }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+        it('正常系: 植物を更新する', async () => {
+            mockSupabase(mockUser);
             vi.mocked(prisma.plants.findFirst).mockResolvedValue(null);
-            vi.mocked(prisma.plants.create).mockResolvedValue({
-                id: 1,
-                name: 'テスト植物',
-                scientific_name: null,
-                family: null,
-                genus: null,
-                species: null,
-                created_at: new Date(),
-                updated_at: new Date(),
-            });
+            vi.mocked(prisma.plants.update).mockResolvedValue({ id: 1 } as any);
 
-            const result = await addPlant('テスト植物', mockFile);
+            const result = await updatePlant(1, { name: 'パキラ', family: 'アオイ科' });
 
-            expect(result).toEqual({
-                success: false,
-                code: ActionErrorCode.INTERNAL_SERVER_ERROR,
-                message: '植物の追加に失敗しました。',
-            });
+            expect(result.success).toBe(true);
+            expect(prisma.plants.update).toHaveBeenCalled();
         });
     });
 
-    describe('addFavorite', () => {
-        const mockUser = { id: 'test-user-id' };
+    describe('deletePlant', () => {
+        it('正常系: 植物を削除する', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.plants.delete).mockResolvedValue({ id: 1 } as any);
 
-        beforeEach(() => {
-            vi.clearAllMocks();
+            const result = await deletePlant(1);
+
+            expect(result.success).toBe(true);
+            expect(prisma.plants.delete).toHaveBeenCalledWith({ where: { id: 1 } });
         });
 
-        it('お気に入りに追加が成功すること', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
+        it('未ログインの場合はAUTH_REQUIRED', async () => {
+            mockSupabase(null);
 
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue({
-                id: 1,
-                auth_id: mockUser.id,
-                alias_id: 'test-alias',
-                name: 'Test User',
-                image: null,
-                role: 'user',
-                created_at: new Date(),
-            });
-            vi.mocked(prisma.plant_favorites.findFirst).mockResolvedValue(null);
-            vi.mocked(prisma.plant_favorites.create).mockResolvedValue({
-                id: 1,
-                user_id: 1,
-                plant_id: 1,
-                created_at: new Date(),
-            });
+            const result = await deletePlant(1);
 
-            const result = await addFavorite({ params: { plantId: 1 } });
-
-            expect(result).toEqual({
-                success: true,
-                title: '追加しました。',
-            });
-
-            expect(prisma.public_users.findFirst).toHaveBeenCalledWith({
-                where: {
-                    auth_id: mockUser.id,
-                },
-            });
-            expect(prisma.plant_favorites.create).toHaveBeenCalledWith({
-                data: {
-                    user_id: 1,
-                    plant_id: 1,
-                },
-            });
-        });
-
-        it('未ログインの場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            const result = await addFavorite({ params: { plantId: 1 } });
-
-            expect(result).toEqual({
-                success: false,
-                code: 'AUTH_REQUIRED',
-            });
-        });
-
-    });
-
-    describe('deleteFavorite', () => {
-        const mockUser = { id: 'test-user-id' };
-
-        beforeEach(() => {
-            vi.clearAllMocks();
-        });
-
-        it('お気に入りから削除が成功すること', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue({
-                id: 1,
-                auth_id: mockUser.id,
-                alias_id: 'test-alias',
-                name: 'Test User',
-                image: null,
-                role: 'user',
-                created_at: new Date(),
-            });
-            vi.mocked(prisma.plant_favorites.findFirst).mockResolvedValue({
-                id: 1,
-                user_id: 1,
-                plant_id: 1,
-                created_at: new Date(),
-            });
-            vi.mocked(prisma.plant_favorites.delete).mockResolvedValue({
-                id: 1,
-                user_id: 1,
-                plant_id: 1,
-                created_at: new Date(),
-            });
-            vi.mocked(prisma.plant_favorites.deleteMany).mockResolvedValue({
-                count: 1,
-            });
-
-            const result = await deleteFavorite({ params: { plantId: 1 } });
-
-            expect(result).toEqual({
-                success: true,
-                "title": "削除しました。",
-            });
-
-            expect(prisma.public_users.findFirst).toHaveBeenCalledWith({
-                where: {
-                    auth_id: mockUser.id,
-                },
-            });
-            expect(prisma.plant_favorites.deleteMany).toHaveBeenCalledWith({
-                where: {
-                    user_id: 1,
-                    plant_id: 1,
-                },
-            });
-        });
-
-        it('未ログインの場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            const result = await deleteFavorite({ params: { plantId: 1 } });
-
-            expect(result).toEqual({
-                success: false,
-                code: 'AUTH_REQUIRED',
-            });
+            expect(result.success).toBe(false);
+            expect(prisma.plants.delete).not.toHaveBeenCalled();
         });
     });
-
-    describe('addHave', () => {
-        const mockUser = { id: 'test-user-id' };
-
-        beforeEach(() => {
-            vi.clearAllMocks();
-        });
-
-        it('持っている植物に追加が成功すること', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue({
-                id: 1,
-                auth_id: mockUser.id,
-                alias_id: 'test-alias',
-                name: 'Test User',
-                image: null,
-                role: 'user',
-                created_at: new Date(),
-            });
-            vi.mocked(prisma.plant_have.findFirst).mockResolvedValue(null);
-            vi.mocked(prisma.plant_have.create).mockResolvedValue({
-                id: 1,
-                user_id: 1,
-                plant_id: 1,
-                created_at: new Date(),
-            });
-
-            const result = await addHave({ params: { plantId: 1 } });
-
-            expect(result).toEqual({
-                success: true,
-                "title": "追加しました。",
-            });
-
-            expect(prisma.public_users.findFirst).toHaveBeenCalledWith({
-                where: {
-                    auth_id: mockUser.id,
-                },
-            });
-            expect(prisma.plant_have.create).toHaveBeenCalledWith({
-                data: {
-                    user_id: 1,
-                    plant_id: 1,
-                },
-            });
-        });
-
-        it('未ログインの場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            const result = await addHave({ params: { plantId: 1 } });
-
-            expect(result).toEqual({
-                success: false,
-                code: 'AUTH_REQUIRED',
-            });
-        });
-
-        it('既に持っている植物に追加されている場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue({
-                id: 1,
-                auth_id: mockUser.id,
-                alias_id: 'test-alias',
-                name: 'Test User',
-                image: null,
-                role: 'user',
-                created_at: new Date(),
-            });
-            vi.mocked(prisma.plant_have.findFirst).mockResolvedValue({
-                id: 1,
-                user_id: 1,
-                plant_id: 1,
-                created_at: new Date(),
-            });
-
-            const result = await addHave({ params: { plantId: 1 } });
-
-            expect(result).toEqual({
-                success: false,
-                code: 'ALREADY_EXISTS',
-            });
-        });
-    });
-
-    describe('deleteHave', () => {
-        const mockUser = { id: 'test-user-id' };
-
-        beforeEach(() => {
-            vi.clearAllMocks();
-        });
-
-        it('持っている植物から削除が成功すること', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue({
-                id: 1,
-                auth_id: mockUser.id,
-                alias_id: 'test-alias',
-                name: 'Test User',
-                image: null,
-                role: 'user',
-                created_at: new Date(),
-            });
-            vi.mocked(prisma.plant_have.findFirst).mockResolvedValue({
-                id: 1,
-                user_id: 1,
-                plant_id: 1,
-                created_at: new Date(),
-            });
-            vi.mocked(prisma.plant_have.delete).mockResolvedValue({
-                id: 1,
-                user_id: 1,
-                plant_id: 1,
-                created_at: new Date(),
-            });
-
-            const result = await deleteHave({ params: { plantId: 1 } });
-
-            expect(result).toEqual({
-                success: true,
-                "title": "削除しました。",
-            });
-
-            expect(prisma.public_users.findFirst).toHaveBeenCalledWith({
-                where: {
-                    auth_id: mockUser.id,
-                },
-            });
-            expect(prisma.plant_have.deleteMany).toHaveBeenCalledWith({
-                where: {
-                    user_id: 1,
-                    plant_id: 1,
-                },
-            });
-        });
-
-        it('未ログインの場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            const result = await deleteHave({ params: { plantId: 1 } });
-
-            expect(result).toEqual({
-                success: false,
-                code: 'AUTH_REQUIRED',
-            });
-        });
-    });
-}); 
+});

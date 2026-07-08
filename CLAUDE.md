@@ -4,7 +4,7 @@
 
 ## プロジェクト概要
 
-neko-plantは、日本の猫に安全な植物データベースプラットフォームとして機能するNext.js 15フルスタックアプリケーションです。ユーザーは植物を検索し、コミュニティからの安全性評価を読み、植物の画像をアップロードし、猫のプロフィールを管理できます。
+neko-plantは、「猫と植物の暮らし」を共有する日本のフォトSNSプラットフォームとして機能するNext.js 15フルスタックアプリケーションです。ユーザーは猫と植物が一緒に写った写真を投稿し(植物はAI判定または手動でタグ付け)、投稿の分布から植物ごとの「共存実績」(ユニーク猫数)が可視化されます。危険を断定せず、投稿がない植物は「情報がない」と表現するポジティブリスト方式を採用しています(詳細は `doc/service-description-photo-sns.md`)。
 
 ## 開発コマンド
 
@@ -22,8 +22,10 @@ npm run seed:e2e         # E2Eテストデータのシード
 
 # データベース
 npx prisma generate      # Prismaクライアント生成
-npx prisma db pull       # スキーマ変更の取得
-supabase db push         # リモート(本番)Supabaseへのマイグレーション適用
+npm run db:push          # schema.prismaをローカルDBに適用 (prisma db push)
+npm run db:policies      # RLS/ストレージポリシー適用 (prisma/policies.sql)
+npm run db:setup         # push + policies + seed をまとめて実行
+# ローカルSupabaseを `supabase db reset` した後は必ず `npm run db:setup` を実行すること
 
 # リント
 npm run lint             # ESLint
@@ -40,10 +42,15 @@ npm run lint             # ESLint
 
 ### 主要データベースモデル
 - `plants` - 植物カタログ（分類学：科、属、種）
-- `evaluations` - ユーザーの安全性レビュー（良い/悪い評価）
-- `plant_images` - モデレーション状態付きユーザーアップロード写真
-- `users` - トリガーによりSupabase authと同期されるユーザープロフィール
-- `neko` - ユーザーの猫プロフィール
+- `posts` - 猫と植物の写真投稿（コメント付き）
+- `post_images` - 投稿写真（postsバケットに保存、パスは `{auth_id}/{post_id}/...`）
+- `post_plants` / `post_pets` - 投稿への植物・猫のタグ付け（多対多）
+- `post_likes` - いいね（post_id × user_id 一意）
+- `users` - トリガーによりSupabase authと同期されるユーザープロフィール（auth_idに一意制約）
+- `pets` - ユーザーの飼い猫プロフィール、`neko` - 猫種マスタ
+
+### 共存実績の集計
+植物ごとの「共存実績」は `post_plants` と `post_pets` を結合した **ユニークな pet_id の数** で算出する（同一ユーザーの重複投稿で水増しされない）。閾値は `src/lib/coexistence.ts` (50+/10+/1+/0 の4ランク)。
 
 ### ディレクトリ構造
 - `app/` - Next.js App Routerページとレイアウト

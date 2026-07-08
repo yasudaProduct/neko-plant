@@ -17,18 +17,16 @@ export async function main() {
         throw new Error('E2E_TEST_USER_ADDRESS or E2E_TEST_USER_PASSWORD is not defined in environment variables');
     }
     console.log('✉️E2E_TEST_USER_ADDRESS:', e2eTestUserAddress);
-    console.log('✉️E2E_TEST_USER_PASSWORD:', e2eTestUserPassword);
 
     // usersテーブル以外をtruncate
-    await prisma.evaluation_reactions.deleteMany();
-    await prisma.plant_images.deleteMany();
-    await prisma.plant_have.deleteMany();
-    await prisma.plant_favorites.deleteMany();
-    await prisma.evaluations.deleteMany();
+    await prisma.post_likes.deleteMany();
+    await prisma.post_images.deleteMany();
+    await prisma.post_pets.deleteMany();
+    await prisma.post_plants.deleteMany();
+    await prisma.posts.deleteMany();
     await prisma.pets.deleteMany();
     await prisma.neko.deleteMany();
     await prisma.plants.deleteMany();
-
 
     console.log(' => users');
 
@@ -44,10 +42,9 @@ export async function main() {
 
     if (!existingUser) {
         console.log(' => テストユーザーをauth_usersに作成します');
-        // Supabase Admin APIでユーザーを作成
         const { data: newUser, error } = await supabase.auth.signUp({
             email: e2eTestUserAddress,
-            password: e2eTestUserPassword, // テスト用の固定パスワード
+            password: e2eTestUserPassword,
             options: {
                 data: {
                     name: 'テストユーザー',
@@ -78,14 +75,14 @@ export async function main() {
         throw new Error('Failed to create or find test user');
     }
 
-    // public_usersテーブルからユーザーを取得
+    // public_users を auth_id で存在確認し、あれば update、なければ create
     const publicUser = await prisma.public_users.findFirst({
         where: {
             auth_id: authUser.id,
         },
     });
 
-    // public_users を auth_id で存在確認し、あれば update、なければ create
+    let testUserId: number;
     if (publicUser) {
         await prisma.public_users.update({
             where: { id: publicUser.id },
@@ -97,8 +94,9 @@ export async function main() {
                 created_at: new Date(),
             },
         });
+        testUserId = publicUser.id;
     } else {
-        await prisma.public_users.create({
+        const created = await prisma.public_users.create({
             data: {
                 auth_id: authUser.id,
                 name: 'テストユーザー',
@@ -107,6 +105,7 @@ export async function main() {
                 role: 'user',
             },
         });
+        testUserId = created.id;
     }
 
     // 管理者ユーザーの作成（E2E_TEST_ADMIN_ADDRESSが設定されている場合）
@@ -114,11 +113,9 @@ export async function main() {
     const e2eTestAdminPassword = process.env.E2E_TEST_ADMIN_PASSWORD;
     if (e2eTestAdminAddress && e2eTestAdminPassword) {
         console.log('✉️E2E_TEST_ADMIN_ADDRESS:', e2eTestAdminAddress);
-        console.log('✉️E2E_TEST_ADMIN_PASSWORD:', e2eTestAdminPassword);
 
         let adminAuthUser;
 
-        // 既存の管理者ユーザーを確認
         const existingAdminUser = await prisma.auth_users.findFirst({
             where: {
                 email: e2eTestAdminAddress,
@@ -127,10 +124,9 @@ export async function main() {
 
         if (!existingAdminUser) {
             console.log(' => 管理者ユーザーをauth_usersに作成します');
-            // Supabase Admin APIで管理者ユーザーを作成
             const { data: newAdminUser, error } = await supabase.auth.signUp({
                 email: e2eTestAdminAddress,
-                password: e2eTestAdminPassword, // テスト用の固定パスワード
+                password: e2eTestAdminPassword,
                 options: {
                     data: {
                         name: 'テスト管理者',
@@ -164,7 +160,6 @@ export async function main() {
                 },
             });
 
-            // 管理者 public_users も同様に update-or-create
             if (adminPublicUser) {
                 await prisma.public_users.update({
                     where: { id: adminPublicUser.id },
@@ -199,6 +194,85 @@ export async function main() {
     console.log(' => plants');
     for (const sql of sqlDivision(readFileSync('./supabase/seeds/plants.sql', 'utf-8'))) {
         await prisma.$executeRawUnsafe(sql);
+    }
+
+    // ---- フォトSNS用シード: 飼い猫・投稿・いいね ----
+    console.log(' => pets');
+    const nekoSpecies = await prisma.neko.findFirst({ orderBy: { id: 'asc' } });
+    if (!nekoSpecies) {
+        throw new Error('猫種マスタが空です');
+    }
+
+    const pet1 = await prisma.pets.create({
+        data: { user_id: testUserId, neko_id: nekoSpecies.id, name: 'ミケ' },
+    });
+    const pet2 = await prisma.pets.create({
+        data: { user_id: testUserId, neko_id: nekoSpecies.id, name: 'クロ' },
+    });
+
+    console.log(' => posts');
+    const pakira = await prisma.plants.findFirst({ where: { name: 'パキラ' } });
+    const monstera = await prisma.plants.findFirst({ where: { name: 'モンステラ' } });
+    const seedPlants = [pakira, monstera].filter((plant) => plant != null);
+
+    if (seedPlants.length > 0) {
+        const imageBuffer = readFileSync('./e2e/fixtures/test-plant.png');
+
+        const seedPosts = [
+            {
+                comment: 'パキラのとなりでお昼寝しています🐱🌿',
+                plants: [seedPlants[0]],
+                pets: [pet1, pet2],
+                daysAgo: 1,
+            },
+            {
+                comment: '観葉植物と猫、今日も平和です',
+                plants: seedPlants,
+                pets: [pet1],
+                daysAgo: 3,
+            },
+            {
+                comment: '窓際が2匹のお気に入りスポット',
+                plants: [seedPlants[seedPlants.length - 1]],
+                pets: [pet2],
+                daysAgo: 7,
+            },
+        ];
+
+        for (const seed of seedPosts) {
+            const post = await prisma.posts.create({
+                data: {
+                    user_id: testUserId,
+                    comment: seed.comment,
+                    created_at: new Date(Date.now() - seed.daysAgo * 24 * 60 * 60 * 1000),
+                },
+            });
+
+            await prisma.post_plants.createMany({
+                data: seed.plants.map((plant) => ({ post_id: post.id, plant_id: plant!.id })),
+            });
+            await prisma.post_pets.createMany({
+                data: seed.pets.map((pet) => ({ post_id: post.id, pet_id: pet.id })),
+            });
+
+            // 画像をアップロード (service roleはストレージRLSをバイパスする)
+            const imagePath = `${authUser.id}/${post.id}/1_seed.png`;
+            const { error: uploadError } = await supabase.storage
+                .from('posts')
+                .upload(imagePath, imageBuffer, { contentType: 'image/png', upsert: true });
+
+            if (uploadError) {
+                throw new Error(`Failed to upload seed post image: ${uploadError.message}`);
+            }
+
+            await prisma.post_images.create({
+                data: { post_id: post.id, image_url: imagePath, order: 0 },
+            });
+        }
+
+        console.log(` => ${seedPosts.length}件の投稿を作成しました`);
+    } else {
+        console.warn(' => シード植物(パキラ/モンステラ)が見つからないため投稿シードをスキップします');
     }
 
     console.log('✅ E2E用のテストデータを投入しました');

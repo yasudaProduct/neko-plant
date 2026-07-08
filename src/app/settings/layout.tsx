@@ -41,6 +41,17 @@ export default function SettingsLayout({
                   プロフィール
                 </button>
               </Link>
+              <Link href="/settings/cats">
+                <button
+                  className={`px-4 py-2 ${
+                    isActive("/settings/cats")
+                      ? "text-black border-b-2 border-green-500"
+                      : "text-black hover:text-gray-600"
+                  }`}
+                >
+                  猫プロフィール
+                </button>
+              </Link>
             </div>
 
             {children}

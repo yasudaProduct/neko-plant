@@ -51,3 +51,21 @@ export const generateImageName = (prefix?: string): string => {
   const currentDate = new Date().toISOString().replace(/[:.]/g, '');
   return prefix ? `${prefix}_${currentDate}` : currentDate;
 };
+
+/** 投稿時刻の相対表示 (たった今 / N分前 / N時間前 / N日前 / YYYY/MM/DD) */
+export const formatRelativeTime = (date: Date): string => {
+  const diffMs = Date.now() - new Date(date).getTime();
+  const diffMinutes = Math.floor(diffMs / 60000);
+
+  if (diffMinutes < 1) return "たった今";
+  if (diffMinutes < 60) return `${diffMinutes}分前`;
+
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}時間前`;
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}日前`;
+
+  const d = new Date(date);
+  return `${d.getFullYear()}/${(`0${d.getMonth() + 1}`).slice(-2)}/${(`0${d.getDate()}`).slice(-2)}`;
+};

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import Link from "next/link";
-import { LogOut, Settings, SquareUserRound } from "lucide-react";
+import { LogOut, PawPrint, Settings, SquareUserRound } from "lucide-react";
 import { signOut } from "@/lib/supabase/auth-google";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
@@ -100,6 +100,14 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
           >
             <SquareUserRound className="w-4 h-4" />
             <span>マイページ</span>
+          </Link>
+          <Link
+            href={`/settings/cats`}
+            className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-100"
+            onClick={handleMenuItemClick}
+          >
+            <PawPrint className="w-4 h-4" />
+            <span>猫プロフィール</span>
           </Link>
           <Link
             href={`/settings/account`}

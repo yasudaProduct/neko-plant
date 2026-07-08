@@ -14,7 +14,19 @@
       "Bash(npm test:*)",
       "Bash(npx playwright test:*)",
       "Bash(wc:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(npx supabase *)",
+      "Bash(docker exec supabase_db_neko-plant *)",
+      "Bash(npm run *)",
+      "Bash(npx tsc *)",
+      "Bash(python3 -)",
+      "Bash(npx vitest *)",
+      "Bash(tee /private/tmp/claude-501/-Users-yuta-Develop-neko-plant/a586346a-f994-47f5-8146-f47d2b6d3276/scratchpad/dev.log)",
+      "Bash(sed 's|playwright'\\\\''|@playwright/test'\\\\''|' /private/tmp/claude-501/-Users-yuta-Develop-neko-plant/a586346a-f994-47f5-8146-f47d2b6d3276/scratchpad/verify.mjs)",
+      "Bash(node /Users/yuta/Develop/neko-plant/verify-tmp.mjs)",
+      "Bash(curl -s \"http://localhost:3000/plants?q=%E3%83%91%E3%82%AD%E3%83%A9\")",
+      "Bash(ps -p 63869 -o pid,ppid,etime,command)",
+      "Bash(lsof -nP -iTCP:3000 -sTCP:LISTEN)"
     ],
     "deny": []
   }

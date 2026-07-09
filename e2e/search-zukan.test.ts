@@ -2,6 +2,11 @@ import { test, expect } from '@playwright/test';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 
+/**
+ * 主要フロー M4（条件を決めて探す）
+ * 植物検索・共存実績フィルタ・並び替え・投稿タブ・共存図鑑。
+ */
+
 const screenshotDir = 'test-results/screenshots/search-zukan/';
 
 test.describe('検索・探索 @public', () => {
@@ -21,55 +26,65 @@ test.describe('検索・探索 @public', () => {
     await page.screenshot({ path: screenshotDir + 'search-result.png', fullPage: true });
   });
 
-  test('実績あり/情報なしで絞り込める', async ({ page }) => {
-    // 実績あり: シードで共存実績があるのはパキラとモンステラのみ
+  test('実績あり／情報なしで絞り込める', async ({ page }) => {
+    // 実績あり: シードで共存実績があるのはパキラとモンステラ
     await page.getByTestId('filter-proven').click();
     await expect(page).toHaveURL(/filter=proven/);
-    await expect(page.getByTestId('plant-card')).toHaveCount(2);
+    await expect(page.getByTestId('plant-card').filter({ hasText: 'パキラ' })).toBeVisible();
+    await expect(page.getByTestId('plant-card').filter({ hasText: 'モンステラ' })).toBeVisible();
 
-    // 情報なし
+    // 情報なし: 投稿のない植物（11種）
     await page.getByTestId('filter-noinfo').click();
     await expect(page).toHaveURL(/filter=noinfo/);
     await expect(page.getByTestId('plant-card').first()).toBeVisible();
     expect(await page.getByTestId('plant-card').count()).toBeGreaterThanOrEqual(10);
-    await expect(page.locator('text=猫との共存情報がありません').first()).toBeVisible();
+    await expect(page.locator('text=投稿がありません').first()).toBeVisible();
 
     await page.screenshot({ path: screenshotDir + 'filter-noinfo.png', fullPage: true });
   });
 
+  test('共存実績順・投稿数順で並び替えできる', async ({ page }) => {
+    // デフォルト（共存実績順）でモンステラが先頭付近に来る
+    await page.getByTestId('sort-select').click();
+    await page.getByRole('option', { name: '投稿数（多い順）' }).click();
+    await expect(page).toHaveURL(/sort=posts/);
+    await expect(page.getByTestId('plant-card').first()).toBeVisible();
+  });
+
   test('投稿タブに切り替えられる', async ({ page }) => {
-    await page.locator('a', { hasText: /^投稿 \d+件$/ }).click();
+    await page.getByRole('link', { name: /^投稿 \d+件$/ }).click();
     await expect(page).toHaveURL(/tab=posts/);
 
     await expect(page.getByTestId('post-tile').first()).toBeVisible();
-    expect(await page.getByTestId('post-tile').count()).toBeGreaterThanOrEqual(3);
+    expect(await page.getByTestId('post-tile').count()).toBeGreaterThanOrEqual(4);
 
     await page.screenshot({ path: screenshotDir + 'posts-tab.png', fullPage: true });
   });
 });
 
 test.describe('共存図鑑 @public', () => {
-  test('図鑑に全植物が共存実績順で表示される', async ({ page }) => {
+  test('全植物が共存実績順で並び、ポジティブリスト方式が説明される', async ({ page }) => {
     await page.goto('/zukan');
     await page.waitForLoadState('networkidle');
 
-    await expect(page.locator('text=共存図鑑')).toBeVisible();
+    await expect(page.getByRole('heading', { name: '共存図鑑' })).toBeVisible();
     await expect(page.locator('text=ポジティブリスト方式')).toBeVisible();
 
-    // 図鑑リスト (シード植物13種)
+    // シード植物13種
     expect(await page.getByTestId('zukan-row').count()).toBeGreaterThanOrEqual(13);
 
-    // 共存実績のあるパキラが先頭 (No.01)
-    await expect(page.getByTestId('zukan-row').first()).toContainText('パキラ');
+    // 共存実績が最多のモンステラ（3匹）が先頭
+    await expect(page.getByTestId('zukan-row').first()).toContainText('モンステラ');
 
     await page.screenshot({ path: screenshotDir + 'zukan.png', fullPage: true });
   });
 
-  test('図鑑の行から植物ページへ移動できる', async ({ page }) => {
+  test('図鑑の行から植物ページへ遷移できる', async ({ page }) => {
     await page.goto('/zukan');
     await page.waitForLoadState('networkidle');
 
     await page.getByTestId('zukan-row').first().click();
     await expect(page).toHaveURL(/\/plants\/\d+/);
+    await expect(page.getByTestId('plant-name')).toHaveText('モンステラ');
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogClose,
@@ -83,6 +84,7 @@ const formSchema = z.object({
 /** 猫プロフィールの追加・編集ダイアログ */
 export default function PetFormDialog({ pet, nekoSpecies, trigger }: Props) {
   const { success, error } = useToast();
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [preview, setPreview] = useState<string>(pet?.imageSrc || "");
@@ -110,6 +112,7 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger }: Props) {
       await deletePet(pet.id);
       success({ title: "猫プロフィールを削除しました" });
       setIsOpen(false);
+      router.refresh();
     } catch {
       error({
         title: "猫プロフィールの削除に失敗しました",
@@ -155,6 +158,7 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger }: Props) {
       }
       setIsOpen(false);
       form.reset();
+      router.refresh();
     } catch {
       error({
         title: pet ? "猫プロフィールの更新に失敗しました" : "猫の追加に失敗しました",

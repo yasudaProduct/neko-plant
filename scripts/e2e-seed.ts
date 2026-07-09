@@ -2,23 +2,80 @@ import { readFileSync } from 'fs';
 import dotenv from 'dotenv';
 dotenv.config({ path: '.env.local' });
 import prisma from '../src/lib/prisma';
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
+
+type SeededUser = {
+    userId: number;
+    authId: string;
+    aliasId: string;
+};
+
+/**
+ * auth.users にユーザーが無ければ signUp で作成し、public.users を upsert する。
+ * トリガーで public.users が自動生成されるため、name/alias_id/role を確定させる。
+ */
+async function ensureUser(
+    supabase: SupabaseClient,
+    params: { email: string; password: string; name: string; aliasId: string; role: 'user' | 'admin' }
+): Promise<SeededUser> {
+    let authUser = await prisma.auth_users.findFirst({ where: { email: params.email } });
+
+    if (!authUser) {
+        const { data, error } = await supabase.auth.signUp({
+            email: params.email,
+            password: params.password,
+            options: {
+                data: { name: params.name, alias_id: params.aliasId, image: null },
+            },
+        });
+        if (error) throw new Error(`Failed to create user ${params.email}: ${error.message}`);
+        if (!data?.user) throw new Error(`Failed to create user ${params.email}`);
+        authUser = await prisma.auth_users.findFirst({ where: { id: data.user.id } });
+    }
+
+    if (!authUser) throw new Error(`Failed to create or find user ${params.email}`);
+
+    const existing = await prisma.public_users.findFirst({ where: { auth_id: authUser.id } });
+    const data = {
+        name: params.name,
+        alias_id: params.aliasId,
+        image: null,
+        role: params.role,
+    };
+
+    let userId: number;
+    if (existing) {
+        await prisma.public_users.update({ where: { id: existing.id }, data });
+        userId = existing.id;
+    } else {
+        const created = await prisma.public_users.create({ data: { auth_id: authUser.id, ...data } });
+        userId = created.id;
+    }
+
+    return { userId, authId: authUser.id, aliasId: params.aliasId };
+}
 
 export async function main() {
-    // Supabase Admin Client
+    // 認証用クライアント: signUp するとセッションがそのユーザーに切り替わる
     const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
+    // ストレージ用クライアント: signUp を一切行わないので Authorization は常に service_role
+    // （= ストレージRLSをバイパスして任意ユーザーのフォルダにアップロードできる）
+    const storage = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        { auth: { persistSession: false, autoRefreshToken: false } }
+    );
 
-    const e2eTestUserAddress = process.env.E2E_TEST_USER_ADDRESS;
-    const e2eTestUserPassword = process.env.E2E_TEST_USER_PASSWORD;
-    if (!e2eTestUserAddress || !e2eTestUserPassword) {
+    const testUserAddress = process.env.E2E_TEST_USER_ADDRESS;
+    const testUserPassword = process.env.E2E_TEST_USER_PASSWORD;
+    if (!testUserAddress || !testUserPassword) {
         throw new Error('E2E_TEST_USER_ADDRESS or E2E_TEST_USER_PASSWORD is not defined in environment variables');
     }
-    console.log('✉️E2E_TEST_USER_ADDRESS:', e2eTestUserAddress);
 
-    // usersテーブル以外をtruncate
+    // usersテーブル以外をtruncate（投稿系→ペット→マスタの順で依存関係を解消）
     await prisma.post_likes.deleteMany();
     await prisma.post_images.deleteMany();
     await prisma.post_pets.deleteMany();
@@ -29,252 +86,137 @@ export async function main() {
     await prisma.plants.deleteMany();
 
     console.log(' => users');
-
-    // Supabase APIでユーザーを作成または取得
-    let authUser;
-
-    // 既存のユーザーを確認
-    const existingUser = await prisma.auth_users.findFirst({
-        where: {
-            email: e2eTestUserAddress,
-        },
+    const testUser = await ensureUser(supabase, {
+        email: testUserAddress,
+        password: testUserPassword,
+        name: 'テストユーザー',
+        aliasId: 'testuser',
+        role: 'user',
     });
 
-    if (!existingUser) {
-        console.log(' => テストユーザーをauth_usersに作成します');
-        const { data: newUser, error } = await supabase.auth.signUp({
-            email: e2eTestUserAddress,
-            password: e2eTestUserPassword,
-            options: {
-                data: {
-                    name: 'テストユーザー',
-                    alias_id: 'testuser',
-                    image: null,
-                },
-            },
+    // 管理者ユーザー（設定されている場合のみ）
+    const adminAddress = process.env.E2E_TEST_ADMIN_ADDRESS;
+    const adminPassword = process.env.E2E_TEST_ADMIN_PASSWORD;
+    if (adminAddress && adminPassword) {
+        await ensureUser(supabase, {
+            email: adminAddress,
+            password: adminPassword,
+            name: 'テスト管理者',
+            aliasId: 'testadmin',
+            role: 'admin',
         });
-
-        if (error) {
-            throw new Error(`Failed to create test user: ${error.message}`);
-        }
-
-        if (!newUser || !newUser.user) {
-            throw new Error('Failed to create test user');
-        }
-
-        authUser = await prisma.auth_users.findFirst({
-            where: {
-                id: newUser.user.id,
-            },
-        });
-    } else {
-        authUser = existingUser;
+        console.log(' => 管理者ユーザーを作成しました');
     }
 
-    if (!authUser) {
-        throw new Error('Failed to create or find test user');
-    }
-
-    // public_users を auth_id で存在確認し、あれば update、なければ create
-    const publicUser = await prisma.public_users.findFirst({
-        where: {
-            auth_id: authUser.id,
-        },
+    // 他ユーザー閲覧フロー（M6）検証用の第2ユーザー
+    const otherUser = await ensureUser(supabase, {
+        email: 'sakura@example.com',
+        password: 'password',
+        name: 'さくら',
+        aliasId: 'sakura',
+        role: 'user',
     });
 
-    let testUserId: number;
-    if (publicUser) {
-        await prisma.public_users.update({
-            where: { id: publicUser.id },
-            data: {
-                name: 'テストユーザー',
-                alias_id: 'testuser',
-                image: null,
-                role: 'user',
-                created_at: new Date(),
-            },
-        });
-        testUserId = publicUser.id;
-    } else {
-        const created = await prisma.public_users.create({
-            data: {
-                auth_id: authUser.id,
-                name: 'テストユーザー',
-                alias_id: 'testuser',
-                image: null,
-                role: 'user',
-            },
-        });
-        testUserId = created.id;
-    }
-
-    // 管理者ユーザーの作成（E2E_TEST_ADMIN_ADDRESSが設定されている場合）
-    const e2eTestAdminAddress = process.env.E2E_TEST_ADMIN_ADDRESS;
-    const e2eTestAdminPassword = process.env.E2E_TEST_ADMIN_PASSWORD;
-    if (e2eTestAdminAddress && e2eTestAdminPassword) {
-        console.log('✉️E2E_TEST_ADMIN_ADDRESS:', e2eTestAdminAddress);
-
-        let adminAuthUser;
-
-        const existingAdminUser = await prisma.auth_users.findFirst({
-            where: {
-                email: e2eTestAdminAddress,
-            },
-        });
-
-        if (!existingAdminUser) {
-            console.log(' => 管理者ユーザーをauth_usersに作成します');
-            const { data: newAdminUser, error } = await supabase.auth.signUp({
-                email: e2eTestAdminAddress,
-                password: e2eTestAdminPassword,
-                options: {
-                    data: {
-                        name: 'テスト管理者',
-                        alias_id: 'testadmin',
-                        image: null,
-                    },
-                },
-            });
-
-            if (error) {
-                throw new Error(`Failed to create admin user: ${error.message}`);
-            }
-
-            if (!newAdminUser || !newAdminUser.user) {
-                throw new Error('Failed to create admin user');
-            }
-
-            adminAuthUser = await prisma.auth_users.findFirst({
-                where: {
-                    id: newAdminUser.user?.id,
-                },
-            });
-        } else {
-            adminAuthUser = existingAdminUser;
-        }
-
-        if (adminAuthUser) {
-            const adminPublicUser = await prisma.public_users.findFirst({
-                where: {
-                    auth_id: adminAuthUser.id,
-                },
-            });
-
-            if (adminPublicUser) {
-                await prisma.public_users.update({
-                    where: { id: adminPublicUser.id },
-                    data: {
-                        name: 'テスト管理者',
-                        alias_id: 'testadmin',
-                        image: null,
-                        role: 'admin',
-                        created_at: new Date(),
-                    },
-                });
-            } else {
-                await prisma.public_users.create({
-                    data: {
-                        auth_id: adminAuthUser.id,
-                        name: 'テスト管理者',
-                        alias_id: 'testadmin',
-                        image: null,
-                        role: 'admin',
-                    },
-                });
-            }
-            console.log(' => 管理者ユーザーを作成しました');
-        }
-    }
-
-    console.log(' => neko');
+    console.log(' => neko / plants');
     for (const sql of sqlDivision(readFileSync('./supabase/seeds/neko.sql', 'utf-8'))) {
         await prisma.$executeRawUnsafe(sql);
     }
-
-    console.log(' => plants');
     for (const sql of sqlDivision(readFileSync('./supabase/seeds/plants.sql', 'utf-8'))) {
         await prisma.$executeRawUnsafe(sql);
     }
 
-    // ---- フォトSNS用シード: 飼い猫・投稿・いいね ----
     console.log(' => pets');
     const nekoSpecies = await prisma.neko.findFirst({ orderBy: { id: 'asc' } });
-    if (!nekoSpecies) {
-        throw new Error('猫種マスタが空です');
-    }
+    if (!nekoSpecies) throw new Error('猫種マスタが空です');
 
-    const pet1 = await prisma.pets.create({
-        data: { user_id: testUserId, neko_id: nekoSpecies.id, name: 'ミケ' },
+    const mike = await prisma.pets.create({
+        data: { user_id: testUser.userId, neko_id: nekoSpecies.id, name: 'ミケ' },
     });
-    const pet2 = await prisma.pets.create({
-        data: { user_id: testUserId, neko_id: nekoSpecies.id, name: 'クロ' },
+    const kuro = await prisma.pets.create({
+        data: { user_id: testUser.userId, neko_id: nekoSpecies.id, name: 'クロ' },
+    });
+    const tama = await prisma.pets.create({
+        data: { user_id: otherUser.userId, neko_id: nekoSpecies.id, name: 'たま' },
     });
 
     console.log(' => posts');
     const pakira = await prisma.plants.findFirst({ where: { name: 'パキラ' } });
     const monstera = await prisma.plants.findFirst({ where: { name: 'モンステラ' } });
-    const seedPlants = [pakira, monstera].filter((plant) => plant != null);
-
-    if (seedPlants.length > 0) {
-        const imageBuffer = readFileSync('./e2e/fixtures/test-plant.png');
-
-        const seedPosts = [
-            {
-                comment: 'パキラのとなりでお昼寝しています🐱🌿',
-                plants: [seedPlants[0]],
-                pets: [pet1, pet2],
-                daysAgo: 1,
-            },
-            {
-                comment: '観葉植物と猫、今日も平和です',
-                plants: seedPlants,
-                pets: [pet1],
-                daysAgo: 3,
-            },
-            {
-                comment: '窓際が2匹のお気に入りスポット',
-                plants: [seedPlants[seedPlants.length - 1]],
-                pets: [pet2],
-                daysAgo: 7,
-            },
-        ];
-
-        for (const seed of seedPosts) {
-            const post = await prisma.posts.create({
-                data: {
-                    user_id: testUserId,
-                    comment: seed.comment,
-                    created_at: new Date(Date.now() - seed.daysAgo * 24 * 60 * 60 * 1000),
-                },
-            });
-
-            await prisma.post_plants.createMany({
-                data: seed.plants.map((plant) => ({ post_id: post.id, plant_id: plant!.id })),
-            });
-            await prisma.post_pets.createMany({
-                data: seed.pets.map((pet) => ({ post_id: post.id, pet_id: pet.id })),
-            });
-
-            // 画像をアップロード (service roleはストレージRLSをバイパスする)
-            const imagePath = `${authUser.id}/${post.id}/1_seed.png`;
-            const { error: uploadError } = await supabase.storage
-                .from('posts')
-                .upload(imagePath, imageBuffer, { contentType: 'image/png', upsert: true });
-
-            if (uploadError) {
-                throw new Error(`Failed to upload seed post image: ${uploadError.message}`);
-            }
-
-            await prisma.post_images.create({
-                data: { post_id: post.id, image_url: imagePath, order: 0 },
-            });
-        }
-
-        console.log(` => ${seedPosts.length}件の投稿を作成しました`);
-    } else {
+    if (!pakira || !monstera) {
         console.warn(' => シード植物(パキラ/モンステラ)が見つからないため投稿シードをスキップします');
+        console.log('✅ E2E用のテストデータを投入しました');
+        return;
     }
 
+    const imageBuffer = readFileSync('./e2e/fixtures/test-plant.png');
+
+    // created_at の新しい順: post1 → sakuraPost → post2 → post3
+    const seedPosts: {
+        owner: SeededUser;
+        comment: string;
+        plantIds: number[];
+        petIds: number[];
+        daysAgo: number;
+    }[] = [
+        {
+            owner: testUser,
+            comment: 'パキラのとなりでお昼寝しています🐱🌿',
+            plantIds: [pakira.id],
+            petIds: [mike.id, kuro.id],
+            daysAgo: 1,
+        },
+        {
+            owner: otherUser,
+            comment: 'さくらの部屋のモンステラと、たま🌿',
+            plantIds: [monstera.id],
+            petIds: [tama.id],
+            daysAgo: 2,
+        },
+        {
+            owner: testUser,
+            comment: '観葉植物と猫、今日も平和です',
+            plantIds: [pakira.id, monstera.id],
+            petIds: [mike.id],
+            daysAgo: 3,
+        },
+        {
+            owner: testUser,
+            comment: '窓際が2匹のお気に入りスポット',
+            plantIds: [monstera.id],
+            petIds: [kuro.id],
+            daysAgo: 7,
+        },
+    ];
+
+    for (const seed of seedPosts) {
+        const post = await prisma.posts.create({
+            data: {
+                user_id: seed.owner.userId,
+                comment: seed.comment,
+                created_at: new Date(Date.now() - seed.daysAgo * 24 * 60 * 60 * 1000),
+            },
+        });
+
+        await prisma.post_plants.createMany({
+            data: seed.plantIds.map((plantId) => ({ post_id: post.id, plant_id: plantId })),
+        });
+        await prisma.post_pets.createMany({
+            data: seed.petIds.map((petId) => ({ post_id: post.id, pet_id: petId })),
+        });
+
+        // 画像は投稿者の auth フォルダ配下に置く（service roleはストレージRLSをバイパス）
+        const imagePath = `${seed.owner.authId}/${post.id}/1_seed.png`;
+        const { error: uploadError } = await storage.storage
+            .from('posts')
+            .upload(imagePath, imageBuffer, { contentType: 'image/png', upsert: true });
+        if (uploadError) throw new Error(`Failed to upload seed post image: ${uploadError.message}`);
+
+        await prisma.post_images.create({
+            data: { post_id: post.id, image_url: imagePath, order: 0 },
+        });
+    }
+
+    console.log(` => ${seedPosts.length}件の投稿を作成しました`);
     console.log('✅ E2E用のテストデータを投入しました');
 }
 

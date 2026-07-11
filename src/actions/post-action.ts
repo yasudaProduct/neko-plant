@@ -366,6 +366,7 @@ export async function createPost(input: CreatePostInput): Promise<ActionResult<{
                     .upload(imagePath, processedImages[i].buffer, { contentType: processedImages[i].contentType });
 
                 if (error) {
+                    console.error("Error uploading post image:", error);
                     throw new Error("画像のアップロードに失敗しました。");
                 }
 

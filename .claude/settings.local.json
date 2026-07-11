@@ -39,7 +39,9 @@
       "Bash(node -e \"console.log\\('sharp version:', require\\('sharp/package.json'\\).version\\)\")",
       "Bash(node -e \"const p=require\\('next/package.json'\\); console.log\\('next optionalDeps:', JSON.stringify\\(p.optionalDependencies||{}\\)\\)\")",
       "Bash(lsof -i :3001 -sTCP:LISTEN)",
-      "Bash(lsof -i :54321 -sTCP:LISTEN)"
+      "Bash(lsof -i :54321 -sTCP:LISTEN)",
+      "Bash(node -e \"console.log\\('sharp version:', require\\('./node_modules/sharp/package.json'\\).version\\)\")",
+      "Bash(node -e ' *)"
     ],
     "deny": []
   }

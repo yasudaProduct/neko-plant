@@ -26,7 +26,12 @@
       "Bash(node /Users/yuta/Develop/neko-plant/verify-tmp.mjs)",
       "Bash(curl -s \"http://localhost:3000/plants?q=%E3%83%91%E3%82%AD%E3%83%A9\")",
       "Bash(ps -p 63869 -o pid,ppid,etime,command)",
-      "Bash(lsof -nP -iTCP:3000 -sTCP:LISTEN)"
+      "Bash(lsof -nP -iTCP:3000 -sTCP:LISTEN)",
+      "Bash(gh run *)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run dev -- --port 3005)",
+      "Bash(pkill -f \"next dev --turbopack\")",
+      "Bash(NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npx playwright test --reporter=line)"
     ],
     "deny": []
   }

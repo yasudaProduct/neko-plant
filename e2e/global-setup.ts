@@ -30,7 +30,8 @@ export default async function globalSetup(config: FullConfig) {
     await maybeSeedData();
 
     // ページコンパイルのウォームアップ（devサーバーの初回コンパイルを事前に実行）
-    const pagesToWarmUp = ['/', '/signin', '/signin/dev', '/news', '/terms', '/privacy'];
+    // /news は Notion API 依存で CI では NOTION_API_KEY 未設定のためウォームアップ対象外
+    const pagesToWarmUp = ['/', '/signin', '/signin/dev', '/terms', '/privacy'];
     console.log('Warming up dev server pages...');
     for (const pagePath of pagesToWarmUp) {
         try {

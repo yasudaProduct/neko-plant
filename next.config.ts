@@ -9,10 +9,17 @@ const nextConfig: NextConfig = {
         hostname: "placehold.jp",
         port: "",
       },
-      // Supabase ストレージ（開発環境）
+      // Supabase ストレージ（開発環境: localhost / 127.0.0.1 の両方。
+      // CIの supabase status は 127.0.0.1 を返すため両方を許可する）
       {
         protocol: "http",
         hostname: "localhost",
+        port: "54321",
+        pathname: "/storage/v1/object/public/**",
+      },
+      {
+        protocol: "http",
+        hostname: "127.0.0.1",
         port: "54321",
         pathname: "/storage/v1/object/public/**",
       },

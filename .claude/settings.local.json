@@ -31,7 +31,11 @@
       "Bash(pkill -f \"next dev\")",
       "Bash(NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npm run dev -- --port 3005)",
       "Bash(pkill -f \"next dev --turbopack\")",
-      "Bash(NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npx playwright test --reporter=line)"
+      "Bash(NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 npx playwright test --reporter=line)",
+      "Bash(npm audit *)",
+      "Bash(echo \"=== exit: $? ===\")",
+      "Bash(npm ls *)",
+      "Bash(echo \"npm audit --audit-level=high の exit code: $? \\(0ならCI通過\\)\")"
     ],
     "deny": []
   }

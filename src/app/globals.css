@@ -6,6 +6,25 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* いいねのポップアニメーション */
+@media (prefers-reduced-motion: no-preference) {
+  .np-like-pop {
+    animation: np-pop 0.3s ease;
+  }
+
+  @keyframes np-pop {
+    0% {
+      transform: scale(1);
+    }
+    45% {
+      transform: scale(1.35);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

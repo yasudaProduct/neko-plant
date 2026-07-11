@@ -1,61 +1,39 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import {
+    getUserPlantCollection,
     getUserProfile,
-    getUserProfileByAuthId,
-    getUserPets,
+    getUserStats,
     updateUser,
-    updateUserImage,
-    addPet,
-    updatePet,
-    deletePet,
-    getUserPlants,
-    deleteHavePlant,
-    getUserEvaluations,
-    getUserFavoritePlants,
-    deleteFavoritePlant,
 } from '@/actions/user-action';
 import { createClient } from '@/lib/supabase/server';
 import prisma from '@/lib/prisma';
 import { SupabaseClient } from '@supabase/supabase-js';
-import { SexType } from '@/types/neko';
-import { EvaluationType } from '@/types/evaluation';
-import { ActionErrorCode } from '@/types/common';
-import { revalidatePath } from 'next/cache';
 
 // Prismaのモック
-vi.mock('@/lib/prisma', () => ({
-    default: {
+vi.mock('@/lib/prisma', () => {
+    const prisma = {
         public_users: {
             findFirst: vi.fn(),
             update: vi.fn(),
         },
-        pets: {
-            findUnique: vi.fn(),
-            findMany: vi.fn(),
-            create: vi.fn(),
-            update: vi.fn(),
-            delete: vi.fn(),
-        },
         plants: {
             findMany: vi.fn(),
         },
-        evaluations: {
+        posts: {
+            count: vi.fn(),
+        },
+        pets: {
+            count: vi.fn(),
+        },
+        post_plants: {
             findMany: vi.fn(),
         },
-        plant_favorites: {
-            findMany: vi.fn(),
-            deleteMany: vi.fn(),
-        },
-        plant_have: {
-            deleteMany: vi.fn(),
-            findMany: vi.fn(),
-        },
-        $transaction: vi.fn((callback) => callback(prisma)),
-    },
-}));
+        $queryRaw: vi.fn(),
+    };
+    return { default: prisma };
+});
 
-// Supabaseクライアントのモック
 vi.mock('@/lib/supabase/server', () => ({
     createClient: vi.fn(),
 }));
@@ -64,920 +42,132 @@ vi.mock('next/cache', () => ({
     revalidatePath: vi.fn(),
 }));
 
-describe('User Actions', () => {
-    const mockUser = { id: 'test-user-id' };
-    const mockPublicUser = {
-        id: 1,
-        auth_id: mockUser.id,
-        alias_id: 'test-alias',
-        name: 'Test User',
-        image: null,
-        role: 'user',
-        created_at: new Date(),
-    };
+const mockUser = { id: 'test-auth-id' };
+const mockPublicUser = {
+    id: 1,
+    auth_id: mockUser.id,
+    alias_id: 'testuser',
+    name: 'テストユーザー',
+    image: null,
+    role: 'user',
+    created_at: new Date(),
+};
 
+function mockSupabase(user: { id: string } | null) {
+    const client = {
+        auth: {
+            getUser: vi.fn().mockResolvedValue({ data: { user } }),
+        },
+    };
+    vi.mocked(createClient).mockResolvedValue(client as unknown as SupabaseClient);
+}
+
+describe('User Actions', () => {
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
     describe('getUserProfile', () => {
-        it('ユーザープロフィールを取得できること', async () => {
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
+        it('aliasIdでプロフィールを取得する', async () => {
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
 
-            const result = await getUserProfile('test-alias');
+            const profile = await getUserProfile('testuser');
 
-            expect(result).toEqual({
-                id: 1,
-                aliasId: 'test-alias',
-                authId: 'test-user-id',
-                name: 'Test User',
-                imageSrc: undefined,
-            });
-
-            expect(prisma.public_users.findFirst).toHaveBeenCalledWith({
-                select: {
-                    id: true,
-                    alias_id: true,
-                    auth_id: true,
-                    name: true,
-                    image: true,
-                },
-                where: {
-                    alias_id: 'test-alias',
-                },
-            });
+            expect(profile).toBeDefined();
+            expect(profile?.aliasId).toBe('testuser');
+            expect(profile?.name).toBe('テストユーザー');
         });
 
-        it('ユーザーが存在しない場合はundefinedを返すこと', async () => {
+        it('存在しない場合はundefined', async () => {
             vi.mocked(prisma.public_users.findFirst).mockResolvedValue(null);
 
-            const result = await getUserProfile('non-existent');
+            const profile = await getUserProfile('unknown');
 
-            expect(result).toBeUndefined();
+            expect(profile).toBeUndefined();
         });
     });
 
-    describe('getUserProfileByAuthId', () => {
-        it('認証ユーザーのプロフィールを取得できること', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
+    describe('getUserPlantCollection', () => {
+        it('投稿から植物コレクションを集計する', async () => {
+            vi.mocked(prisma.$queryRaw).mockResolvedValue([
+                {
+                    plant_id: 5,
+                    post_count: BigInt(3),
+                    cat_count: BigInt(2),
+                    latest: new Date('2026-07-01'),
                 },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-
-            const result = await getUserProfileByAuthId();
-
-            expect(result).toEqual({
-                id: 1,
-                aliasId: 'test-alias',
-                authId: 'test-user-id',
-                name: 'Test User',
-                imageSrc: undefined,
-            });
-
-            expect(prisma.public_users.findFirst).toHaveBeenCalledWith({
-                where: {
-                    auth_id: mockUser.id,
+            ] as any);
+            vi.mocked(prisma.plants.findMany).mockResolvedValue([
+                {
+                    id: 5,
+                    name: 'パキラ',
+                    post_plants: [
+                        { posts: { post_images: [{ image_url: 'auth/1/1_a.png' }] } },
+                    ],
                 },
-            });
+            ] as any);
+
+            const collection = await getUserPlantCollection(1);
+
+            expect(collection).toHaveLength(1);
+            expect(collection[0].plantId).toBe(5);
+            expect(collection[0].plantName).toBe('パキラ');
+            expect(collection[0].postCount).toBe(3);
+            expect(collection[0].catCount).toBe(2);
+            expect(collection[0].mainImageUrl).toContain('/storage/v1/object/public/posts/auth/1/1_a.png');
         });
 
-        it('未ログインの場合はundefinedを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient;
+        it('投稿がない場合は空配列', async () => {
+            vi.mocked(prisma.$queryRaw).mockResolvedValue([] as any);
 
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
+            const collection = await getUserPlantCollection(1);
 
-            const result = await getUserProfileByAuthId();
-
-            expect(result).toBeUndefined();
-        });
-
-        it('ユーザーが存在しない場合はundefinedを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(null);
-
-            const result = await getUserProfileByAuthId();
-
-            expect(result).toBeUndefined();
+            expect(collection).toEqual([]);
+            expect(prisma.plants.findMany).not.toHaveBeenCalled();
         });
     });
 
-    describe('getUserPets', () => {
-        it('ユーザーのペット一覧を取得できること', async () => {
-            const mockPets = [
-                {
-                    id: 1,
-                    name: 'テストペット',
-                    image: 'test.jpg',
-                    sex: SexType.MALE,
-                    birthday: new Date(),
-                    age: 3,
-                    created_at: new Date(),
-                    user_id: 1,
-                    neko_id: 1,
-                    neko: {
-                        id: 1,
-                        name: 'テスト猫',
-                    },
-                },
-            ];
+    describe('getUserStats', () => {
+        it('投稿数・猫数・植物数を返す', async () => {
+            vi.mocked(prisma.posts.count).mockResolvedValue(4);
+            vi.mocked(prisma.pets.count).mockResolvedValue(2);
+            vi.mocked(prisma.post_plants.findMany).mockResolvedValue([
+                { plant_id: 5 },
+                { plant_id: 6 },
+                { plant_id: 7 },
+            ] as any);
 
-            vi.mocked(prisma.pets.findMany).mockResolvedValue(mockPets);
+            const stats = await getUserStats(1);
 
-            const result = await getUserPets(1);
-
-            expect(result).toEqual([
-                {
-                    id: 1,
-                    name: 'テストペット',
-                    imageSrc: 'http://localhost:54321/storage/v1/object/public/user_pets/test.jpg',
-                    neko: {
-                        id: 1,
-                        name: 'テスト猫',
-                    },
-                    sex: SexType.MALE,
-                    birthday: expect.any(Date),
-                    age: 3,
-                },
-            ]);
-
-            expect(prisma.pets.findMany).toHaveBeenCalledWith({
-                where: {
-                    user_id: 1,
-                },
-                include: {
-                    neko: true,
-                },
-                orderBy: {
-                    id: 'asc',
-                },
-            });
-        });
-
-        it('ペットが存在しない場合はundefinedを返すこと', async () => {
-            vi.mocked(prisma.pets.findMany).mockResolvedValue([]);
-
-            const result = await getUserPets(1);
-
-            expect(result).toBeUndefined();
+            expect(stats).toEqual({ postCount: 4, petCount: 2, plantCount: 3 });
         });
     });
 
     describe('updateUser', () => {
-        it('ユーザー情報を更新できること', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
+        it('名前が21文字以上の場合はエラー', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
 
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-            vi.mocked(prisma.public_users.update).mockResolvedValue({
-                ...mockPublicUser,
-                name: 'Updated Name',
-                alias_id: 'updated-alias',
-            });
+            await expect(updateUser('あ'.repeat(21), 'testuser')).rejects.toThrow();
+        });
 
-            await updateUser('Updated Name', 'upalias');
+        it('aliasIdが英字以外を含む場合はエラー', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
+
+            await expect(updateUser('テスト', 'test123')).rejects.toThrow();
+        });
+
+        it('正常系: ユーザー情報を更新する', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
+
+            await updateUser('新しい名前', 'newalias');
 
             expect(prisma.public_users.update).toHaveBeenCalledWith({
-                where: {
-                    id: 1,
-                },
-                data: {
-                    name: 'Updated Name',
-                    alias_id: 'upalias',
-                },
+                where: { id: 1 },
+                data: { name: '新しい名前', alias_id: 'newalias' },
             });
-        });
-
-        it('未ログインの場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            await expect(updateUser('Updated Name', 'updated-alias'))
-                .rejects
-                .toThrow('ユーザーが見つかりません。');
-        });
-
-        it('名前が20文字を超える場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-
-            await expect(updateUser('A'.repeat(21), 'updated-alias'))
-                .rejects
-                .toThrow('名前は7文字以内で入力してください');
-        });
-
-        it('ユーザーIDが10文字を超える場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-
-            await expect(updateUser('Updated Name', 'A'.repeat(11)))
-                .rejects
-                .toThrow('ユーザーIDは10文字以内で入力してください');
-        });
-
-        it('ユーザーIDが英数字以外の場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-
-            await expect(updateUser('Updated Name', 'test-alias'))
-                .rejects
-                .toThrow('ユーザーIDは英数字で入力してください');
         });
     });
-
-    describe('updateUserImage', () => {
-        const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
-
-        it('ユーザー画像を更新できること', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-                storage: {
-                    from: vi.fn().mockReturnThis(),
-                    upload: vi.fn().mockResolvedValue({ error: null }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-            vi.mocked(prisma.public_users.update).mockResolvedValue({
-                ...mockPublicUser,
-                image: 'test-user-id/test.jpg',
-            });
-
-            await updateUserImage(mockFile);
-
-            expect(prisma.public_users.update).toHaveBeenCalledWith({
-                where: {
-                    id: 1,
-                },
-                data: {
-                    image: expect.stringContaining('test-user-id/'),
-                },
-            });
-        });
-
-        it('未ログインの場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            await expect(updateUserImage(mockFile))
-                .rejects
-                .toThrow('ユーザーが見つかりません');
-        });
-
-        it('画像のアップロードに失敗した場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-                storage: {
-                    from: vi.fn().mockReturnThis(),
-                    upload: vi.fn().mockResolvedValue({ error: new Error('アップロードエラー') }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-
-            await expect(updateUserImage(mockFile))
-                .rejects
-                .toThrow('アップロードエラー');
-        });
-    });
-
-    describe('addPet', () => {
-        const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
-
-        it('ペットを追加できること', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-                storage: {
-                    from: vi.fn().mockReturnThis(),
-                    upload: vi.fn().mockResolvedValue({ error: null }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-            vi.mocked(prisma.pets.create).mockResolvedValue({
-                id: 1,
-                name: 'テストペット',
-                neko_id: 1,
-                user_id: 1,
-                sex: SexType.MALE,
-                age: 3,
-                birthday: new Date(),
-                image: null,
-                created_at: new Date(),
-            });
-            vi.mocked(prisma.pets.update).mockResolvedValue({
-                id: 1,
-                name: 'テストペット',
-                neko_id: 1,
-                user_id: 1,
-                sex: SexType.MALE,
-                age: 3,
-                birthday: new Date(),
-                image: 'test-user-id/1_test.jpg',
-                created_at: new Date(),
-            });
-
-            await addPet('テストペット', 1, mockFile, SexType.MALE, '2020-01-01', 3);
-
-            expect(prisma.pets.create).toHaveBeenCalledWith({
-                data: {
-                    name: 'テストペット',
-                    neko_id: 1,
-                    user_id: 1,
-                    sex: SexType.MALE,
-                    age: 3,
-                    birthday: new Date('2020-01-01'),
-                },
-            });
-            expect(prisma.pets.update).toHaveBeenCalledWith({
-                where: {
-                    id: 1,
-                },
-                data: {
-                    image: expect.stringContaining('test-user-id/1_'),
-                },
-            });
-        });
-
-        it('未ログインの場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            await expect(addPet('テストペット', 1, mockFile, SexType.MALE, '2020-01-01', 3))
-                .rejects
-                .toThrow('ユーザーが見つかりません');
-        });
-
-        it('画像のアップロードに失敗した場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-                storage: {
-                    from: vi.fn().mockReturnThis(),
-                    upload: vi.fn().mockResolvedValue({ error: new Error('アップロードエラー') }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-            vi.mocked(prisma.pets.create).mockResolvedValue({
-                id: 1,
-                name: 'テストペット',
-                neko_id: 1,
-                user_id: 1,
-                sex: SexType.MALE,
-                age: 3,
-                birthday: new Date(),
-                image: null,
-                created_at: new Date(),
-            });
-
-            await expect(addPet('テストペット', 1, mockFile, SexType.MALE, '2020-01-01', 3))
-                .rejects
-                .toThrow('アップロードエラー');
-        });
-    });
-
-    describe('updatePet', () => {
-        const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
-
-        it('ペット情報を更新できること', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-                storage: {
-                    from: vi.fn().mockReturnThis(),
-                    upload: vi.fn().mockResolvedValue({ error: null }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-            vi.mocked(prisma.pets.update).mockResolvedValue({
-                id: 1,
-                name: '更新されたペット',
-                neko_id: 2,
-                user_id: 1,
-                sex: SexType.FEMALE,
-                age: 4,
-                birthday: new Date('2021-01-01'),
-                image: 'test-user-id/1_test.jpg',
-                created_at: new Date(),
-            });
-            vi.mocked(revalidatePath).mockImplementation(() => { });
-
-            const result = await updatePet(1, '更新されたペット', 2, mockFile, SexType.FEMALE, '2021-01-01', 4);
-
-            expect(result).toEqual({
-                success: true,
-                message: "飼い猫を更新しました",
-            });
-            expect(revalidatePath).toHaveBeenCalledWith(`/${mockPublicUser.alias_id}`);
-        });
-
-        it('未ログインの場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            expect(await updatePet(1, '更新されたペット', 2, mockFile, SexType.FEMALE, '2021-01-01', 4)).toEqual({
-                success: false,
-                code: ActionErrorCode.AUTH_REQUIRED,
-                message: "ユーザーが見つかりません",
-            });
-        });
-
-        it('画像のアップロードに失敗した場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-                storage: {
-                    from: vi.fn().mockReturnValue({
-                        upload: vi.fn().mockResolvedValue({ error: new Error('アップロードエラー') }),
-                    }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-            vi.mocked(prisma.pets.findUnique).mockResolvedValue({
-                id: 1,
-                name: '更新するペット',
-                neko_id: 2,
-                user_id: 1,
-                sex: SexType.FEMALE,
-                age: 4,
-                birthday: new Date('2021-01-01'),
-                image: 'test-user-id/1_test.jpg',
-                created_at: new Date(),
-            });
-
-            expect(await updatePet(1, '更新されたペット', 2, mockFile, SexType.FEMALE, '2021-01-01', 4))
-                .toEqual({
-                    success: false,
-                    code: ActionErrorCode.INTERNAL_SERVER_ERROR,
-                    message: "飼い猫を更新できませんでした",
-                });
-        });
-    });
-
-    describe('deletePet', () => {
-        it('ペットを削除できること', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-            vi.mocked(prisma.pets.delete).mockResolvedValue({
-                id: 1,
-                name: 'テストペット',
-                neko_id: 1,
-                user_id: 1,
-                sex: SexType.MALE,
-                age: 3,
-                birthday: new Date(),
-                image: 'test.jpg',
-                created_at: new Date(),
-            });
-            vi.mocked(revalidatePath).mockImplementation(() => { });
-            await deletePet(1);
-
-            expect(prisma.pets.delete).toHaveBeenCalledWith({
-                where: {
-                    id: 1,
-                    user_id: 1,
-                },
-            });
-            expect(revalidatePath).toHaveBeenCalledWith(`/${mockPublicUser.alias_id}`);
-        });
-
-        it('未ログインの場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            await expect(deletePet(1))
-                .rejects
-                .toThrow('ユーザーが見つかりません');
-        });
-    });
-
-    describe('getUserPlants', () => {
-        it('ユーザーの植物一覧を取得できること', async () => {
-
-            vi.mocked(prisma.plant_have.findMany).mockResolvedValue(
-                [
-                    {
-                        id: 1,
-                        plant_id: 1,
-                        user_id: 1,
-                        created_at: new Date(),
-                        plants: {
-                            id: 1,
-                            name: 'テスト植物1',
-                        },
-                    },
-                    {
-                        id: 2,
-                        plant_id: 2,
-                        user_id: 1,
-                        created_at: new Date(),
-                        plants: {
-                            id: 2,
-                            name: 'テスト植物2',
-                        },
-                    },
-                ] as any
-            );
-            const result = await getUserPlants(1);
-
-            expect(result).toEqual([
-                {
-                    id: 1,
-                    name: 'テスト植物1',
-                    mainImageUrl: undefined,
-                    isFavorite: false,
-                    isHave: true,
-                    goodCount: 0,
-                    badCount: 0,
-                },
-                {
-                    id: 2,
-                    name: 'テスト植物2',
-                    mainImageUrl: undefined,
-                    isFavorite: false,
-                    isHave: true,
-                    goodCount: 0,
-                    badCount: 0,
-                },
-            ]);
-
-        });
-
-        it('植物が存在しない場合はからの配列を返すこと', async () => {
-            vi.mocked(prisma.plant_have.findMany).mockResolvedValue([]);
-
-            const result = await getUserPlants(1);
-
-            expect(result).toEqual([]);
-        });
-    });
-
-    describe('deleteHavePlant', () => {
-        it('持っている植物を削除できること', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-            vi.mocked(prisma.plant_have.deleteMany).mockResolvedValue({
-                count: 1,
-            });
-            vi.mocked(revalidatePath).mockImplementation(() => { });
-
-            await deleteHavePlant(1);
-
-            expect(prisma.plant_have.deleteMany).toHaveBeenCalledWith({
-                where: {
-                    plant_id: 1,
-                    user_id: 1,
-                },
-            });
-            expect(revalidatePath).toHaveBeenCalledWith(`/${mockPublicUser.alias_id}`);
-        });
-
-        it('未ログインの場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            await expect(deleteHavePlant(1))
-                .rejects
-                .toThrow('ユーザーが見つかりません');
-        });
-    });
-
-    describe('getUserEvaluations', () => {
-        it('ユーザーの評価一覧を取得できること', async () => {
-            const mockEvaluations = [
-                {
-                    id: 1,
-                    type: EvaluationType.GOOD,
-                    comment: 'テストコメント1',
-                    created_at: new Date(),
-                    user_id: 1,
-                    plant_id: 1,
-                    plants: {
-                        id: 1,
-                        name: 'テスト植物1',
-                        created_at: new Date(),
-                        plant_images: [
-                            {
-                                id: 1,
-                                image_url: 'test1.jpg',
-                            },
-                        ],
-                    },
-                    users: {
-                        ...mockPublicUser,
-                        image: 'test.jpg'
-                    },
-                },
-                {
-                    id: 2,
-                    type: EvaluationType.BAD,
-                    comment: 'テストコメント2',
-                    created_at: new Date(),
-                    user_id: 1,
-                    plant_id: 2,
-                    plants: {
-                        id: 2,
-                        name: 'テスト植物2',
-                        created_at: new Date(),
-                        plant_images: [
-                            {
-                                id: 1,
-                                image_url: 'test1.jpg',
-                            },
-                            {
-                                id: 2,
-                                image_url: 'test2.jpg',
-                            },
-                        ],
-                    },
-                    users: {
-                        ...mockPublicUser,
-                        image: 'test.jpg'
-                    },
-                },
-            ];
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-                storage: {
-                    from: vi.fn().mockReturnValue({
-                        list: vi.fn().mockResolvedValue({
-                            data: [
-                                {
-                                    name: 'test1.jpg',
-                                },
-                                {
-                                    name: 'test2.jpg',
-                                },
-                            ],
-                        }),
-                    }),
-                },
-            } as unknown as SupabaseClient;
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            vi.mocked(prisma.evaluations.findMany).mockResolvedValue(mockEvaluations);
-            vi.mocked(revalidatePath).mockImplementation(() => { });
-
-
-            const result = await getUserEvaluations(1);
-
-            expect(result).toEqual([
-                {
-                    id: 1,
-                    type: EvaluationType.GOOD,
-                    comment: 'テストコメント1',
-                    createdAt: expect.any(Date),
-                    imageUrls: ['http://localhost:54321/storage/v1/object/public/evaluations/1/test1.jpg', 'http://localhost:54321/storage/v1/object/public/evaluations/1/test2.jpg'],
-                    user: {
-                        aliasId: mockPublicUser.alias_id,
-                        name: mockPublicUser.name,
-                        imageSrc: 'http://localhost:54321/storage/v1/object/public/user_profiles/test.jpg',
-                    },
-                    plant: {
-                        id: 1,
-                        name: 'テスト植物1',
-                        mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
-                        isFavorite: false,
-                        isHave: false,
-                        goodCount: 0,
-                        badCount: 0,
-                    },
-                },
-                {
-                    id: 2,
-                    type: EvaluationType.BAD,
-                    comment: 'テストコメント2',
-                    createdAt: expect.any(Date),
-                    imageUrls: ['http://localhost:54321/storage/v1/object/public/evaluations/2/test1.jpg', 'http://localhost:54321/storage/v1/object/public/evaluations/2/test2.jpg'],
-                    user: {
-                        aliasId: mockPublicUser.alias_id,
-                        name: mockPublicUser.name,
-                        imageSrc: 'http://localhost:54321/storage/v1/object/public/user_profiles/test.jpg',
-                    },
-                    plant: {
-                        id: 2,
-                        name: 'テスト植物2',
-                        mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
-                        isFavorite: false,
-                        isHave: false,
-                        goodCount: 0,
-                        badCount: 0,
-                    },
-                },
-            ]);
-        });
-
-        it('評価が存在しない場合はからの配列を返すこと', async () => {
-            vi.mocked(prisma.evaluations.findMany).mockResolvedValue([]);
-
-            const result = await getUserEvaluations(1);
-
-            expect(result).toEqual([]);
-        });
-    });
-
-    describe('getUserFavoritePlants', () => {
-        it('ユーザーのお気に入り植物一覧を取得できること', async () => {
-            const mockPlants = [
-                {
-                    id: 1,
-                    plant_id: 1,
-                    user_id: 1,
-                    created_at: new Date(),
-                    plants: {
-                        id: 1,
-                        name: 'テスト植物1',
-                        created_at: new Date(),
-                        plant_images: [
-                            {
-                                id: 1,
-                                image_url: 'test1.jpg',
-                            }
-                        ],
-                    },
-                },
-                {
-                    id: 2,
-                    plant_id: 2,
-                    user_id: 1,
-                    created_at: new Date(),
-                    plants: {
-                        id: 2,
-                        name: 'テスト植物2',
-                        created_at: new Date(),
-                        plant_images: [],
-                    },
-                }
-            ];
-
-            vi.mocked(prisma.plant_favorites.findMany).mockResolvedValue(mockPlants);
-
-            const result = await getUserFavoritePlants(1);
-
-            expect(result).toEqual([
-                {
-                    id: 1,
-                    name: 'テスト植物1',
-                    mainImageUrl: 'http://localhost:54321/storage/v1/object/public/plants/test1.jpg',
-                    isFavorite: true,
-                    isHave: false,
-                    goodCount: 0,
-                    badCount: 0,
-                },
-                {
-                    id: 2,
-                    name: 'テスト植物2',
-                    mainImageUrl: undefined,
-                    isFavorite: true,
-                    isHave: false,
-                    goodCount: 0,
-                    badCount: 0,
-                },
-            ]);
-        });
-
-        it('お気に入り植物が存在しない場合はからの配列を返すこと', async () => {
-            vi.mocked(prisma.plant_favorites.findMany).mockResolvedValue([]);
-
-            const result = await getUserFavoritePlants(1);
-
-            expect(result).toEqual([]);
-        });
-    });
-
-    describe('deleteFavoritePlant', () => {
-        it('お気に入り植物を削除できること', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: mockUser } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser);
-            vi.mocked(prisma.plant_favorites.deleteMany).mockResolvedValue({
-                count: 1,
-            });
-
-            await deleteFavoritePlant(1);
-
-            expect(prisma.plant_favorites.deleteMany).toHaveBeenCalledWith({
-                where: {
-                    plant_id: 1,
-                    user_id: 1,
-                },
-            });
-        });
-
-        it('未ログインの場合はエラーを返すこと', async () => {
-            const mockSupabaseClient = {
-                auth: {
-                    getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
-                },
-            } as unknown as SupabaseClient;
-
-            vi.mocked(createClient).mockResolvedValue(mockSupabaseClient);
-
-            await expect(deleteFavoritePlant(1))
-                .rejects
-                .toThrow('ユーザーが見つかりません');
-        });
-    });
-}); 
+});

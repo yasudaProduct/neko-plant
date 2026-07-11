@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "./ui/button";
 import { Camera, Leaf, PawPrint } from "lucide-react";
 import { DropdownMenu } from "./HeaderDropMenu";
+import HeaderNav from "./HeaderNav";
 import { createClient } from "@/lib/supabase/server";
 import { getUserProfileByAuthId } from "@/actions/user-action";
 
@@ -15,41 +16,41 @@ export default async function Header() {
   const user = await getUserProfileByAuthId();
 
   return (
-    <header className="bg-[#2d5a27] text-primary-foreground p-4">
-      <div className="max-w-6xl mx-auto flex justify-between items-center">
+    <header className="bg-[#2d5a27] text-primary-foreground p-3 px-4">
+      <div className="max-w-6xl mx-auto flex items-center gap-3">
         <div className="flex items-center gap-2">
           <Link
             href="/"
-            className="flex items-center gap-2 text-xl max-sm:text-lg font-medium"
+            className="flex items-center gap-2 text-xl max-sm:text-lg font-medium whitespace-nowrap"
           >
             <PawPrint className="w-6 h-6" />
             猫と植物
             <Leaf className="w-6 h-6" />
           </Link>
-          <span className="text-sm text-gray-100">Beta Version</span>
+          <span className="text-xs text-green-200 max-sm:hidden">Beta Version</span>
         </div>
+        <HeaderNav />
+        <div className="flex-1"></div>
         <div className="flex items-center gap-2">
           {!session || !user ? (
-            <Button className="bg-accent text-accent-foreground hover:bg-accent/90">
+            <Button className="bg-accent text-accent-foreground hover:bg-accent/90" asChild>
               <Link href="/signin" className="text-accent-foreground">
                 ログイン
               </Link>
             </Button>
           ) : (
             <>
-              <Button variant="outline" className="w-10 h-10 sm:hidden">
+              <Button variant="outline" className="w-10 h-10 sm:hidden" asChild>
                 <Link href="/posts/new" className="text-accent-foreground">
-                  <div className="flex items-center gap-2">
-                    <Camera className="w-6 h-6 text-green-500" />
-                  </div>
+                  <Camera className="w-6 h-6 text-green-500" />
                 </Link>
               </Button>
-              <Button variant="outline" className="hidden sm:block mr-2">
+              <Button variant="outline" className="hidden sm:flex mr-2" asChild>
                 <Link href="/posts/new" className="text-accent-foreground">
-                  <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-2">
                     <Camera className="w-6 h-6 text-green-500" />
                     <span className="text-sm">投稿</span>
-                  </div>
+                  </span>
                 </Link>
               </Button>
               <DropdownMenu

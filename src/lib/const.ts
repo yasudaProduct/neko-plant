@@ -10,11 +10,24 @@ export const STORAGE_PATH = {
 /** 投稿1件あたりの画像枚数上限 */
 export const MAX_POST_IMAGES = 3;
 
-/** 投稿画像1枚あたりのサイズ上限 */
-export const MAX_POST_IMAGE_SIZE = 5 * 1024 * 1024;
-
 /** 投稿画像で許可するMIMEタイプ */
 export const ALLOWED_POST_IMAGE_TYPES = ["image/jpeg", "image/png"];
+
+/** クライアント処理前の入力画像サイズ上限 (canvasデコードのメモリ保護) */
+export const MAX_UPLOAD_SOURCE_IMAGE_SIZE = 20 * 1024 * 1024;
+
+/**
+ * クライアント処理後の画像サイズ上限。
+ * 処理済み画像はAI判定でServer Actionにも渡るため、
+ * Vercelのリクエストボディ上限4.5MBを下回る4MBに固定する。
+ */
+export const MAX_PROCESSED_IMAGE_SIZE = 4 * 1024 * 1024;
+
+/** アップロード画像の長辺上限 (px) */
+export const IMAGE_MAX_EDGE = 2048;
+
+/** アップロード画像のJPEG品質 */
+export const IMAGE_JPEG_QUALITY = 0.85;
 
 /** 投稿コメントの文字数上限 */
 export const MAX_POST_COMMENT_LENGTH = 500;

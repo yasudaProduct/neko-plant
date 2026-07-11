@@ -68,12 +68,14 @@ export async function updateSession(request: NextRequest) {
   }
 
   // CSPヘッダーを設定
+  // ローカルSupabaseはhttpのため、画像の直接アップロード等ブラウザからの接続を明示的に許可する
+  const supabaseOrigin = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).origin;
   const cspHeader = [
     "default-src 'self'",
     `script-src 'self'${isProd ? ` 'nonce-${nonce}'` : " 'unsafe-eval' 'unsafe-inline'"}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https:",
-    `connect-src 'self' https: wss:${isProd ? '' : ' ws:'}`,
+    `connect-src 'self' https: wss: ${supabaseOrigin}${isProd ? '' : ' ws:'}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

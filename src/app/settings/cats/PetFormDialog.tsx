@@ -35,6 +35,13 @@ import {
 import { addPet, deletePet, updatePet } from "@/actions/user-action";
 import { useToast } from "@/hooks/use-toast";
 import { getImageData } from "@/lib/utils";
+import {
+  processImageForUpload,
+  removeUploadedImagesBestEffort,
+  uploadImagesToBucket,
+} from "@/lib/client-image";
+import { createClient } from "@/lib/supabase/client";
+import { MAX_UPLOAD_SOURCE_IMAGE_SIZE } from "@/lib/const";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DatePicker } from "@/components/ui/datepicker";
 
@@ -76,8 +83,8 @@ const formSchema = z.object({
         file === undefined || ["image/jpeg", "image/png"].includes(file.type),
       { message: "サポートされていないファイル形式です" }
     )
-    .refine((file) => file === undefined || file.size <= 5 * 1024 * 1024, {
-      message: "ファイルサイズは5MB以下にしてください",
+    .refine((file) => file === undefined || file.size <= MAX_UPLOAD_SOURCE_IMAGE_SIZE, {
+      message: "ファイルサイズは20MB以下にしてください",
     }),
 });
 
@@ -133,13 +140,28 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger }: Props) {
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
+    let imagePath: string | undefined;
     try {
+      // 画像があれば縮小 + JPEG再エンコード (Exif除去) してブラウザから直接アップロードする
+      if (data.image) {
+        const processed = await processImageForUpload(data.image);
+
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error("ログインが必要です。");
+        }
+
+        imagePath = `${user.id}/pet_${crypto.randomUUID()}.jpg`;
+        await uploadImagesToBucket("user_pets", [{ path: imagePath, file: processed }]);
+      }
+
       if (pet) {
         await updatePet(
           pet.id,
           data.name,
           data.species,
-          data.image,
+          imagePath,
           data.sex,
           data.birthday || undefined,
           data.age
@@ -149,7 +171,7 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger }: Props) {
         await addPet(
           data.name,
           data.species,
-          data.image,
+          imagePath,
           data.sex,
           data.birthday || undefined,
           data.age
@@ -160,6 +182,7 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger }: Props) {
       form.reset();
       router.refresh();
     } catch {
+      await removeUploadedImagesBestEffort("user_pets", imagePath ? [imagePath] : []);
       error({
         title: pet ? "猫プロフィールの更新に失敗しました" : "猫の追加に失敗しました",
         description: "再度試していただくか、サイト管理者にお問い合わせください。",

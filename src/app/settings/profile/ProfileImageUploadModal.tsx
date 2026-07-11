@@ -18,6 +18,14 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { updateUserImage } from "@/actions/user-action";
+import {
+  processImageForUpload,
+  removeUploadedImagesBestEffort,
+  uploadImagesToBucket,
+} from "@/lib/client-image";
+import { createClient } from "@/lib/supabase/client";
+import { generateImageName } from "@/lib/utils";
+import { MAX_UPLOAD_SOURCE_IMAGE_SIZE } from "@/lib/const";
 
 const profileImageUploadSchema = z.object({
   image: z
@@ -29,8 +37,8 @@ const profileImageUploadSchema = z.object({
     .refine((file) => file && ["image/jpeg", "image/png"].includes(file.type), {
       message: "サポートされていないファイル形式です",
     })
-    .refine((file) => file && file.size <= 5 * 1024 * 1024, {
-      message: "ファイルサイズは5MB以下にしてください",
+    .refine((file) => file && file.size <= MAX_UPLOAD_SOURCE_IMAGE_SIZE, {
+      message: "ファイルサイズは20MB以下にしてください",
     }),
 });
 
@@ -69,12 +77,26 @@ export default function ProfileImageUploadModal({}: ProfileImageUploadModalProps
   async function onSubmit(values: z.infer<typeof profileImageUploadSchema>) {
     setIsSubmiting(true);
 
+    let imagePath = "";
     try {
-      await updateUserImage(values.image);
+      // 縮小 + JPEG再エンコード (Exif除去) してブラウザから直接アップロードする
+      const processed = await processImageForUpload(values.image);
+
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error("ログインが必要です。");
+      }
+
+      imagePath = `${user.id}/${generateImageName("profile")}.jpg`;
+      await uploadImagesToBucket("user_profiles", [{ path: imagePath, file: processed }]);
+
+      await updateUserImage(imagePath);
       success({
         title: "プロフィール画像を変更しました。",
       });
     } catch {
+      await removeUploadedImagesBestEffort("user_profiles", imagePath ? [imagePath] : []);
       error({
         title: "画像のアップロードに失敗しました。",
         description:
@@ -117,7 +139,7 @@ export default function ProfileImageUploadModal({}: ProfileImageUploadModalProps
             <Input
               id="image"
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png"
               onChange={handleImageChange}
               className="hover:cursor-pointer"
             />

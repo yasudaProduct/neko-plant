@@ -321,7 +321,7 @@ model auth_users {
   mfa_factors                 mfa_factors[]
   one_time_tokens             one_time_tokens[]
   sessions                    sessions[]
-  users                       public_users[]
+  users                       public_users?
 
   @@index([instance_id])
   @@index([is_anonymous])
@@ -360,14 +360,14 @@ model pets {
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model plants {
-  id              Int               @id(map: "plant_pkey") @default(autoincrement())
-  name            String            @db.VarChar
-  created_at      DateTime          @default(now()) @db.Timestamptz(6)
-  scientific_name String?           @db.VarChar(255)
-  family          String?           @db.VarChar(100)
-  genus           String?           @db.VarChar(100)
-  species         String?           @db.VarChar(100)
-  updated_at      DateTime?         @default(now()) @updatedAt @db.Timestamptz(6)
+  id              Int           @id(map: "plant_pkey") @default(autoincrement())
+  name            String        @db.VarChar
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  scientific_name String?       @db.VarChar(255)
+  family          String?       @db.VarChar(100)
+  genus           String?       @db.VarChar(100)
+  species         String?       @db.VarChar(100)
+  updated_at      DateTime?     @default(now()) @updatedAt @db.Timestamptz(6)
   post_plants     post_plants[]
 
   @@schema("public")
@@ -380,11 +380,11 @@ model public_users {
   alias_id   String       @db.VarChar
   name       String       @db.VarChar
   image      String?      @db.VarChar
-  role       String?      @default("user") @db.VarChar(50)
   created_at DateTime     @default(now()) @db.Timestamptz(6)
+  role       String?      @default("user") @db.VarChar(50)
   pets       pets[]
-  posts      posts[]
   post_likes post_likes[]
+  posts      posts[]
   users      auth_users   @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("users")
@@ -398,8 +398,8 @@ model posts {
   created_at  DateTime      @default(now()) @db.Timestamptz(6)
   post_images post_images[]
   post_likes  post_likes[]
-  post_plants post_plants[]
   post_pets   post_pets[]
+  post_plants post_plants[]
   users       public_users  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([created_at(sort: Desc)])

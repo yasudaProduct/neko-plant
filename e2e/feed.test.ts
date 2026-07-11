@@ -84,7 +84,15 @@ test.describe('フィード / ランディング @public', () => {
 });
 
 test.describe('フィード（ログイン済み） @user', () => {
-  test('ヒーローは表示されず、いいねのトグルがサーバーに反映される', async ({ page }) => {
+  // いいねはサーバーアクション(POST)完了を待ってからリロードする（楽観的更新とのレース回避）
+  const clickLikeAndWait = async (page: import('@playwright/test').Page, button: import('@playwright/test').Locator) => {
+    await Promise.all([
+      page.waitForResponse((r) => r.request().method() === 'POST', { timeout: 15000 }),
+      button.click(),
+    ]);
+  };
+
+  test('ヒーローは表示されず、いいねがサーバーに永続する', async ({ page }) => {
     await page.goto('/');
     await page.waitForLoadState('networkidle');
 
@@ -96,20 +104,23 @@ test.describe('フィード（ログイン済み） @user', () => {
     const likeButton = seedCard.getByTestId('like-button');
     const initialText = (await likeButton.textContent())?.trim() ?? '';
 
-    await likeButton.click();
+    await clickLikeAndWait(page, likeButton);
     await expect(likeButton).not.toHaveText(initialText);
+    const afterText = (await likeButton.textContent())?.trim() ?? '';
 
     // リロードしてもいいね状態がサーバーに永続していることを確認
-    const afterText = (await likeButton.textContent())?.trim() ?? '';
     await page.reload();
     await page.waitForLoadState('networkidle');
-    const reloadedCard = page.getByTestId('post-card').filter({ hasText: SEED_POST_COMMENT });
-    await expect(reloadedCard.getByTestId('like-button')).toHaveText(afterText);
+    const reloadedButton = page
+      .getByTestId('post-card')
+      .filter({ hasText: SEED_POST_COMMENT })
+      .getByTestId('like-button');
+    await expect(reloadedButton).toHaveText(afterText);
 
     await page.screenshot({ path: screenshotDir + 'like-toggled.png', fullPage: true });
 
     // 後続テストへの影響を避けるため元に戻す
-    await reloadedCard.getByTestId('like-button').click();
-    await expect(reloadedCard.getByTestId('like-button')).toHaveText(initialText);
+    await clickLikeAndWait(page, reloadedButton);
+    await expect(reloadedButton).toHaveText(initialText);
   });
 });

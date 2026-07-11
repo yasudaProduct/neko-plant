@@ -62,6 +62,14 @@ vi.mock('next/cache', () => ({
     revalidatePath: vi.fn(),
 }));
 
+// 画像メタデータ除去のモック (テスト用Fileは実画像ではないためsharpを通せない)
+vi.mock('@/lib/image', () => ({
+    stripImageMetadata: vi.fn().mockResolvedValue({
+        buffer: Buffer.from('processed-image'),
+        contentType: 'image/png',
+    }),
+}));
+
 const mockUser = { id: 'test-auth-id' };
 const mockPublicUser = {
     id: 1,

@@ -288,6 +288,8 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
               <h2 className="text-base font-semibold text-gray-900 mb-1">写真を選択</h2>
               <p className="text-xs text-gray-500">
                 猫と植物が一緒に写った写真を、{MAX_POST_IMAGES}枚まで選択できます。
+                <br />
+                写真は植物名のAI判定のため、外部のAIサービスに送信されます。位置情報などのメタデータは公開時に自動で削除されます。
               </p>
             </div>
             <label

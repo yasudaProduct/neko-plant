@@ -13,6 +13,7 @@ import {
     STORAGE_PATH,
 } from "@/lib/const";
 import { generateImageName } from "@/lib/utils";
+import { stripImageMetadata, ProcessedImage } from "@/lib/image";
 import { ActionErrorCode, ActionResult } from "@/types/common";
 import { PlantCoexistence, Post, SiteStats } from "@/types/post";
 
@@ -300,6 +301,15 @@ export async function createPost(input: CreatePostInput): Promise<ActionResult<{
             return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: `コメントは${MAX_POST_COMMENT_LENGTH}文字以内で入力してください。` };
         }
 
+        // 位置情報等のメタデータ (Exif) を除去してからアップロードする
+        let processedImages: ProcessedImage[];
+        try {
+            processedImages = await Promise.all(input.images.map((image) => stripImageMetadata(image)));
+        } catch (error) {
+            console.error("Error processing post images:", error);
+            return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "画像を読み込めませんでした。別の画像でお試しください。" };
+        }
+
         const plantIds = [...new Set(input.plantIds)];
         const petIds = [...new Set(input.petIds)];
 
@@ -348,12 +358,12 @@ export async function createPost(input: CreatePostInput): Promise<ActionResult<{
             });
 
             // 画像は {auth_id}/{post_id}/... に保存 (ストレージポリシーが自フォルダのみ許可)
-            for (let i = 0; i < input.images.length; i++) {
+            for (let i = 0; i < processedImages.length; i++) {
                 const imagePath = `${userData.auth_id}/${post.id}/${i + 1}_${generateImageName("post")}`;
 
                 const { error } = await supabase.storage
                     .from("posts")
-                    .upload(imagePath, input.images[i]);
+                    .upload(imagePath, processedImages[i].buffer, { contentType: processedImages[i].contentType });
 
                 if (error) {
                     throw new Error("画像のアップロードに失敗しました。");

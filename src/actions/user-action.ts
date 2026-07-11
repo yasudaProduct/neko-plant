@@ -4,6 +4,7 @@ import { Pet, SexType } from "@/types/neko";
 import { UserProfile, UserData, UserRole } from "@/types/user";
 import { UserPlantCollectionItem, UserStats } from "@/types/post";
 import { STORAGE_PATH } from "@/lib/const";
+import { stripImageMetadata } from "@/lib/image";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
@@ -191,10 +192,12 @@ export async function updateUserImage(image: File) {
         const imageName = generateImageName("profile");
         const imagePath = `${userData.auth_id}/${imageName}`;
 
-        // 1. 画像をアップロード
+        // 1. メタデータ (Exif) を除去して画像をアップロード
+        const processed = await stripImageMetadata(image);
         const { error } = await supabase.storage
             .from("user_profiles")
-            .upload(imagePath, image, {
+            .upload(imagePath, processed.buffer, {
+                contentType: processed.contentType,
                 upsert: true,
             });
 
@@ -252,14 +255,16 @@ export async function addPet(name: string, speciesId: number, image?: File, sex?
             } as pets,
         });
 
-        // 画像をアップロード
+        // 画像をアップロード (メタデータは除去する)
         if (image) {
 
             const imageSrc: string = `${userData.auth_id}/${neko.id}_${generateImageName("pet")}`;
 
+            const processed = await stripImageMetadata(image);
             const { error } = await supabase.storage
                 .from("user_pets")
-                .upload(imageSrc, image, {
+                .upload(imageSrc, processed.buffer, {
+                    contentType: processed.contentType,
                     upsert: true,
                 });
 
@@ -344,14 +349,16 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
                 },
             });
 
-            // 画像をアップロード
+            // 画像をアップロード (メタデータは除去する)
             if (image) {
 
                 const imageSrc: string = `${userData.auth_id}/${petId}_${generateImageName("pet")}`;
 
+                const processed = await stripImageMetadata(image);
                 const { error } = await supabase.storage
                     .from("user_pets")
-                    .upload(imageSrc, image, {
+                    .upload(imageSrc, processed.buffer, {
+                        contentType: processed.contentType,
                         upsert: true,
                     });
 

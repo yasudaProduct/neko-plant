@@ -1,7 +1,12 @@
+import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import NewPostWithAiForm from "./NewPostWithAiForm";
-import { Card } from "@/components/ui/card";
+import { getUserPets, getUserProfileByAuthId } from "@/actions/user-action";
+import PostFlow from "./PostFlow";
+
+export const metadata: Metadata = {
+  title: "投稿する | 猫と植物",
+};
 
 export default async function NewPostPage() {
   const supabase = await createClient();
@@ -13,17 +18,13 @@ export default async function NewPostPage() {
     redirect("/signin");
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-green-50 to-green-100 py-12">
-      <div className="container mx-auto px-4">
-        <Card className="max-w-2xl mx-auto p-6">
-          <h1 className="text-2xl font-bold text-center mb-6">
-            写真から評価を投稿
-          </h1>
-          <NewPostWithAiForm />
-        </Card>
-      </div>
-    </div>
-  );
-}
+  const profile = await getUserProfileByAuthId();
 
+  if (!profile) {
+    redirect("/signin");
+  }
+
+  const pets = (await getUserPets(profile.id)) ?? [];
+
+  return <PostFlow myPets={pets} />;
+}

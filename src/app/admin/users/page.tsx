@@ -10,8 +10,8 @@ export default async function UsersAdmin() {
     include: {
       _count: {
         select: {
-          evaluations: true,
-          plant_images: true,
+          posts: true,
+          post_likes: true,
           pets: true,
         },
       },
@@ -40,8 +40,8 @@ export default async function UsersAdmin() {
                 image: user.image ? STORAGE_PATH.USER_PROFILE + user.image : null,
                 role: user.role || 'user',
                 createdAt: user.created_at,
-                evaluationCount: user._count.evaluations,
-                imageCount: user._count.plant_images,
+                postCount: user._count.posts,
+                likeCount: user._count.post_likes,
                 petCount: user._count.pets,
               }}
             />

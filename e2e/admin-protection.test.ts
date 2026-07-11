@@ -21,9 +21,7 @@ test.describe('Admin Page Protection - Unauthenticated @public', () => {
     // 管理者ページのルート一覧
     const adminRoutes = [
       { path: '/admin', title: 'ダッシュボード' },
-      { path: '/admin/plant-images', title: '植物画像管理' },
       { path: '/admin/users', title: 'ユーザー管理' },
-      { path: '/admin/evaluations', title: '評価管理' },
     ];
 
     // 各ルートで未認証アクセスがブロックされることを確認
@@ -55,9 +53,7 @@ test.describe('Admin Page Protection - Regular User @user', () => {
   test('通常ユーザーは管理者ページにアクセスできない', async ({ page }) => {
     const adminRoutes = [
       '/admin',
-      '/admin/plant-images',
       '/admin/users',
-      '/admin/evaluations',
     ];
 
     for (const route of adminRoutes) {
@@ -85,9 +81,7 @@ test.describe('Admin Page Protection - Admin User @admin', () => {
 
   test('管理者は各管理ページにアクセスできる', async ({ page }) => {
     const adminRoutes = [
-      { path: '/admin/plant-images', title: '植物画像管理' },
       { path: '/admin/users', title: 'ユーザー管理' },
-      { path: '/admin/evaluations', title: '評価管理' },
     ];
 
     for (const route of adminRoutes) {
@@ -101,14 +95,8 @@ test.describe('Admin Page Protection - Admin User @admin', () => {
     await page.goto('/admin');
 
     // ナビゲーションリンクをクリックして各ページに移動
-    await page.click('text=植物画像管理');
-    await expect(page).toHaveURL('/admin/plant-images');
-
     await page.click('text=ユーザー管理');
     await expect(page).toHaveURL('/admin/users');
-
-    await page.click('text=評価管理');
-    await expect(page).toHaveURL('/admin/evaluations');
 
     // サイトに戻るリンクをクリック
     await page.click('text=サイトに戻る');

@@ -1,25 +1,24 @@
 import prisma from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
 export default async function AdminDashboard() {
-  const [totalUsers, totalPlants, totalEvaluations, pendingImages] = await Promise.all([
+  const [totalUsers, totalPlants, totalPosts, totalLikes] = await Promise.all([
     prisma.public_users.count(),
     prisma.plants.count(),
-    prisma.evaluations.count(),
-    prisma.plant_images.count({
-      where: {
-        is_approved: false,
-      },
-    }),
+    prisma.posts.count(),
+    prisma.post_likes.count(),
   ]);
 
-  const recentEvaluations = await prisma.evaluations.findMany({
+  const recentPosts = await prisma.posts.findMany({
     take: 5,
     orderBy: {
       created_at: "desc",
     },
     include: {
-      plants: true,
+      post_plants: {
+        include: { plants: true },
+      },
       users: true,
     },
   });
@@ -27,7 +26,7 @@ export default async function AdminDashboard() {
   return (
     <div>
       <h1 className="text-2xl font-bold text-gray-900 mb-8">ダッシュボード</h1>
-      
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -37,7 +36,7 @@ export default async function AdminDashboard() {
             <div className="text-2xl font-bold">{totalUsers}</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">総植物数</CardTitle>
@@ -46,48 +45,55 @@ export default async function AdminDashboard() {
             <div className="text-2xl font-bold">{totalPlants}</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">総評価数</CardTitle>
+            <CardTitle className="text-sm font-medium">総投稿数</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalEvaluations}</div>
+            <div className="text-2xl font-bold">{totalPosts}</div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">承認待ち画像</CardTitle>
+            <CardTitle className="text-sm font-medium">総いいね数</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{pendingImages}</div>
+            <div className="text-2xl font-bold">{totalLikes}</div>
           </CardContent>
         </Card>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>最近の評価</CardTitle>
+          <CardTitle>最近の投稿</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {recentEvaluations.map((evaluation) => (
-              <div key={evaluation.id} className="flex items-center justify-between p-4 border rounded-lg">
+            {recentPosts.map((post) => (
+              <div
+                key={post.id}
+                className="flex items-center justify-between p-4 border rounded-lg"
+              >
                 <div className="flex-1">
-                  <p className="font-medium">{evaluation.plants.name}</p>
-                  <p className="text-sm text-gray-500">
-                    {evaluation.users?.name || "Unknown User"} - {evaluation.type === "good" ? "良い評価" : "悪い評価"}
-                  </p>
-                  {evaluation.comment && (
-                    <p className="text-sm text-gray-600 mt-1">{evaluation.comment}</p>
+                  <Link href={`/posts/${post.id}`} className="font-medium hover:underline">
+                    {post.post_plants.map((postPlant) => postPlant.plants.name).join("・") ||
+                      "植物タグなし"}
+                  </Link>
+                  <p className="text-sm text-gray-500">{post.users?.name || "Unknown User"}</p>
+                  {post.comment && (
+                    <p className="text-sm text-gray-600 mt-1 line-clamp-2">{post.comment}</p>
                   )}
                 </div>
                 <div className="text-sm text-gray-400">
-                  {new Date(evaluation.created_at).toLocaleDateString("ja-JP")}
+                  {new Date(post.created_at).toLocaleDateString("ja-JP")}
                 </div>
               </div>
             ))}
+            {recentPosts.length === 0 && (
+              <p className="text-sm text-gray-500">投稿がまだありません</p>
+            )}
           </div>
         </CardContent>
       </Card>

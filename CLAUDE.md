@@ -4,7 +4,7 @@
 
 ## プロジェクト概要
 
-neko-plantは、日本の猫に安全な植物データベースプラットフォームとして機能するNext.js 15フルスタックアプリケーションです。ユーザーは植物を検索し、コミュニティからの安全性評価を読み、植物の画像をアップロードし、猫のプロフィールを管理できます。
+neko-plantは、「猫と植物の暮らし」を共有する日本のフォトSNSプラットフォームとして機能するNext.js 15フルスタックアプリケーションです。ユーザーは猫と植物が一緒に写った写真を投稿し(植物はAI判定または手動でタグ付け)、投稿の分布から植物ごとの「共存実績」(ユニーク猫数)が可視化されます。危険を断定せず、投稿がない植物は「情報がない」と表現するポジティブリスト方式を採用しています(詳細は `doc/service-description-photo-sns.md`)。
 
 ## 開発コマンド
 
@@ -20,10 +20,10 @@ npm run test:coverage    # テストカバレッジレポート
 npm run e2e              # Playwright E2Eテスト
 npm run seed:e2e         # E2Eテストデータのシード
 
-# データベース
-npx prisma generate      # Prismaクライアント生成
-npx prisma db pull       # スキーマ変更の取得
-supabase db push         # リモート(本番)Supabaseへのマイグレーション適用
+# データベース（スキーマの正は supabase/migrations/*.sql。詳細は下記「データベース変更のルール」）
+supabase db reset        # 全マイグレーション適用 + seeds/*.sql 投入（ローカルDBを作り直す）
+npm run seed:e2e         # 開発/E2E用データ（ユーザー・猫・投稿）を投入
+npm run db:pull          # DB → schema.prisma を同期し Prisma Client を再生成 (prisma db pull + generate)
 
 # リント
 npm run lint             # ESLint
@@ -40,10 +40,15 @@ npm run lint             # ESLint
 
 ### 主要データベースモデル
 - `plants` - 植物カタログ（分類学：科、属、種）
-- `evaluations` - ユーザーの安全性レビュー（良い/悪い評価）
-- `plant_images` - モデレーション状態付きユーザーアップロード写真
-- `users` - トリガーによりSupabase authと同期されるユーザープロフィール
-- `neko` - ユーザーの猫プロフィール
+- `posts` - 猫と植物の写真投稿（コメント付き）
+- `post_images` - 投稿写真（postsバケットに保存、パスは `{auth_id}/{post_id}/...`）
+- `post_plants` / `post_pets` - 投稿への植物・猫のタグ付け（多対多）
+- `post_likes` - いいね（post_id × user_id 一意）
+- `users` - トリガーによりSupabase authと同期されるユーザープロフィール（auth_idに一意制約）
+- `pets` - ユーザーの飼い猫プロフィール、`neko` - 猫種マスタ
+
+### 共存実績の集計
+植物ごとの「共存実績」は `post_plants` と `post_pets` を結合した **ユニークな pet_id の数** で算出する（同一ユーザーの重複投稿で水増しされない）。閾値は `src/lib/coexistence.ts` (50+/10+/1+/0 の4ランク)。
 
 ### ディレクトリ構造
 - `app/` - Next.js App Routerページとレイアウト
@@ -73,6 +78,19 @@ npm run lint             # ESLint
 データベースは自動ユーザープロフィール作成とデータ整合性のためのトリガーを使用。トリガーのドキュメントは`/doc/supabase.md`を参照。
 
 ### データベース変更のルール
-データベースに変更を加える際は、以下のルールに従ってください：
-- Prismaスキーマファイル（`prisma/schema.prisma`）を変更し、Prismaの機能を使用してマイグレーションを行う
-- Supabaseのマイグレーション機能は使用しない
+**スキーマの正は `supabase/migrations/*.sql`（Supabaseマイグレーション）。** `prisma/schema.prisma` は `prisma db pull` で生成する Prisma Client 用のイントロスペクション成果物であり、手で編集しない。RLS・ストレージポリシー・トリガー・関数もすべてマイグレーションSQLに含める（Prisma Migrate は使用しない）。
+
+変更手順:
+1. マイグレーションを作成する
+   - 手書き: `supabase migration new <名前>` → SQL（テーブル / RLS / ポリシー / トリガー等）を記述
+   - 大きな変更: ローカルDBに変更を反映してから `supabase db diff -f <名前>` で生成（`--schema public` は `storage`/`auth` スキーマの差分を拾わないため、ストレージポリシー等は手動で追記する）
+2. `supabase db reset` で適用・動作確認（`seeds/*.sql` も自動投入される）
+3. `npm run db:pull` で `schema.prisma` と Prisma Client をDBに追従させる
+4. マイグレーションSQL と `schema.prisma` をコミット
+
+本番反映（リモートは本番のみ）:
+- `supabase db push`（事前に `supabase db push --dry-run` で当たるSQLを確認する）
+- CIの Playwright ジョブが `supabase start` で全マイグレーションをまっさらなDBに適用するため、壊れたマイグレーションは本番前にCIで検知される
+
+禁止:
+- `prisma db push` / `prisma migrate` は使わない（マイグレーションを迂回してドリフトの原因になる）

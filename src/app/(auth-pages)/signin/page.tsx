@@ -77,7 +77,7 @@ export default function LoginPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">ログイン</h1>
           <p className="text-gray-600">
-            アカウントにログインして、植物の安全性を共有しましょう
+            アカウントにログインして、猫と植物の暮らしを共有しましょう
           </p>
         </div>
 

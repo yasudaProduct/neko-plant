@@ -118,9 +118,9 @@ test.describe('植物登録機能 @user', () => {
     // 詳細ページにリダイレクトされることを確認
     await page.waitForURL(`/plants/${plantId}`);
 
-    // 更新された情報が表示されることを確認
-    await expect(page.locator('.text-2xl.font-bold')).toContainText(testPlantName + '_編集済み');
-    await expect(page.locator('text=Testus plantus')).toBeVisible();
+    // 更新された情報が表示されることを確認 (学名はヘッダーとカタログ情報の2箇所に表示される)
+    await expect(page.getByTestId('plant-name')).toContainText(testPlantName + '_編集済み');
+    await expect(page.locator('text=Testus plantus').first()).toBeVisible();
 
     await page.screenshot({ path: screenshotDir + 'plant-edit-success.png', fullPage: true });
   });

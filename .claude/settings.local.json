@@ -35,7 +35,9 @@
       "Bash(npm audit *)",
       "Bash(echo \"=== exit: $? ===\")",
       "Bash(npm ls *)",
-      "Bash(echo \"npm audit --audit-level=high の exit code: $? \\(0ならCI通過\\)\")"
+      "Bash(echo \"npm audit --audit-level=high の exit code: $? \\(0ならCI通過\\)\")",
+      "Bash(node -e \"console.log\\('sharp version:', require\\('sharp/package.json'\\).version\\)\")",
+      "Bash(node -e \"const p=require\\('next/package.json'\\); console.log\\('next optionalDeps:', JSON.stringify\\(p.optionalDependencies||{}\\)\\)\")"
     ],
     "deny": []
   }

@@ -30,7 +30,12 @@ export default function TermsPage() {
             <li>
               「コンテンツ」：当サイト上で提供されるすべての情報を指します
             </li>
-            <li>「投稿」：ユーザーが当サイトに投稿する情報を指します</li>
+            <li>
+              「投稿」：ユーザーが当サイトに投稿する写真、コメント、植物・猫のタグ等の情報を指します
+            </li>
+            <li>
+              「共存実績」：投稿の集計から算出される、植物ごとに観測された猫との共存に関する統計情報を指します
+            </li>
           </ul>
         </section>
 
@@ -50,6 +55,15 @@ export default function TermsPage() {
           <ul className="list-disc pl-6 space-y-2">
             <li>法令または公序良俗に違反する行為</li>
             <li>犯罪行為に関連する行為</li>
+            <li>
+              第三者の肖像、著作物その他の権利を侵害する写真等を投稿する行為（写り込みを含め、必要な許諾を得ていないものを含みます）
+            </li>
+            <li>
+              事実に反する植物・猫のタグ付けを行うなど、共存実績の集計を意図的に歪める行為
+            </li>
+            <li>
+              猫や植物と無関係な画像、または不適切な画像を投稿する行為
+            </li>
             <li>
               当サイトのサーバーまたはネットワークの機能を破壊したり、妨害したりする行為
             </li>
@@ -78,7 +92,30 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-4">6. 著作権</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            6. 安全性情報（共存実績）について
+          </h2>
+          <p className="mb-4">
+            当サイトが表示する共存実績その他の安全性に関する情報について、以下の通り定めます：
+          </p>
+          <ul className="list-disc pl-6 space-y-2">
+            <li>
+              共存実績は、ユーザーの投稿から機械的に集計した統計情報であり、植物の安全性や無毒性を保証するものではありません
+            </li>
+            <li>
+              投稿がない、または少ない植物は「情報がない」状態を示すものであり、その植物が安全または危険であることを意味しません
+            </li>
+            <li>
+              植物の購入、設置、飼育環境等に関する判断は、ユーザー自身の責任で行うものとします。ペットの健康に関わる判断については、獣医師等の専門家にご相談ください
+            </li>
+            <li>
+              当サイトは、共存実績等の情報に基づく判断によって生じた損害（ペットの健康被害を含みます）について、一切の責任を負いません
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2 className="text-xl font-semibold mb-4">7. 著作権</h2>
           <p className="mb-4">
             当サイトに掲載されているコンテンツの著作権は、当サイトまたはその提供者に帰属します。
             ユーザーは、当サイトの利用にあたり、著作権法に従って適切に利用するものとします。
@@ -87,10 +124,10 @@ export default function TermsPage() {
 
         <section>
           <h2 className="text-xl font-semibold mb-4">
-            7. 投稿コンテンツの取り扱い
+            8. 投稿コンテンツの取り扱い
           </h2>
           <p className="mb-4">
-            当サイトにおける投稿コンテンツ（評価、コメント、画像等）の取り扱いについて、以下の通り定めます：
+            当サイトにおける投稿コンテンツ（写真、コメント、植物・猫のタグ等）の取り扱いについて、以下の通り定めます：
           </p>
           <ul className="list-disc pl-6 space-y-2">
             <li>投稿コンテンツの著作権は、投稿者に帰属します</li>
@@ -101,10 +138,16 @@ export default function TermsPage() {
               投稿コンテンツは、当サイトのサービス提供、改善、宣伝等の目的で利用される場合があります
             </li>
             <li>
+              投稿コンテンツは、共存実績等の統計情報の作成・表示に利用されます
+            </li>
+            <li>
+              投稿写真は、植物名の判定のため外部のAIサービスに送信されることがあります
+            </li>
+            <li>
               投稿コンテンツは、他のユーザーに公開されることを前提としています
             </li>
             <li>
-              投稿コンテンツの削除は、投稿者本人または当サイトの判断で行うことができます
+              投稿コンテンツの削除は、投稿者本人または当サイトの判断で行うことができます。削除された投稿は、共存実績等の集計からも除外されます
             </li>
             <li>
               投稿コンテンツに第三者の権利が含まれる場合は、投稿者が適切な権利処理を行うものとします
@@ -117,7 +160,7 @@ export default function TermsPage() {
 
         <section>
           <h2 className="text-xl font-semibold mb-4">
-            8 . アカウントの利用条件
+            9. アカウントの利用条件
           </h2>
           <p className="mb-4">
             当サイトのアカウント利用について、以下の通り定めます：
@@ -142,7 +185,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-semibold mb-4">9. お問い合わせ</h2>
+          <h2 className="text-xl font-semibold mb-4">10. お問い合わせ</h2>
           <p className="mb-4">
             本規約に関するお問い合わせは、下記よりお願いします
             <br />
@@ -153,7 +196,7 @@ export default function TermsPage() {
         </section>
 
         <div className="mt-8 text-sm text-gray-500">
-          <p>最終更新日：2024年3月31日</p>
+          <p>最終更新日：2026年7月11日</p>
         </div>
       </div>
     </div>

@@ -74,6 +74,49 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         console.error('sitemap: failed to fetch plants', error)
     }
 
+    // 投稿詳細ページ（中核UGC。updated_at 列が無いため lastModified は created_at）
+    let postPages: MetadataRoute.Sitemap = []
+    try {
+        const posts = await prisma.posts.findMany({
+            select: { id: true, created_at: true },
+            orderBy: { created_at: 'desc' },
+        })
+
+        postPages = posts.map((post) => ({
+            url: `${BASE_URL}/posts/${post.id}`,
+            lastModified: post.created_at,
+            changeFrequency: 'weekly',
+            priority: 0.8,
+        }))
+    } catch (error) {
+        console.error('sitemap: failed to fetch posts', error)
+    }
+
+    // プロフィールページ（投稿が1件以上あるユーザーのみ。0件は noindex 扱い）
+    let profilePages: MetadataRoute.Sitemap = []
+    try {
+        const users = await prisma.public_users.findMany({
+            where: { posts: { some: {} } },
+            select: {
+                alias_id: true,
+                posts: {
+                    select: { created_at: true },
+                    orderBy: { created_at: 'desc' },
+                    take: 1,
+                },
+            },
+        })
+
+        profilePages = users.map((user) => ({
+            url: `${BASE_URL}/${user.alias_id}`,
+            lastModified: user.posts[0]?.created_at ?? now,
+            changeFrequency: 'weekly',
+            priority: 0.6,
+        }))
+    } catch (error) {
+        console.error('sitemap: failed to fetch users', error)
+    }
+
     // ニュース詳細ページ（Notionから取得）
     let newsPages: MetadataRoute.Sitemap = []
     try {
@@ -88,7 +131,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         console.error('sitemap: failed to fetch news', error)
     }
 
-    return [...staticPages, ...plantPages, ...newsPages]
+    return [...staticPages, ...plantPages, ...postPages, ...profilePages, ...newsPages]
 }
 
 

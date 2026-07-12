@@ -203,6 +203,18 @@ export async function addPlant(name: string): Promise<ActionResult<{ plantId: nu
     }
 }
 
+/**
+ * 植物カタログは全ユーザー共有のため、更新・削除は管理者のみ許可する。
+ * (Server ActionはRLSをバイパスするPrisma経由のため、ここでの認可チェックが実質の防壁)
+ */
+async function requireAdmin(authId: string): Promise<boolean> {
+    const userData = await prisma.public_users.findFirst({
+        where: { auth_id: authId },
+        select: { role: true },
+    });
+    return userData?.role === "admin";
+}
+
 export async function updatePlant(id: number, plant: { name: string, scientific_name?: string, family?: string, genus?: string, species?: string }): Promise<ActionResult<{ plantId: number }>> {
     const supabase = await createClient();
 
@@ -210,6 +222,10 @@ export async function updatePlant(id: number, plant: { name: string, scientific_
 
     if (user == null) {
         return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
+    }
+
+    if (!(await requireAdmin(user.id))) {
+        return { success: false, code: ActionErrorCode.FORBIDDEN, message: "植物の編集には管理者権限が必要です。" };
     }
 
     if (!plant.name) {
@@ -253,6 +269,11 @@ export async function deletePlant(id: number): Promise<ActionResult> {
 
     if (user == null) {
         return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
+    }
+
+    // post_plants が ON DELETE CASCADE のため、削除は全ユーザーの投稿タグを巻き込む。管理者のみ許可
+    if (!(await requireAdmin(user.id))) {
+        return { success: false, code: ActionErrorCode.FORBIDDEN, message: "植物の削除には管理者権限が必要です。" };
     }
 
     try {

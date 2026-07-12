@@ -55,7 +55,23 @@ async function ensureUser(
     return { userId, authId: authUser.id, aliasId: params.aliasId };
 }
 
+/** 接続先がローカルSupabase以外なら中断する (全テーブルdeleteManyを含むため本番誤実行を防ぐ) */
+function assertLocalTarget() {
+    const targets = [process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.DATABASE_URL];
+    for (const url of targets) {
+        if (!url) continue;
+        const host = new URL(url).hostname;
+        if (host !== 'localhost' && host !== '127.0.0.1') {
+            throw new Error(
+                `E2Eシードはローカル環境専用です。接続先がローカルではありません: ${host}`
+            );
+        }
+    }
+}
+
 export async function main() {
+    assertLocalTarget();
+
     // 認証用クライアント: signUp するとセッションがそのユーザーに切り替わる
     const supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,

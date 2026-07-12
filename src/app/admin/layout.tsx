@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getUserData } from "@/actions/user-action";
+import { getUserData } from "@/lib/user-data";
 import Link from "next/link";
 
 export default async function AdminLayout({

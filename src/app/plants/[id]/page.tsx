@@ -10,7 +10,7 @@ import { getUserData } from "@/lib/user-data";
 import { getCoexistenceMessage, getCoexistenceRank } from "@/lib/coexistence";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
 import JsonLd from "@/components/JsonLd";
-import BackLink from "@/components/np/BackLink";
+import Breadcrumbs from "@/components/np/Breadcrumbs";
 import CoexistBadge from "@/components/np/CoexistBadge";
 import CoexistBar from "@/components/np/CoexistBar";
 import CatChip from "@/components/np/CatChip";
@@ -117,8 +117,14 @@ export default async function PlantPage({
   return (
     <div className="max-w-3xl mx-auto px-4 pt-6 pb-12 flex flex-col gap-5">
       <JsonLd data={plantJsonLd} />
-      <div className="flex items-center justify-between">
-        <BackLink />
+      <div className="flex items-center justify-between gap-3">
+        <Breadcrumbs
+          items={[
+            { name: "ホーム", href: "/" },
+            { name: "共存図鑑", href: "/zukan" },
+            { name: plant.name },
+          ]}
+        />
         {isAdmin && (
           <Link
             href={`/plants/${plant.id}/edit`}

@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { getNewsById } from "@/actions/news-action";
 import { SITE_URL } from "@/lib/site";
 import JsonLd from "@/components/JsonLd";
+import Breadcrumbs from "@/components/np/Breadcrumbs";
 
 export async function generateMetadata({
   params,
@@ -44,6 +45,14 @@ export default async function NewsDetailPage({
   return (
     <div className="container mx-auto px-4 py-8">
       <JsonLd data={newsJsonLd} />
+      <Breadcrumbs
+        className="mb-4"
+        items={[
+          { name: "ホーム", href: "/" },
+          { name: "お知らせ", href: "/news" },
+          { name: news.title },
+        ]}
+      />
       <h1 className="text-2xl font-bold mb-8">{news.title}</h1>
       <div className="prose">{news.content}</div>
     </div>

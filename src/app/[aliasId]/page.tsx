@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
 import {
@@ -13,7 +13,7 @@ import JsonLd from "@/components/JsonLd";
 import { getPostsByUser } from "@/actions/post-action";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import BackLink from "@/components/np/BackLink";
+import Breadcrumbs from "@/components/np/Breadcrumbs";
 import ProfileTabs from "./ProfileTabs";
 
 export async function generateMetadata({
@@ -57,8 +57,9 @@ export default async function ProfilePage({
 
   const userProfile = await getUserProfile(aliasId);
 
+  // 存在しないユーザーはトップへの redirect ではなく404を返す (soft 404対策)
   if (!userProfile) {
-    redirect("/");
+    notFound();
   }
 
   const [pets, { posts }, collection, stats] = await Promise.all([
@@ -88,7 +89,12 @@ export default async function ProfilePage({
   return (
     <div className="max-w-3xl mx-auto px-4 pt-6 pb-12 flex flex-col gap-5">
       <JsonLd data={profileJsonLd} />
-      <BackLink />
+      <Breadcrumbs
+        items={[
+          { name: "ホーム", href: "/" },
+          { name: `${userProfile.name}さん` },
+        ]}
+      />
 
       {/* プロフィールカード */}
       <div className="bg-white rounded-xl border border-border shadow-sm p-6 flex items-center gap-5 flex-wrap">

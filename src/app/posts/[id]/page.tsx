@@ -14,7 +14,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import BackLink from "@/components/np/BackLink";
+import Breadcrumbs from "@/components/np/Breadcrumbs";
 import LikeButton from "@/components/np/LikeButton";
 import PlantTag from "@/components/np/PlantTag";
 import CatChip from "@/components/np/CatChip";
@@ -108,7 +108,13 @@ export default async function PostDetailPage({
   return (
     <div className="max-w-4xl mx-auto px-4 pt-6 pb-12 flex flex-col gap-5">
       <JsonLd data={postJsonLd} />
-      <BackLink />
+      <Breadcrumbs
+        items={[
+          { name: "ホーム", href: "/" },
+          { name: `${post.user.name}さんの投稿` },
+        ]}
+      />
+      <h1 className="sr-only">{post.user.name}さんの猫と植物の写真</h1>
 
       <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
         <div className="grid grid-cols-[3fr_2fr] max-md:grid-cols-1">

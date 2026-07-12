@@ -123,7 +123,7 @@ export default async function PostDetailPage({
             {post.imageUrls.length > 1 ? (
               <Carousel className="h-full">
                 <CarouselContent className="h-full">
-                  {post.imageUrls.map((url) => (
+                  {post.imageUrls.map((url, i) => (
                     <CarouselItem key={url}>
                       <div className="relative aspect-[4/3] min-h-[320px]">
                         <Image
@@ -132,7 +132,7 @@ export default async function PostDetailPage({
                           fill
                           sizes="(max-width: 768px) 100vw, 560px"
                           className="object-cover"
-                          priority
+                          priority={i === 0}
                         />
                       </div>
                     </CarouselItem>

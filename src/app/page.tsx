@@ -92,8 +92,8 @@ export default async function Home({
 
           {posts.length > 0 ? (
             <div className="flex flex-col gap-5 max-w-[600px]">
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
+              {posts.map((post, i) => (
+                <PostCard key={post.id} post={post} priority={i === 0} />
               ))}
             </div>
           ) : (

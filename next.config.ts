@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
+    // 対応ブラウザには AVIF → WebP の順で軽量フォーマットを配信する
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       // プレースホルダー画像
       {

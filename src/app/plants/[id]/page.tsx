@@ -8,7 +8,8 @@ import { getPlant, getPlants } from "@/actions/plant-action";
 import { getPostsByPlant } from "@/actions/post-action";
 import { getUserData } from "@/lib/user-data";
 import { getCoexistenceMessage, getCoexistenceRank } from "@/lib/coexistence";
-import { SITE_NAME } from "@/lib/site";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
+import JsonLd from "@/components/JsonLd";
 import BackLink from "@/components/np/BackLink";
 import CoexistBadge from "@/components/np/CoexistBadge";
 import CoexistBar from "@/components/np/CoexistBar";
@@ -86,8 +87,36 @@ export default async function PlantPage({
     : [...topPlants.plants.slice(0, 4), plant];
   const maxCats = Math.max(...distributionRows.map((p) => p.catCount), 1);
 
+  // 植物の構造化データ。「安全/危険」の断定 (AggregateRating等) は
+  // ポジティブリスト方針に反するため使わず、実績数を中立に記述する
+  const plantJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Thing",
+    "@id": `${SITE_URL}/plants/${plant.id}`,
+    url: `${SITE_URL}/plants/${plant.id}`,
+    name: plant.name,
+    ...(plant.scientific_name ? { alternateName: plant.scientific_name } : {}),
+    ...(plant.mainImageUrl ? { image: plant.mainImageUrl } : {}),
+    description: `${plant.name}の猫との共存実績: ${getCoexistenceMessage(plant.catCount)}。みんなの投稿から集計しています。`,
+    additionalProperty: [
+      {
+        "@type": "PropertyValue",
+        name: "共存実績のあるユニークな猫の数",
+        value: plant.catCount,
+        unitText: "匹",
+      },
+      {
+        "@type": "PropertyValue",
+        name: "観測された投稿数",
+        value: plant.postCount,
+        unitText: "件",
+      },
+    ],
+  };
+
   return (
     <div className="max-w-3xl mx-auto px-4 pt-6 pb-12 flex flex-col gap-5">
+      <JsonLd data={plantJsonLd} />
       <div className="flex items-center justify-between">
         <BackLink />
         {isAdmin && (

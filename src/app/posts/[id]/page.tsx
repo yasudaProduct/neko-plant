@@ -3,7 +3,8 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPost, getPostsByPlant } from "@/actions/post-action";
-import { SITE_NAME } from "@/lib/site";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
+import JsonLd from "@/components/JsonLd";
 import { formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -75,8 +76,38 @@ export default async function PostDetailPage({
     ? (await getPostsByPlant(firstPlant.id, 1, 4)).posts.filter((p) => p.id !== post.id).slice(0, 3)
     : [];
 
+  // 投稿の構造化データ (post.comment は投稿の本文なので articleBody にマップする)
+  const postJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SocialMediaPosting",
+    "@id": `${SITE_URL}/posts/${post.id}`,
+    url: `${SITE_URL}/posts/${post.id}`,
+    headline: `${post.user.name}さんの猫と植物の写真`,
+    ...(post.comment ? { articleBody: post.comment } : {}),
+    image: post.imageUrls.map((url) => ({ "@type": "ImageObject", url })),
+    datePublished: post.createdAt.toISOString(),
+    inLanguage: "ja",
+    author: {
+      "@type": "Person",
+      name: post.user.name,
+      url: `${SITE_URL}/${post.user.aliasId}`,
+    },
+    publisher: { "@id": `${SITE_URL}/#organization` },
+    interactionStatistic: {
+      "@type": "InteractionCounter",
+      interactionType: { "@type": "LikeAction" },
+      userInteractionCount: post.likeCount,
+    },
+    about: post.plants.map((plant) => ({
+      "@type": "Thing",
+      name: plant.name,
+      url: `${SITE_URL}/plants/${plant.id}`,
+    })),
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 pt-6 pb-12 flex flex-col gap-5">
+      <JsonLd data={postJsonLd} />
       <BackLink />
 
       <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">

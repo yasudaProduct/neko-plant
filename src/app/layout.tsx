@@ -9,6 +9,7 @@ import { M_PLUS_Rounded_1c } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { headers } from "next/headers";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
+import JsonLd from "@/components/JsonLd";
 
 const RampartOneFont = M_PLUS_Rounded_1c({
   subsets: ["latin"],
@@ -65,6 +66,41 @@ export const metadata: Metadata = {
   },
 };
 
+// 運営主体とサイト内検索 (/plants?q=) を機械可読化する
+const siteJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}/images/logo.png`,
+        width: 500,
+        height: 500,
+      },
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      inLanguage: "ja",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+      potentialAction: {
+        "@type": "SearchAction",
+        target: {
+          "@type": "EntryPoint",
+          urlTemplate: `${SITE_URL}/plants?q={search_term_string}`,
+        },
+        "query-input": "required name=search_term_string",
+      },
+    },
+  ],
+};
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -76,6 +112,7 @@ export default async function RootLayout({
   return (
     <html lang="ja">
       <body className={`${RampartOneFont.className} antialiased`}>
+        <JsonLd data={siteJsonLd} />
         <div className="flex flex-col min-h-screen bg-green-50">
           <ProgressBar>
             <AuthDialogProvider>

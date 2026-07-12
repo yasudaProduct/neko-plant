@@ -8,7 +8,8 @@ import {
   getUserProfile,
   getUserStats,
 } from "@/actions/user-action";
-import { SITE_NAME } from "@/lib/site";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
+import JsonLd from "@/components/JsonLd";
 import { getPostsByUser } from "@/actions/post-action";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -69,8 +70,24 @@ export default async function ProfilePage({
 
   const isSelf = userProfile.isSelf === true;
 
+  const profileJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "@id": `${SITE_URL}/${userProfile.aliasId}`,
+    url: `${SITE_URL}/${userProfile.aliasId}`,
+    inLanguage: "ja",
+    mainEntity: {
+      "@type": "Person",
+      name: userProfile.name,
+      alternateName: `@${userProfile.aliasId}`,
+      url: `${SITE_URL}/${userProfile.aliasId}`,
+      ...(userProfile.imageSrc ? { image: userProfile.imageSrc } : {}),
+    },
+  };
+
   return (
     <div className="max-w-3xl mx-auto px-4 pt-6 pb-12 flex flex-col gap-5">
+      <JsonLd data={profileJsonLd} />
       <BackLink />
 
       {/* プロフィールカード */}

@@ -17,23 +17,26 @@ export default async function Header() {
 
   return (
     <header className="bg-[#2d5a27] text-primary-foreground p-3 px-4">
-      <div className="max-w-6xl mx-auto flex items-center gap-3">
-        <div className="flex items-center gap-2">
+      <div className="max-w-6xl mx-auto flex items-center gap-1 sm:gap-3">
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
           <Link
             href="/"
-            className="flex items-center gap-2 text-xl max-sm:text-lg font-medium whitespace-nowrap"
+            className="flex items-center gap-1 sm:gap-2 text-xl max-sm:text-base font-medium whitespace-nowrap"
           >
-            <PawPrint className="w-6 h-6" />
+            <PawPrint className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
             猫と植物
-            <Leaf className="w-6 h-6" />
+            <Leaf className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
           </Link>
           <span className="text-xs text-green-200 max-sm:hidden">Beta Version</span>
         </div>
         <HeaderNav />
         <div className="flex-1"></div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
           {!session || !user ? (
-            <Button className="bg-accent text-accent-foreground hover:bg-accent/90" asChild>
+            <Button
+              className="bg-accent text-accent-foreground hover:bg-accent/90 max-sm:px-3 max-sm:h-8 max-sm:text-xs"
+              asChild
+            >
               <Link href="/signin" className="text-accent-foreground">
                 ログイン
               </Link>
@@ -45,7 +48,7 @@ export default async function Header() {
                   <Camera className="w-6 h-6 text-green-500" />
                 </Link>
               </Button>
-              <Button variant="outline" className="hidden sm:flex mr-2" asChild>
+              <Button variant="outline" className="hidden sm:flex" asChild>
                 <Link href="/posts/new" className="text-accent-foreground">
                   <span className="flex items-center gap-2">
                     <Camera className="w-6 h-6 text-green-500" />

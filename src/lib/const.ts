@@ -34,3 +34,9 @@ export const MAX_POST_COMMENT_LENGTH = 500;
 
 /** 投稿1件あたりの植物タグ数上限 */
 export const MAX_POST_PLANTS = 5;
+
+/** 投稿1件あたりの猫タグ数上限 */
+export const MAX_POST_PETS = 10;
+
+/** 猫の名前の文字数上限 */
+export const MAX_PET_NAME_LENGTH = 50;

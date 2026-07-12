@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { createClient } from "@/lib/supabase/client";
 
 export default function PasswordChangeModal() {
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,12 +41,31 @@ export default function PasswordChangeModal() {
       return;
     }
 
+    // セッション奪取だけではパスワードを変更できないよう、現在のパスワードで再認証する
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user?.email) {
+      setError("パスワードの変更に失敗しました。もう一度ログインしてください。");
+      setLoading(false);
+      return;
+    }
+
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+    if (reauthError) {
+      setError("現在のパスワードが正しくありません。");
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ password: newPassword });
 
     if (error) {
       setError("パスワードの変更に失敗しました。もう一度お試しください。");
     } else {
       setSuccess(true);
+      setCurrentPassword("");
     }
 
     setLoading(false);
@@ -63,6 +83,16 @@ export default function PasswordChangeModal() {
           <DialogTitle>パスワードを変更する</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <label htmlFor="current-password" className="block text-sm font-medium">
+            現在のパスワード
+          </label>
+          <Input
+            id="current-password"
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            required
+          />
           <label htmlFor="password" className="block text-sm font-medium">
             新しいパスワード
           </label>
@@ -90,14 +120,21 @@ export default function PasswordChangeModal() {
         </div>
         <DialogFooter>
           <DialogClose asChild>
-            <Button variant="secondary" onClick={() => setNewPassword("")}>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setCurrentPassword("");
+                setNewPassword("");
+                setNewPasswordConfirm("");
+              }}
+            >
               キャンセル
             </Button>
           </DialogClose>
           <Button
             variant="default"
             onClick={handlePasswordChange}
-            disabled={loading || !newPassword}
+            disabled={loading || !currentPassword || !newPassword}
           >
             {loading ? "変更中..." : "変更"}
           </Button>

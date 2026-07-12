@@ -374,6 +374,7 @@ model plants {
 }
 
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model public_users {
   id         Int          @id @default(autoincrement())
   auth_id    String       @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid

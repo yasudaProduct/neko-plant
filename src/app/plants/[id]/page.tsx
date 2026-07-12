@@ -6,6 +6,7 @@ import { BookHeart, ChevronRight, Pencil, PawPrint, TriangleAlert } from "lucide
 import { createClient } from "@/lib/supabase/server";
 import { getPlant, getPlants } from "@/actions/plant-action";
 import { getPostsByPlant } from "@/actions/post-action";
+import { getUserData } from "@/lib/user-data";
 import { getCoexistenceMessage, getCoexistenceRank } from "@/lib/coexistence";
 import BackLink from "@/components/np/BackLink";
 import CoexistBadge from "@/components/np/CoexistBadge";
@@ -58,6 +59,9 @@ export default async function PlantPage({
     return notFound();
   }
 
+  // 植物カタログの編集導線は管理者のみに表示 (認可はサーバーアクション側でも実施)
+  const isAdmin = user != null && (await getUserData(user.id))?.role === "admin";
+
   const rank = getCoexistenceRank(plant.catCount);
 
   // 一緒に暮らしている猫 (取得済み投稿から)
@@ -75,7 +79,7 @@ export default async function PlantPage({
     <div className="max-w-3xl mx-auto px-4 pt-6 pb-12 flex flex-col gap-5">
       <div className="flex items-center justify-between">
         <BackLink />
-        {user && (
+        {isAdmin && (
           <Link
             href={`/plants/${plant.id}/edit`}
             className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700"

@@ -7,67 +7,7 @@ export async function updateSession(request: NextRequest) {
   // CSP nonce生成（本番環境のみ）
   const nonce = isProd ? Buffer.from(crypto.randomUUID()).toString('base64') : '';
 
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
-
-  if (
-    !session &&
-    protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))
-  ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/signin'
-    return NextResponse.redirect(url)
-  }
-
-  // Admin route protection
-  if (request.nextUrl.pathname.startsWith('/admin')) {
-    if (!session) {
-      const url = request.nextUrl.clone()
-      url.pathname = '/signin'
-      return NextResponse.redirect(url)
-    }
-
-    // Check if user has admin role
-    const { data: userData } = await supabase
-      .from('users')
-      .select('role')
-      .eq('auth_id', session.user.id)
-      .single()
-
-    if (!userData || userData.role !== 'admin') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/'
-      return NextResponse.redirect(url)
-    }
-  }
-
-  // CSPヘッダーを設定
+  // CSPヘッダーを構築
   // ローカルSupabaseはhttpのため、画像の直接アップロード等ブラウザからの接続を明示的に許可する
   const supabaseOrigin = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL!).origin;
   const cspHeader = [
@@ -84,12 +24,81 @@ export async function updateSession(request: NextRequest) {
     ...(isProd ? ["block-all-mixed-content", "upgrade-insecure-requests"] : []),
   ].join("; ");
 
-  supabaseResponse.headers.set('Content-Security-Policy', cspHeader)
-
-  // nonceをリクエストヘッダーに追加
+  // nonce と CSP はリクエストヘッダーにも載せる。layout.tsx の headers() や
+  // Next.js のインラインスクリプトへの nonce 自動付与はリクエストヘッダーを参照するため、
+  // レスポンスヘッダーだけでは nonce ベースの CSP が機能しない
+  const requestHeaders = new Headers(request.headers)
   if (isProd && nonce) {
-    supabaseResponse.headers.set('x-nonce', nonce)
+    requestHeaders.set('x-nonce', nonce)
+    requestHeaders.set('Content-Security-Policy', cspHeader)
   }
+
+  let supabaseResponse = NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
+          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+          supabaseResponse = NextResponse.next({
+            request: {
+              headers: requestHeaders,
+            },
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  // getSession() はJWT署名を検証しないため、認可判定には getUser() を使う (Supabase推奨)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+
+  if (
+    !user &&
+    protectedPaths.some(path => request.nextUrl.pathname.startsWith(path))
+  ) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/signin'
+    return NextResponse.redirect(url)
+  }
+
+  // Admin route protection
+  if (request.nextUrl.pathname.startsWith('/admin')) {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/signin'
+      return NextResponse.redirect(url)
+    }
+
+    // Check if user has admin role
+    const { data: userData } = await supabase
+      .from('users')
+      .select('role')
+      .eq('auth_id', user.id)
+      .single()
+
+    if (!userData || userData.role !== 'admin') {
+      const url = request.nextUrl.clone()
+      url.pathname = '/'
+      return NextResponse.redirect(url)
+    }
+  }
+
+  supabaseResponse.headers.set('Content-Security-Policy', cspHeader)
 
   return supabaseResponse
 }

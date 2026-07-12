@@ -1,4 +1,5 @@
 import { getPlant } from "@/actions/plant-action";
+import { getUserData } from "@/lib/user-data";
 import { Card, CardHeader } from "@/components/ui/card";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
@@ -16,6 +17,12 @@ export default async function EditPlant({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
+    redirect("/");
+  }
+
+  // 植物カタログの編集は管理者のみ
+  const userData = await getUserData(user.id);
+  if (!userData || userData.role !== "admin") {
     redirect("/");
   }
 

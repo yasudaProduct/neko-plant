@@ -73,7 +73,8 @@ describe('User Actions', () => {
     });
 
     describe('getUserProfile', () => {
-        it('aliasIdでプロフィールを取得する', async () => {
+        it('aliasIdでプロフィールを取得する (auth_idは返さない)', async () => {
+            mockSupabase(null);
             vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
 
             const profile = await getUserProfile('testuser');
@@ -81,9 +82,21 @@ describe('User Actions', () => {
             expect(profile).toBeDefined();
             expect(profile?.aliasId).toBe('testuser');
             expect(profile?.name).toBe('テストユーザー');
+            expect(profile?.isSelf).toBe(false);
+            expect(profile).not.toHaveProperty('authId');
+        });
+
+        it('本人が閲覧した場合はisSelf=true', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
+
+            const profile = await getUserProfile('testuser');
+
+            expect(profile?.isSelf).toBe(true);
         });
 
         it('存在しない場合はundefined', async () => {
+            mockSupabase(null);
             vi.mocked(prisma.public_users.findFirst).mockResolvedValue(null);
 
             const profile = await getUserProfile('unknown');
@@ -163,9 +176,29 @@ describe('User Actions', () => {
             await expect(updateUser('テスト', 'test123')).rejects.toThrow();
         });
 
-        it('正常系: ユーザー情報を更新する', async () => {
+        it('別ユーザーが使用中のaliasIdはエラー', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst)
+                .mockResolvedValueOnce(mockPublicUser as any) // 自分の取得
+                .mockResolvedValueOnce({ id: 2 } as any);     // 重複チェック: 他人がヒット
+
+            await expect(updateUser('テスト', 'takenalias')).rejects.toThrow('既に使用されています');
+            expect(prisma.public_users.update).not.toHaveBeenCalled();
+        });
+
+        it('予約語のaliasIdはエラー', async () => {
             mockSupabase(mockUser);
             vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
+
+            await expect(updateUser('テスト', 'admin')).rejects.toThrow('使用できません');
+            expect(prisma.public_users.update).not.toHaveBeenCalled();
+        });
+
+        it('正常系: ユーザー情報を更新する', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst)
+                .mockResolvedValueOnce(mockPublicUser as any) // 自分の取得
+                .mockResolvedValueOnce(null);                 // 重複チェック: 空き
 
             await updateUser('新しい名前', 'newalias');
 

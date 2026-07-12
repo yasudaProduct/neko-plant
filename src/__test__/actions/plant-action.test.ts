@@ -25,6 +25,9 @@ vi.mock('@/lib/prisma', () => {
             update: vi.fn(),
             delete: vi.fn(),
         },
+        public_users: {
+            findFirst: vi.fn(),
+        },
         $queryRaw: vi.fn(),
     };
     return { default: prisma };
@@ -47,6 +50,13 @@ function mockSupabase(user: { id: string } | null) {
         },
     };
     vi.mocked(createClient).mockResolvedValue(client as unknown as SupabaseClient);
+}
+
+/** updatePlant / deletePlant の管理者チェックが参照する role をモックする */
+function mockRole(role: string | null) {
+    vi.mocked(prisma.public_users.findFirst).mockResolvedValue(
+        role ? ({ role } as any) : null,
+    );
 }
 
 // searchPlants用の詳細データ (post_plants経由の最新投稿画像を含む)
@@ -202,8 +212,20 @@ describe('Plant Actions', () => {
     });
 
     describe('updatePlant', () => {
+        it('一般ユーザーはFORBIDDEN', async () => {
+            mockSupabase(mockUser);
+            mockRole('user');
+
+            const result = await updatePlant(1, { name: 'パキラ' });
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.FORBIDDEN);
+            expect(prisma.plants.update).not.toHaveBeenCalled();
+        });
+
         it('別の植物と名前が重複する場合はALREADY_EXISTS', async () => {
             mockSupabase(mockUser);
+            mockRole('admin');
             vi.mocked(prisma.plants.findFirst).mockResolvedValue({ id: 2, name: 'パキラ' } as any);
 
             const result = await updatePlant(1, { name: 'パキラ' });
@@ -212,8 +234,9 @@ describe('Plant Actions', () => {
             if (!result.success) expect(result.code).toBe(ActionErrorCode.ALREADY_EXISTS);
         });
 
-        it('正常系: 植物を更新する', async () => {
+        it('正常系: 管理者は植物を更新できる', async () => {
             mockSupabase(mockUser);
+            mockRole('admin');
             vi.mocked(prisma.plants.findFirst).mockResolvedValue(null);
             vi.mocked(prisma.plants.update).mockResolvedValue({ id: 1 } as any);
 
@@ -225,8 +248,20 @@ describe('Plant Actions', () => {
     });
 
     describe('deletePlant', () => {
-        it('正常系: 植物を削除する', async () => {
+        it('一般ユーザーはFORBIDDEN', async () => {
             mockSupabase(mockUser);
+            mockRole('user');
+
+            const result = await deletePlant(1);
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.FORBIDDEN);
+            expect(prisma.plants.delete).not.toHaveBeenCalled();
+        });
+
+        it('正常系: 管理者は植物を削除できる', async () => {
+            mockSupabase(mockUser);
+            mockRole('admin');
             vi.mocked(prisma.plants.delete).mockResolvedValue({ id: 1 } as any);
 
             const result = await deletePlant(1);

@@ -85,7 +85,32 @@ test.describe('植物登録機能 @user', () => {
     await page.screenshot({ path: screenshotDir + 'plant-registration-max-length.png', fullPage: true });
   });
 
-  test('登録後に植物情報を編集できる', async ({ page }) => {
+  test('一般ユーザーは植物編集ページにアクセスできない', async ({ page }) => {
+    // 新しい植物を登録
+    const testPlantName = `編集拒否テスト植物_${Date.now()}`;
+
+    await page.goto('/plants/new');
+    await page.fill('input[name="name"]', testPlantName);
+    await page.click('button[type="submit"]');
+    await page.waitForURL(/\/plants\/\d+/);
+
+    const plantId = page.url().match(/\/plants\/(\d+)/)?.[1];
+
+    // 詳細ページに編集リンクが表示されない
+    await page.goto(`/plants/${plantId}`);
+    await expect(page.getByTestId('plant-name')).toBeVisible();
+    await expect(page.locator('a[href$="/edit"]')).toHaveCount(0);
+
+    // 編集ページへ直接アクセスするとトップへリダイレクトされる
+    await page.goto(`/plants/${plantId}/edit`);
+    await page.waitForURL('/');
+
+    await page.screenshot({ path: screenshotDir + 'plant-edit-denied.png', fullPage: true });
+  });
+});
+
+test.describe('植物編集（管理者） @admin', () => {
+  test('管理者は植物情報を編集できる', async ({ page }) => {
     // 新しい植物を登録
     const testPlantName = `編集テスト植物_${Date.now()}`;
 

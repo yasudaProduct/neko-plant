@@ -1,8 +1,15 @@
+import { Metadata } from "next";
 import { getNews } from "@/actions/news-action";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import Link from "next/link";
+
+export const metadata: Metadata = {
+  title: "お知らせ",
+  description: "猫と植物からのお知らせ・更新情報の一覧です。",
+  alternates: { canonical: "/news" },
+};
 
 export default async function NewsListPage() {
   const news = await getNews();

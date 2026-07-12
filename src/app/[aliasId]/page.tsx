@@ -8,6 +8,7 @@ import {
   getUserProfile,
   getUserStats,
 } from "@/actions/user-action";
+import { SITE_NAME } from "@/lib/site";
 import { getPostsByUser } from "@/actions/post-action";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -26,9 +27,23 @@ export async function generateMetadata({
     return { title: "プロフィール", robots: { index: false } };
   }
 
+  const stats = await getUserStats(profile.id);
+
   return {
     title: `${profile.name}さんのプロフィール`,
+    description: `${profile.name}さん (@${profile.aliasId}) の猫と植物の暮らし。投稿写真と共存実績を見られます。`,
     alternates: { canonical: `/${profile.aliasId}` },
+    openGraph: {
+      type: "profile",
+      siteName: SITE_NAME,
+      locale: "ja_JP",
+      url: `/${profile.aliasId}`,
+      images: profile.imageSrc
+        ? [{ url: profile.imageSrc, alt: `${profile.name}さんのプロフィール画像` }]
+        : [{ url: "/images/og-image.png", width: 1200, height: 630, alt: SITE_NAME }],
+    },
+    // 投稿が無いプロフィールは薄いページなのでインデックスさせない
+    robots: stats.postCount === 0 ? { index: false, follow: true } : undefined,
   };
 }
 

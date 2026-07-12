@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPost, getPostsByPlant } from "@/actions/post-action";
+import { SITE_NAME } from "@/lib/site";
 import { formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -38,6 +39,15 @@ export async function generateMetadata({
     title: `${post.user.name}さんの投稿${plantNames ? ` (${plantNames})` : ""}`,
     description: post.comment ?? `${post.user.name}さんの猫と植物の暮らしの写真`,
     alternates: { canonical: `/posts/${post.id}` },
+    openGraph: {
+      type: "article",
+      siteName: SITE_NAME,
+      locale: "ja_JP",
+      url: `/posts/${post.id}`,
+      images: post.imageUrls.length > 0
+        ? [{ url: post.imageUrls[0], alt: `${post.user.name}さんの猫と植物の写真` }]
+        : [{ url: "/images/og-image.png", width: 1200, height: 630, alt: SITE_NAME }],
+    },
   };
 }
 

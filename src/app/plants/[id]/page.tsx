@@ -8,6 +8,7 @@ import { getPlant, getPlants } from "@/actions/plant-action";
 import { getPostsByPlant } from "@/actions/post-action";
 import { getUserData } from "@/lib/user-data";
 import { getCoexistenceMessage, getCoexistenceRank } from "@/lib/coexistence";
+import { SITE_NAME } from "@/lib/site";
 import BackLink from "@/components/np/BackLink";
 import CoexistBadge from "@/components/np/CoexistBadge";
 import CoexistBar from "@/components/np/CoexistBar";
@@ -32,6 +33,15 @@ export async function generateMetadata({
     title: plant.name,
     description: `${plant.name}の猫との共存実績: ${getCoexistenceMessage(plant.catCount)}。みんなの投稿から集計しています。`,
     alternates: { canonical: `/plants/${plant.id}` },
+    openGraph: {
+      type: "website",
+      siteName: SITE_NAME,
+      locale: "ja_JP",
+      url: `/plants/${plant.id}`,
+      images: plant.mainImageUrl
+        ? [{ url: plant.mainImageUrl, alt: plant.name }]
+        : [{ url: "/images/og-image.png", width: 1200, height: 630, alt: SITE_NAME }],
+    },
   };
 }
 

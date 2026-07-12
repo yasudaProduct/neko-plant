@@ -1,9 +1,9 @@
 "use server";
 
 import { Pet, SexType } from "@/types/neko";
-import { UserProfile, UserData, UserRole } from "@/types/user";
+import { UserProfile } from "@/types/user";
 import { UserPlantCollectionItem, UserStats } from "@/types/post";
-import { STORAGE_PATH } from "@/lib/const";
+import { MAX_PET_NAME_LENGTH, STORAGE_PATH } from "@/lib/const";
 import { isValidOwnedImagePath } from "@/lib/storage-path";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
@@ -11,6 +11,12 @@ import { createClient } from "@/lib/supabase/server";
 import { pets } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { ActionErrorCode, ActionResult } from "@/types/common";
+
+/** プロフィールURL /{aliasId} と衝突するため予約する ID (すべて小文字で保持) */
+const RESERVED_ALIAS_IDS = new Set([
+    "admin", "api", "auth", "contact", "news", "plants", "posts",
+    "privacy", "settings", "signin", "signup", "terms", "zukan",
+]);
 
 export async function getUserProfile(aliasId: string): Promise<UserProfile | undefined> {
     const userData = await prisma.public_users.findFirst({
@@ -30,12 +36,16 @@ export async function getUserProfile(aliasId: string): Promise<UserProfile | und
         return undefined;
     }
 
+    // isSelf はサーバー内で判定し、auth_id 自体は返却しない (内部ID露出防止)
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
     return {
         id: userData.id,
         aliasId: userData.alias_id,
-        authId: userData.auth_id,
         name: userData.name,
         imageSrc: userData.image ? STORAGE_PATH.USER_PROFILE + userData.image : undefined,
+        isSelf: user != null && user.id === userData.auth_id,
     };
 }
 
@@ -63,37 +73,26 @@ export async function getUserProfileByAuthId(): Promise<UserProfile | undefined>
     return {
         id: userData.id,
         aliasId: userData.alias_id,
-        authId: userData.auth_id,
         name: userData.name,
         imageSrc: userData.image ? STORAGE_PATH.USER_PROFILE + userData.image : undefined,
+        isSelf: true,
     };
 }
 
-export async function getUserData(authId: string): Promise<UserData | null> {
-    const userData = await prisma.public_users.findFirst({
-        where: {
-            auth_id: authId,
-        },
-    });
+/** 自分の飼い猫一覧 (全属性)。本人以外が呼んでも他人のペットは返さない */
+export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
 
-    if (!userData) {
-        return null;
+    if (!user) {
+        return undefined;
     }
 
-    return {
-        id: userData.id,
-        aliasId: userData.alias_id,
-        authId: userData.auth_id,
-        name: userData.name,
-        image: userData.image,
-        role: (userData.role || 'user') as UserRole,
-    };
-}
-
-export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
+    // sex/birthday/age を含む全属性は本人のみ取得可 (公開表示は getPublicUserPets を使う)
     const pets = await prisma.pets.findMany({
         where: {
             user_id: userId,
+            users: { auth_id: user.id },
         },
         include: {
             neko: true,
@@ -115,6 +114,36 @@ export async function getUserPets(userId: number): Promise<Pet[] | undefined> {
         sex: pet.sex as SexType ?? undefined,
         birthday: pet.birthday ?? undefined,
         age: pet.age ?? undefined,
+    }));
+}
+
+/**
+ * 公開プロフィール用の飼い猫一覧。
+ * 表示に必要な項目のみ返す (sex/birthday/age は返さない。
+ * Next.jsは未表示フィールドもクライアントへシリアライズするため、ここで絞る)。
+ */
+export async function getPublicUserPets(userId: number): Promise<Pet[] | undefined> {
+    const pets = await prisma.pets.findMany({
+        where: {
+            user_id: userId,
+        },
+        include: {
+            neko: true,
+        },
+        orderBy: {
+            id: "asc",
+        },
+    });
+
+    if (pets.length === 0) {
+        return undefined;
+    }
+
+    return pets.map((pet) => ({
+        id: pet.id,
+        name: pet.name,
+        imageSrc: pet.image ? STORAGE_PATH.USER_PET + pet.image : undefined,
+        neko: pet.neko,
     }));
 }
 
@@ -141,7 +170,7 @@ export async function updateUser(name: string, aliasId: string) {
 
     // 入力チェック
     if (name.length > 20) {
-        throw new Error("名前は7文字以内で入力してください");
+        throw new Error("名前は20文字以内で入力してください");
     }
 
     if (aliasId.length > 10) {
@@ -149,8 +178,26 @@ export async function updateUser(name: string, aliasId: string) {
     }
 
     if (!aliasId.match(/^[a-zA-Z]+$/)) {
-        throw new Error("ユーザーIDは英数字で入力してください");
+        throw new Error("ユーザーIDは半角英字で入力してください");
     }
+
+    // ルート名等と衝突する ID は不可 (プロフィールURL /{aliasId} が解決できなくなる・なりすまし防止)
+    if (RESERVED_ALIAS_IDS.has(aliasId.toLowerCase())) {
+        throw new Error("このユーザーIDは使用できません");
+    }
+
+    // 大文字小文字違いも含めて重複を拒否 (DB側にも lower(alias_id) の一意制約あり)
+    const duplicated = await prisma.public_users.findFirst({
+        where: {
+            id: { not: userData.id },
+            alias_id: { equals: aliasId, mode: "insensitive" },
+        },
+        select: { id: true },
+    });
+    if (duplicated) {
+        throw new Error("このユーザーIDは既に使用されています");
+    }
+
     // ユーザー情報を更新
     await prisma.public_users.update({
         where: {
@@ -226,6 +273,10 @@ export async function addPet(name: string, speciesId: number, imagePath?: string
         throw new Error("ユーザーが見つかりません");
     }
 
+    if (!name || name.length > MAX_PET_NAME_LENGTH) {
+        throw new Error(`猫の名前は1〜${MAX_PET_NAME_LENGTH}文字で入力してください`);
+    }
+
     if (imagePath && !isValidOwnedImagePath(imagePath, userData.auth_id)) {
         throw new Error("画像の指定が不正です");
     }
@@ -272,6 +323,14 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
             success: false,
             code: ActionErrorCode.AUTH_REQUIRED,
             message: "ユーザーが見つかりません",
+        };
+    }
+
+    if (!name || name.length > MAX_PET_NAME_LENGTH) {
+        return {
+            success: false,
+            code: ActionErrorCode.VALIDATION_ERROR,
+            message: `猫の名前は1〜${MAX_PET_NAME_LENGTH}文字で入力してください`,
         };
     }
 

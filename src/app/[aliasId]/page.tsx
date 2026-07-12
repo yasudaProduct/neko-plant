@@ -2,9 +2,8 @@ import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
 import {
-  getUserPets,
+  getPublicUserPets,
   getUserPlantCollection,
   getUserProfile,
   getUserStats,
@@ -41,17 +40,14 @@ export default async function ProfilePage({
     redirect("/");
   }
 
-  const supabase = await createClient();
-
-  const [{ data: { user } }, pets, { posts }, collection, stats] = await Promise.all([
-    supabase.auth.getUser(),
-    getUserPets(userProfile.id),
+  const [pets, { posts }, collection, stats] = await Promise.all([
+    getPublicUserPets(userProfile.id),
     getPostsByUser(userProfile.id, 1, 30),
     getUserPlantCollection(userProfile.id),
     getUserStats(userProfile.id),
   ]);
 
-  const isSelf = user != null && userProfile.authId === user.id;
+  const isSelf = userProfile.isSelf === true;
 
   return (
     <div className="max-w-3xl mx-auto px-4 pt-6 pb-12 flex flex-col gap-5">

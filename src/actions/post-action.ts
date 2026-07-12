@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import {
     MAX_POST_COMMENT_LENGTH,
     MAX_POST_IMAGES,
+    MAX_POST_PETS,
     MAX_POST_PLANTS,
     STORAGE_PATH,
 } from "@/lib/const";
@@ -294,6 +295,9 @@ export async function createPost(input: CreatePostInput): Promise<ActionResult<{
         }
         if (!input.petIds || input.petIds.length === 0) {
             return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "写っている猫を選択してください。" };
+        }
+        if (input.petIds.length > MAX_POST_PETS) {
+            return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: `猫は最大${MAX_POST_PETS}匹までタグ付けできます。` };
         }
         if (input.comment && input.comment.length > MAX_POST_COMMENT_LENGTH) {
             return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: `コメントは${MAX_POST_COMMENT_LENGTH}文字以内で入力してください。` };

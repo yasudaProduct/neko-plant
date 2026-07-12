@@ -102,13 +102,13 @@ objects_path = "./storage/plants"
 
 [storage.buckets.user_profiles]
 public = true
-file_size_limit = "50MiB"
+file_size_limit = "10MiB"
 allowed_mime_types = ["image/png", "image/jpeg"]
 objects_path = "./storage/user_profiles"
 
 [storage.buckets.user_pets]
 public = true
-file_size_limit = "50MiB"
+file_size_limit = "10MiB"
 allowed_mime_types = ["image/png", "image/jpeg"]
 objects_path = "./storage/user_pets"
 
@@ -120,7 +120,7 @@ objects_path = "./storage/evaluations"
 
 [storage.buckets.posts]
 public = true
-file_size_limit = "50MiB"
+file_size_limit = "10MiB"
 allowed_mime_types = ["image/png", "image/jpeg"]
 
 [auth]

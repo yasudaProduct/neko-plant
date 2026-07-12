@@ -24,7 +24,7 @@ vi.mock('@/lib/prisma', () => {
             delete: vi.fn(),
         },
         post_images: {
-            create: vi.fn(),
+            createMany: vi.fn(),
         },
         post_plants: {
             createMany: vi.fn(),
@@ -62,14 +62,6 @@ vi.mock('next/cache', () => ({
     revalidatePath: vi.fn(),
 }));
 
-// 画像メタデータ除去のモック (テスト用Fileは実画像ではないためsharpを通せない)
-vi.mock('@/lib/image', () => ({
-    stripImageMetadata: vi.fn().mockResolvedValue({
-        buffer: Buffer.from('processed-image'),
-        contentType: 'image/png',
-    }),
-}));
-
 const mockUser = { id: 'test-auth-id' };
 const mockPublicUser = {
     id: 1,
@@ -94,11 +86,6 @@ function mockSupabase(user: { id: string } | null, uploadError: unknown = null) 
     };
     vi.mocked(createClient).mockResolvedValue(client as unknown as SupabaseClient);
     return { upload, remove };
-}
-
-function makeImage(name = 'photo.png', type = 'image/png', size = 1024): File {
-    const file = new File([new ArrayBuffer(size)], name, { type });
-    return file;
 }
 
 describe('Post Actions', () => {
@@ -173,11 +160,12 @@ describe('Post Actions', () => {
     });
 
     describe('createPost', () => {
+        const validPath = `${mockUser.id}/e2c1a6ab-0000-0000-0000-000000000000/1_post_20260712.jpg`;
         const validInput = {
             plantIds: [5],
             petIds: [3],
             comment: 'テスト',
-            images: [makeImage()],
+            imagePaths: [validPath],
         };
 
         it('未ログインの場合はAUTH_REQUIRED', async () => {
@@ -193,7 +181,7 @@ describe('Post Actions', () => {
             mockSupabase(mockUser);
             vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
 
-            const result = await createPost({ ...validInput, images: [] });
+            const result = await createPost({ ...validInput, imagePaths: [] });
 
             expect(result.success).toBe(false);
             if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
@@ -205,7 +193,59 @@ describe('Post Actions', () => {
 
             const result = await createPost({
                 ...validInput,
-                images: [makeImage(), makeImage(), makeImage(), makeImage()],
+                imagePaths: [1, 2, 3, 4].map((i) => `${mockUser.id}/uuid/${i}_post.jpg`),
+            });
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
+        });
+
+        it('他人のフォルダのパスはVALIDATION_ERROR', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
+
+            const result = await createPost({
+                ...validInput,
+                imagePaths: ['other-auth-id/uuid/1_post.jpg'],
+            });
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
+        });
+
+        it('パストラバーサルを含むパスはVALIDATION_ERROR', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
+
+            const result = await createPost({
+                ...validInput,
+                imagePaths: [`${mockUser.id}/../other/1_post.jpg`],
+            });
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
+        });
+
+        it('不正な文字を含むパスはVALIDATION_ERROR', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
+
+            const result = await createPost({
+                ...validInput,
+                imagePaths: [`${mockUser.id}/uuid/1_post @.jpg`],
+            });
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
+        });
+
+        it('重複するパスはVALIDATION_ERROR', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
+
+            const result = await createPost({
+                ...validInput,
+                imagePaths: [validPath, validPath],
             });
 
             expect(result.success).toBe(false);
@@ -265,21 +305,11 @@ describe('Post Actions', () => {
             expect(prisma.post_pets.createMany).toHaveBeenCalledWith({
                 data: [{ post_id: 99, pet_id: 3 }],
             });
-            expect(upload).toHaveBeenCalledTimes(1);
-            expect(prisma.post_images.create).toHaveBeenCalledTimes(1);
-        });
-
-        it('画像アップロード失敗時はINTERNAL_SERVER_ERROR', async () => {
-            mockSupabase(mockUser, { message: 'upload failed' });
-            vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
-            vi.mocked(prisma.plants.count).mockResolvedValue(1);
-            vi.mocked(prisma.pets.count).mockResolvedValue(1);
-            vi.mocked(prisma.posts.create).mockResolvedValue({ id: 99 } as any);
-
-            const result = await createPost(validInput);
-
-            expect(result.success).toBe(false);
-            if (!result.success) expect(result.code).toBe(ActionErrorCode.INTERNAL_SERVER_ERROR);
+            expect(prisma.post_images.createMany).toHaveBeenCalledWith({
+                data: [{ post_id: 99, image_url: validPath, order: 0 }],
+            });
+            // アップロードはクライアントが直接行うため、サーバーからは呼ばれない
+            expect(upload).not.toHaveBeenCalled();
         });
     });
 

@@ -4,11 +4,10 @@ import { Pet, SexType } from "@/types/neko";
 import { UserProfile, UserData, UserRole } from "@/types/user";
 import { UserPlantCollectionItem, UserStats } from "@/types/post";
 import { STORAGE_PATH } from "@/lib/const";
-import { stripImageMetadata } from "@/lib/image";
+import { isValidOwnedImagePath } from "@/lib/storage-path";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
-import { generateImageName } from "@/lib/utils";
 import { pets } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { ActionErrorCode, ActionResult } from "@/types/common";
@@ -166,7 +165,8 @@ export async function updateUser(name: string, aliasId: string) {
     revalidatePath(`/settings/profile`);
 }
 
-export async function updateUserImage(image: File) {
+/** クライアントが user_profiles バケットへ直接アップロード済みのパスを受け取る */
+export async function updateUserImage(imagePath: string) {
     const supabase = await createClient();
 
     const {
@@ -187,40 +187,25 @@ export async function updateUserImage(image: File) {
         throw new Error("ユーザーが見つかりません");
     }
 
-    await prisma.$transaction(async (prisma) => {
+    if (!isValidOwnedImagePath(imagePath, userData.auth_id)) {
+        throw new Error("画像の指定が不正です");
+    }
 
-        const imageName = generateImageName("profile");
-        const imagePath = `${userData.auth_id}/${imageName}`;
-
-        // 1. メタデータ (Exif) を除去して画像をアップロード
-        const processed = await stripImageMetadata(image);
-        const { error } = await supabase.storage
-            .from("user_profiles")
-            .upload(imagePath, processed.buffer, {
-                contentType: processed.contentType,
-                upsert: true,
-            });
-
-        if (error) {
-            throw error;
-        }
-
-        // 2. ユーザーの画像を更新
-        await prisma.public_users.update({
-            where: {
-                id: userData.id,
-            },
-            data: {
-                image: imagePath,
-            },
-        });
-    })
+    await prisma.public_users.update({
+        where: {
+            id: userData.id,
+        },
+        data: {
+            image: imagePath,
+        },
+    });
 
     revalidatePath(`/settings/profile`);
 
 }
 
-export async function addPet(name: string, speciesId: number, image?: File, sex?: SexType, birthday?: string, age?: number) {
+/** imagePath はクライアントが user_pets バケットへ直接アップロード済みのパス */
+export async function addPet(name: string, speciesId: number, imagePath?: string, sex?: SexType, birthday?: string, age?: number) {
     const supabase = await createClient();
     const {
         data: { user } } = await supabase.auth.getUser();
@@ -241,53 +226,27 @@ export async function addPet(name: string, speciesId: number, image?: File, sex?
         throw new Error("ユーザーが見つかりません");
     }
 
-    await prisma.$transaction(async (prisma) => {
+    if (imagePath && !isValidOwnedImagePath(imagePath, userData.auth_id)) {
+        throw new Error("画像の指定が不正です");
+    }
 
-        // ネコを作成
-        const neko = await prisma.pets.create({
-            data: {
-                name: name,
-                neko_id: speciesId,
-                user_id: userData.id,
-                sex: sex as SexType,
-                age: age,
-                birthday: birthday ? new Date(birthday) : undefined,
-            } as pets,
-        });
-
-        // 画像をアップロード (メタデータは除去する)
-        if (image) {
-
-            const imageSrc: string = `${userData.auth_id}/${neko.id}_${generateImageName("pet")}`;
-
-            const processed = await stripImageMetadata(image);
-            const { error } = await supabase.storage
-                .from("user_pets")
-                .upload(imageSrc, processed.buffer, {
-                    contentType: processed.contentType,
-                    upsert: true,
-                });
-
-            if (error) {
-                throw error;
-            }
-
-            // 画像のURLを更新
-            await prisma.pets.update({
-                where: {
-                    id: neko.id,
-                },
-                data: {
-                    image: imageSrc,
-                },
-            });
-        }
-    })
+    await prisma.pets.create({
+        data: {
+            name: name,
+            neko_id: speciesId,
+            user_id: userData.id,
+            sex: sex as SexType,
+            age: age,
+            birthday: birthday ? new Date(birthday) : undefined,
+            image: imagePath,
+        } as pets,
+    });
 
     revalidatePath(`/${userData.alias_id}`);
 }
 
-export async function updatePet(petId: number, name: string, speciesId: number, image?: File, sex?: SexType, birthday?: string, age?: number): Promise<ActionResult> {
+/** imagePath はクライアントが user_pets バケットへ直接アップロード済みのパス */
+export async function updatePet(petId: number, name: string, speciesId: number, imagePath?: string, sex?: SexType, birthday?: string, age?: number): Promise<ActionResult> {
     const supabase = await createClient();
     const {
         data: { user } } = await supabase.auth.getUser();
@@ -316,67 +275,44 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
         };
     }
 
+    if (imagePath && !isValidOwnedImagePath(imagePath, userData.auth_id)) {
+        return {
+            success: false,
+            code: ActionErrorCode.VALIDATION_ERROR,
+            message: "画像の指定が不正です",
+        };
+    }
+
     try {
-        await prisma.$transaction(async (prisma) => {
+        const pet = await prisma.pets.findUnique({
+            where: {
+                id: petId,
+                user_id: userData.id,
+            },
+        });
 
-            // ネコを更新
-            const pet = await prisma.pets.findUnique({
-                where: {
-                    id: petId,
-                    user_id: userData.id,
-                },
-            });
+        if (!pet) {
+            return {
+                success: false,
+                code: ActionErrorCode.NOT_FOUND,
+                message: "飼い猫が見つかりません",
+            };
+        }
 
-            if (!pet) {
-                return {
-                    success: false,
-                    code: ActionErrorCode.NOT_FOUND,
-                    message: "飼い猫が見つかりません",
-                };
-            }
-
-            await prisma.pets.update({
-                where: {
-                    id: petId,
-                    user_id: userData.id,
-                },
-                data: {
-                    name: name,
-                    neko_id: speciesId,
-                    sex: sex as SexType,
-                    birthday: birthday ? new Date(birthday) : undefined,
-                    age: age,
-                },
-            });
-
-            // 画像をアップロード (メタデータは除去する)
-            if (image) {
-
-                const imageSrc: string = `${userData.auth_id}/${petId}_${generateImageName("pet")}`;
-
-                const processed = await stripImageMetadata(image);
-                const { error } = await supabase.storage
-                    .from("user_pets")
-                    .upload(imageSrc, processed.buffer, {
-                        contentType: processed.contentType,
-                        upsert: true,
-                    });
-
-                if (error) {
-                    throw error;
-                }
-
-                // 画像のURLを更新
-                await prisma.pets.update({
-                    where: {
-                        id: petId,
-                    },
-                    data: {
-                        image: imageSrc,
-                    },
-                });
-            }
-        })
+        await prisma.pets.update({
+            where: {
+                id: petId,
+                user_id: userData.id,
+            },
+            data: {
+                name: name,
+                neko_id: speciesId,
+                sex: sex as SexType,
+                birthday: birthday ? new Date(birthday) : undefined,
+                age: age,
+                ...(imagePath ? { image: imagePath } : {}),
+            },
+        });
 
         revalidatePath(`/${userData.alias_id}`);
         return {

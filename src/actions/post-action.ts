@@ -5,15 +5,12 @@ import { Prisma } from "@prisma/client";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
-    ALLOWED_POST_IMAGE_TYPES,
     MAX_POST_COMMENT_LENGTH,
     MAX_POST_IMAGES,
-    MAX_POST_IMAGE_SIZE,
     MAX_POST_PLANTS,
     STORAGE_PATH,
 } from "@/lib/const";
-import { generateImageName } from "@/lib/utils";
-import { stripImageMetadata, ProcessedImage } from "@/lib/image";
+import { isValidOwnedImagePath } from "@/lib/storage-path";
 import { ActionErrorCode, ActionResult } from "@/types/common";
 import { PlantCoexistence, Post, SiteStats } from "@/types/post";
 
@@ -251,7 +248,8 @@ export type CreatePostInput = {
     plantIds: number[];
     petIds: number[];
     comment?: string;
-    images: File[];
+    /** クライアントが posts バケットへ直接アップロード済みの画像パス (表示順) */
+    imagePaths: string[];
 };
 
 /** 投稿を作成する (写真1〜3枚 + 植物タグ + 猫タグ + コメント(任意)) */
@@ -274,18 +272,18 @@ export async function createPost(input: CreatePostInput): Promise<ActionResult<{
         }
 
         // バリデーション
-        if (!input.images || input.images.length === 0) {
+        if (!input.imagePaths || input.imagePaths.length === 0) {
             return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "写真を1枚以上選択してください。" };
         }
-        if (input.images.length > MAX_POST_IMAGES) {
+        if (input.imagePaths.length > MAX_POST_IMAGES) {
             return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: `写真は最大${MAX_POST_IMAGES}枚までです。` };
         }
-        for (const image of input.images) {
-            if (!ALLOWED_POST_IMAGE_TYPES.includes(image.type)) {
-                return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "JPEGまたはPNG形式の画像を選択してください。" };
-            }
-            if (image.size > MAX_POST_IMAGE_SIZE) {
-                return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "画像サイズは5MB以下にしてください。" };
+        if (new Set(input.imagePaths).size !== input.imagePaths.length) {
+            return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "画像の指定が不正です。" };
+        }
+        for (const imagePath of input.imagePaths) {
+            if (!isValidOwnedImagePath(imagePath, userData.auth_id)) {
+                return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "画像の指定が不正です。" };
             }
         }
         if (!input.plantIds || input.plantIds.length === 0) {
@@ -299,15 +297,6 @@ export async function createPost(input: CreatePostInput): Promise<ActionResult<{
         }
         if (input.comment && input.comment.length > MAX_POST_COMMENT_LENGTH) {
             return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: `コメントは${MAX_POST_COMMENT_LENGTH}文字以内で入力してください。` };
-        }
-
-        // 位置情報等のメタデータ (Exif) を除去してからアップロードする
-        let processedImages: ProcessedImage[];
-        try {
-            processedImages = await Promise.all(input.images.map((image) => stripImageMetadata(image)));
-        } catch (error) {
-            console.error("Error processing post images:", error);
-            return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "画像を読み込めませんでした。別の画像でお試しください。" };
         }
 
         const plantIds = [...new Set(input.plantIds)];
@@ -357,26 +346,16 @@ export async function createPost(input: CreatePostInput): Promise<ActionResult<{
                 })),
             });
 
-            // 画像は {auth_id}/{post_id}/... に保存 (ストレージポリシーが自フォルダのみ許可)
-            for (let i = 0; i < processedImages.length; i++) {
-                const imagePath = `${userData.auth_id}/${post.id}/${i + 1}_${generateImageName("post")}`;
-
-                const { error } = await supabase.storage
-                    .from("posts")
-                    .upload(imagePath, processedImages[i].buffer, { contentType: processedImages[i].contentType });
-
-                if (error) {
-                    throw new Error("画像のアップロードに失敗しました。");
-                }
-
-                await tx.post_images.create({
-                    data: {
-                        post_id: post.id,
-                        image_url: imagePath,
-                        order: i,
-                    },
-                });
-            }
+            // 画像はクライアントが {auth_id}/{uuid}/... へ直接アップロード済み。
+            // パスの実在確認はしない (偽パスで壊れるのは本人の投稿の表示のみで、
+            // 他人のパスはプレフィックス検証で拒否済み。list のコストに見合わない)。
+            await tx.post_images.createMany({
+                data: input.imagePaths.map((imagePath, i) => ({
+                    post_id: post.id,
+                    image_url: imagePath,
+                    order: i,
+                })),
+            });
 
             newPostId = post.id;
         });

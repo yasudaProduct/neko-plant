@@ -25,6 +25,14 @@ import { useToast } from "@/hooks/use-toast";
 import { Pet } from "@/types/neko";
 import { ActionErrorCode } from "@/types/common";
 import { MAX_POST_COMMENT_LENGTH, MAX_POST_IMAGES, MAX_POST_PLANTS } from "@/lib/const";
+import {
+  ClientImageError,
+  processImageForUpload,
+  removeUploadedImagesBestEffort,
+  uploadImagesToBucket,
+} from "@/lib/client-image";
+import { generateImageName } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import { createPost } from "@/actions/post-action";
 import { addPlant, searchPlantName } from "@/actions/plant-action";
 import {
@@ -89,6 +97,7 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
   const [selectedPetIds, setSelectedPetIds] = useState<number[]>([]);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isProcessingImages, setIsProcessingImages] = useState(false);
 
   // AI判定
   const [isIdentifying, setIsIdentifying] = useState(false);
@@ -161,18 +170,41 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
-  const onImagesSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onImagesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []).slice(0, MAX_POST_IMAGES);
+    e.target.value = "";
     if (files.length === 0) return;
 
-    previews.forEach((url) => URL.revokeObjectURL(url));
-    setImages(files);
-    setPreviews(files.map((file) => URL.createObjectURL(file)));
+    setIsProcessingImages(true);
+    try {
+      // 縮小 + JPEG再エンコード (Exif除去)。メモリ節約のため直列に処理する
+      const processed: File[] = [];
+      for (const file of files) {
+        try {
+          processed.push(await processImageForUpload(file));
+        } catch (err) {
+          console.error(err);
+          error({
+            title: `「${file.name}」を追加できませんでした`,
+            description:
+              err instanceof ClientImageError
+                ? err.message
+                : "画像を読み込めませんでした。別の画像でお試しください。",
+          });
+        }
+      }
+      if (processed.length === 0) return;
 
-    // 画像が変わったらAI判定をやり直す
-    setHasIdentified(false);
-    setCandidates([]);
-    e.target.value = "";
+      previews.forEach((url) => URL.revokeObjectURL(url));
+      setImages(processed);
+      setPreviews(processed.map((file) => URL.createObjectURL(file)));
+
+      // 画像が変わったらAI判定をやり直す
+      setHasIdentified(false);
+      setCandidates([]);
+    } finally {
+      setIsProcessingImages(false);
+    }
   };
 
   const removeImage = (index: number) => {
@@ -213,7 +245,7 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
 
   const canNext =
     step === 0
-      ? images.length > 0
+      ? images.length > 0 && !isProcessingImages
       : step === 1
         ? selectedPlants.length > 0
         : step === 2
@@ -222,6 +254,7 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
 
   const onSubmit = async () => {
     setIsSubmitting(true);
+    let uploadedPaths: string[] = [];
     try {
       // 新規植物を先に登録してIDを確定する
       const plantIds: number[] = [];
@@ -245,14 +278,42 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
         }
       }
 
+      // 画像はブラウザから posts バケットへ直接アップロードする
+      // (Server Action経由だとVercelのリクエストボディ上限4.5MBに掛かるため)
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        error({ title: "投稿に失敗しました", description: "ログインが必要です。" });
+        return;
+      }
+
+      const groupId = crypto.randomUUID();
+      const imagePaths = images.map(
+        (_, i) => `${user.id}/${groupId}/${i + 1}_${generateImageName("post")}.jpg`,
+      );
+
+      try {
+        await uploadImagesToBucket(
+          "posts",
+          images.map((file, i) => ({ path: imagePaths[i], file })),
+        );
+      } catch (e) {
+        console.error(e);
+        error({ title: "投稿に失敗しました", description: "画像のアップロードに失敗しました。" });
+        return;
+      }
+      uploadedPaths = imagePaths;
+
       const result = await createPost({
         plantIds,
         petIds: selectedPetIds,
         comment: comment.trim() || undefined,
-        images,
+        imagePaths,
       });
 
       if (!result.success) {
+        // 投稿本体の作成に失敗したらアップロード済み画像を後始末する
+        await removeUploadedImagesBestEffort("posts", imagePaths);
         error({ title: "投稿に失敗しました", description: result.message });
         return;
       }
@@ -265,6 +326,7 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
       router.refresh();
     } catch (e) {
       console.error(e);
+      await removeUploadedImagesBestEffort("posts", uploadedPaths);
       error({ title: "投稿に失敗しました", description: "再度お試しください。" });
     } finally {
       setIsSubmitting(false);
@@ -307,7 +369,12 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
                 data-testid="image-input"
               />
             </label>
-            {previews.length > 0 && (
+            {isProcessingImages && (
+              <div className="grid grid-cols-3 gap-2" data-testid="image-processing">
+                <Skeleton className="aspect-square rounded-md" />
+              </div>
+            )}
+            {!isProcessingImages && previews.length > 0 && (
               <div className="grid grid-cols-3 gap-2">
                 {previews.map((url, i) => (
                   <div

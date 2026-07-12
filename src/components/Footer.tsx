@@ -11,7 +11,7 @@ export default function Footer() {
           <Link href="/privacy">プライバシーポリシー</Link>
         </div>
         <p className="text-sm text-primary-foreground/60">
-          © 2025 猫と植物 neko and plants
+          © {new Date().getFullYear()} 猫と植物 neko and plants
         </p>
       </div>
     </footer>

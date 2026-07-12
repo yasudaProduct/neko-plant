@@ -5,7 +5,10 @@ import {
     getUserProfile,
     getUserStats,
     updateUser,
+    updateUserImage,
+    updatePet,
 } from '@/actions/user-action';
+import { ActionErrorCode } from '@/types/common';
 import { createClient } from '@/lib/supabase/server';
 import prisma from '@/lib/prisma';
 import { SupabaseClient } from '@supabase/supabase-js';
@@ -25,6 +28,8 @@ vi.mock('@/lib/prisma', () => {
         },
         pets: {
             count: vi.fn(),
+            findUnique: vi.fn(),
+            update: vi.fn(),
         },
         post_plants: {
             findMany: vi.fn(),
@@ -168,6 +173,78 @@ describe('User Actions', () => {
                 where: { id: 1 },
                 data: { name: '新しい名前', alias_id: 'newalias' },
             });
+        });
+    });
+
+    describe('updateUserImage', () => {
+        it('他人のフォルダのパスはエラー', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
+
+            await expect(updateUserImage('other-auth-id/profile_x.jpg')).rejects.toThrow('画像の指定が不正です');
+            expect(prisma.public_users.update).not.toHaveBeenCalled();
+        });
+
+        it('パストラバーサルを含むパスはエラー', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
+
+            await expect(updateUserImage(`${mockUser.id}/../other/profile_x.jpg`)).rejects.toThrow('画像の指定が不正です');
+        });
+
+        it('正常系: 自分のフォルダのパスでプロフィール画像を更新する', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
+
+            const imagePath = `${mockUser.id}/profile_20260712.jpg`;
+            await updateUserImage(imagePath);
+
+            expect(prisma.public_users.update).toHaveBeenCalledWith({
+                where: { id: 1 },
+                data: { image: imagePath },
+            });
+        });
+    });
+
+    describe('updatePet', () => {
+        it('他人のフォルダのパスはVALIDATION_ERROR', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
+
+            const result = await updatePet(3, 'ミケ', 1, 'other-auth-id/pet_x.jpg');
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
+            expect(prisma.pets.update).not.toHaveBeenCalled();
+        });
+
+        it('正常系: 画像パスありで飼い猫を更新する', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
+            vi.mocked(prisma.pets.findUnique).mockResolvedValue({ id: 3, user_id: 1 } as any);
+
+            const imagePath = `${mockUser.id}/pet_uuid.jpg`;
+            const result = await updatePet(3, 'ミケ', 1, imagePath);
+
+            expect(result.success).toBe(true);
+            expect(prisma.pets.update).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: { id: 3, user_id: 1 },
+                    data: expect.objectContaining({ image: imagePath }),
+                }),
+            );
+        });
+
+        it('正常系: 画像パスなしなら画像は更新しない', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
+            vi.mocked(prisma.pets.findUnique).mockResolvedValue({ id: 3, user_id: 1 } as any);
+
+            const result = await updatePet(3, 'ミケ', 1);
+
+            expect(result.success).toBe(true);
+            const updateArg = vi.mocked(prisma.pets.update).mock.calls[0][0];
+            expect(updateArg.data).not.toHaveProperty('image');
         });
     });
 });

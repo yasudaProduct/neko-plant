@@ -22,8 +22,13 @@ export async function generateMetadata({
   const { aliasId } = await params;
   const profile = await getUserProfile(aliasId);
 
+  if (!profile) {
+    return { title: "プロフィール", robots: { index: false } };
+  }
+
   return {
-    title: profile ? `${profile.name}さんのプロフィール | 猫と植物` : "プロフィール | 猫と植物",
+    title: `${profile.name}さんのプロフィール`,
+    alternates: { canonical: `/${profile.aliasId}` },
   };
 }
 

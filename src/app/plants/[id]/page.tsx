@@ -25,12 +25,13 @@ export async function generateMetadata({
   const plant = await getPlant(Number(id));
 
   if (!plant) {
-    return { title: "植物が見つかりません | 猫と植物" };
+    return { title: "植物が見つかりません", robots: { index: false } };
   }
 
   return {
-    title: `${plant.name} | 猫と植物`,
+    title: plant.name,
     description: `${plant.name}の猫との共存実績: ${getCoexistenceMessage(plant.catCount)}。みんなの投稿から集計しています。`,
+    alternates: { canonical: `/plants/${plant.id}` },
   };
 }
 

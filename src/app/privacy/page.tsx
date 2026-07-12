@@ -2,8 +2,9 @@ import { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "プライバシーポリシー | 猫と植物",
+  title: "プライバシーポリシー",
   description: "猫と植物のプライバシーポリシーです。",
+  alternates: { canonical: "/privacy" },
 };
 
 export default function PrivacyPage() {

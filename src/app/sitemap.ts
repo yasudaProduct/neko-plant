@@ -1,11 +1,9 @@
 import type { MetadataRoute } from 'next'
 import prisma from '@/lib/prisma'
 import { getNews } from '@/actions/news-action'
+import { SITE_URL } from '@/lib/site'
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_BASE_URL
-if (!BASE_URL) {
-    throw new Error('NEXT_PUBLIC_APP_BASE_URL is not set')
-}
+const BASE_URL = SITE_URL
 
 // 1時間ごとに再生成（ISR）
 export const revalidate = 3600
@@ -15,7 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const now = new Date()
     const staticPages: MetadataRoute.Sitemap = [
         {
-            url: BASE_URL!,
+            url: BASE_URL,
             lastModified: now,
             changeFrequency: 'daily',
             priority: 1.0,

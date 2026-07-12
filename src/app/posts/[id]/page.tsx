@@ -29,14 +29,15 @@ export async function generateMetadata({
   const post = await getPost(Number(id));
 
   if (!post) {
-    return { title: "投稿が見つかりません | 猫と植物" };
+    return { title: "投稿が見つかりません", robots: { index: false } };
   }
 
   const plantNames = post.plants.map((plant) => plant.name).join("・");
 
   return {
-    title: `${post.user.name}さんの投稿${plantNames ? ` (${plantNames})` : ""} | 猫と植物`,
+    title: `${post.user.name}さんの投稿${plantNames ? ` (${plantNames})` : ""}`,
     description: post.comment ?? `${post.user.name}さんの猫と植物の暮らしの写真`,
+    alternates: { canonical: `/posts/${post.id}` },
   };
 }
 

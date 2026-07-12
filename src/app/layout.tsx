@@ -8,6 +8,7 @@ import { AuthDialogProvider } from "@/contexts/AuthDialogContext";
 import { M_PLUS_Rounded_1c } from "next/font/google";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { headers } from "next/headers";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 
 const RampartOneFont = M_PLUS_Rounded_1c({
   subsets: ["latin"],
@@ -15,42 +16,40 @@ const RampartOneFont = M_PLUS_Rounded_1c({
 });
 
 export const metadata: Metadata = {
-  title: "猫と植物 | 猫にとって安全な植物を探す",
+  // 各ページは title にページ名のみを設定する (「 | 猫と植物」は template が付与)
+  title: {
+    default: `${SITE_NAME} | 猫にとって安全な植物を探す`,
+    template: `%s | ${SITE_NAME}`,
+  },
   description:
     "猫にとって安全な植物を探すためのサイトです。猫と暮らす方々が安心して植物を育てられるように、猫に安全な植物の情報を集めています。",
   keywords: "猫,植物,安全,ペット,観葉植物,猫と暮らす,猫のいる暮らし",
-  authors: [{ name: "猫と植物" }],
-  creator: "猫と植物",
-  publisher: "猫と植物",
-  metadataBase: new URL("https://neko-and-plant.com"),
+  authors: [{ name: SITE_NAME }],
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  metadataBase: new URL(SITE_URL),
   formatDetection: {
     email: false,
     address: false,
     telephone: false,
   },
+  // title / description / url は各ページの解決済みメタデータから継承させる
+  // (固定値を書くと全ページが同一の og:title / og:url になってしまう)
   openGraph: {
     type: "website",
     locale: "ja_JP",
-    url: "https://neko-and-plant.com",
-    siteName: "猫と植物",
-    title: "猫と植物 | 猫にとって安全な植物を探す",
-    description:
-      "猫にとって安全な植物を探すためのサイトです。猫と暮らす方々が安心して植物を育てられるように、猫に安全な植物の情報を提供しています。",
+    siteName: SITE_NAME,
     images: [
       {
-        url: "images/logo.png",
-        width: 1200,
-        height: 630,
-        alt: "猫と植物",
+        url: "/images/logo.png",
+        width: 500,
+        height: 500,
+        alt: SITE_NAME,
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "猫と植物 | 猫にとって安全な植物を探す",
-    description:
-      "猫にとって安全な植物を探すためのサイトです。猫と暮らす方々が安心して植物を育てられるように、猫に安全な植物の情報を提供しています。",
-    images: ["images/logo.png"],
     creator: "@neko_plant",
   },
   robots: {
@@ -63,9 +62,6 @@ export const metadata: Metadata = {
       "max-image-preview": "large",
       "max-snippet": -1,
     },
-  },
-  alternates: {
-    canonical: "https://neko-and-plant.com",
   },
 };
 

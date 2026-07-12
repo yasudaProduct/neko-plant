@@ -5,7 +5,7 @@ import { getUserPets, getUserProfileByAuthId } from "@/actions/user-action";
 import PostFlow from "./PostFlow";
 
 export const metadata: Metadata = {
-  title: "投稿する | 猫と植物",
+  title: "投稿する",
 };
 
 export default async function NewPostPage() {

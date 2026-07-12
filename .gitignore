@@ -46,3 +46,6 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 playwright/.auth/
+
+# playwright-skill (.claude/skills, .agents/skills) runtime temp files
+**/.temp-execution-*.js

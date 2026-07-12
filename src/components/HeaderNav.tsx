@@ -16,13 +16,13 @@ export default function HeaderNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-1 ml-2">
+    <nav className="flex gap-0.5 sm:gap-1 ml-1 sm:ml-2">
       {NAV_ITEMS.map((item) => (
         <Link
           key={item.href}
           href={item.href}
           className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            "inline-flex items-center gap-1.5 rounded-md px-2 sm:px-2.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
             item.isActive(pathname) ? "bg-white/15" : "hover:bg-white/10",
           )}
         >

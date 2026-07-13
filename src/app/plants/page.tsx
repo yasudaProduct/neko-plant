@@ -14,9 +14,10 @@ import PostTile from "@/components/np/PostTile";
 import EmptyState from "@/components/np/EmptyState";
 
 export const metadata: Metadata = {
-  title: "植物と猫の共存をさがす | 猫と植物",
+  title: "植物と猫の共存をさがす",
   description:
     "みんなの投稿から集計した共存実績を、植物名や条件で確認できます。猫と一緒に暮らせる植物をさがしましょう。",
+  alternates: { canonical: "/plants" },
 };
 
 const PAGE_SIZE = 12;

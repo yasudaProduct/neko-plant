@@ -1,13 +1,18 @@
 "use server";
 
-import { notion, databaseId, NewsItem } from "@/lib/notion";
+import { unstable_cache } from "next/cache";
+import { getNotionClient, getNewsDatabaseId, NewsItem } from "@/lib/notion";
 import { BlockObjectResponse, GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
-import { notFound, unstable_rethrow } from "next/navigation";
+import { notFound } from "next/navigation";
 
-export async function getNews(): Promise<NewsItem[]> {
-    try {
-        const response = await notion.databases.query({
-            database_id: databaseId,
+// Notion API は毎リクエスト叩くには遅い外部依存のため、
+// 取得結果を1時間キャッシュする (一覧・詳細・sitemap が共有)
+const NEWS_CACHE_REVALIDATE_SECONDS = 3600;
+
+const fetchNewsList = unstable_cache(
+    async (): Promise<NewsItem[]> => {
+        const response = await getNotionClient().databases.query({
+            database_id: getNewsDatabaseId(),
             sorts: [
                 {
                     property: "create_date",
@@ -27,6 +32,14 @@ export async function getNews(): Promise<NewsItem[]> {
                     create_date: page.properties.create_date.type === 'date' ? page.properties.create_date.date?.start || "" : "",
                 }
             });
+    },
+    ["news-list"],
+    { revalidate: NEWS_CACHE_REVALIDATE_SECONDS },
+);
+
+export async function getNews(): Promise<NewsItem[]> {
+    try {
+        return await fetchNewsList();
     } catch (error) {
         console.error("Failed to fetch news:", error);
         throw new Error("Failed to fetch news");
@@ -38,27 +51,26 @@ function normalizeNotionId(id: string): string {
     return id.replace(/-/g, "").toLowerCase();
 }
 
-export async function getNewsById(id: string): Promise<NewsItem> {
-    // Notion のページIDは32桁hex (ハイフン任意)。それ以外は問い合わせずに404
-    if (!/^[0-9a-fA-F-]{32,36}$/.test(id)) {
-        return notFound();
-    }
+// notFound() はキャッシュ関数の外で呼ぶ必要があるため、
+// お知らせDB配下のページでない場合は null を返す
+const fetchNewsItem = unstable_cache(
+    async (id: string): Promise<NewsItem | null> => {
+        const notion = getNotionClient();
 
-    try {
         const response: GetPageResponse = await notion.pages.retrieve({
             page_id: id,
         });
 
         if (!("properties" in response)) {
-            return notFound();
+            return null;
         }
 
         // お知らせDB配下のページ以外は返さない (連携が共有する他ページの読み出し防止)
         if (
             response.parent.type !== "database_id" ||
-            normalizeNotionId(response.parent.database_id) !== normalizeNotionId(databaseId)
+            normalizeNotionId(response.parent.database_id) !== normalizeNotionId(getNewsDatabaseId())
         ) {
-            return notFound();
+            return null;
         }
 
         const blocks = await notion.blocks.children.list({ block_id: id });
@@ -72,10 +84,28 @@ export async function getNewsById(id: string): Promise<NewsItem> {
             tag: response.properties.tag.type === 'select' ? response.properties.tag.select?.name || "" : "",
             create_date: response.properties.create_date.type === 'date' ? response.properties.create_date.date?.start || "" : "",
         }
+    },
+    ["news-item"],
+    { revalidate: NEWS_CACHE_REVALIDATE_SECONDS },
+);
+
+export async function getNewsById(id: string): Promise<NewsItem> {
+    // Notion のページIDは32桁hex (ハイフン任意)。それ以外は問い合わせずに404
+    if (!/^[0-9a-fA-F-]{32,36}$/.test(id)) {
+        return notFound();
+    }
+
+    let news: NewsItem | null;
+    try {
+        news = await fetchNewsItem(id);
     } catch (error) {
-        // notFound() が投げる制御用エラーはそのまま伝播させる
-        unstable_rethrow(error);
         console.error("Failed to fetch news:", error);
         throw new Error("Failed to fetch news");
     }
+
+    if (!news) {
+        return notFound();
+    }
+
+    return news;
 }

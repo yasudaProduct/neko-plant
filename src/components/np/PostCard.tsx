@@ -11,10 +11,12 @@ import CoexistBadge from "./CoexistBadge";
 
 type Props = {
   post: Post;
+  /** ファーストビューに入るカード (LCP候補) のみ true にする */
+  priority?: boolean;
 };
 
 /** フィード用の投稿カード */
-export default function PostCard({ post }: Props) {
+export default function PostCard({ post, priority = false }: Props) {
   return (
     <article className="bg-white rounded-xl border border-border shadow-sm overflow-hidden" data-testid="post-card">
       {/* ヘッダー: 投稿者 + 猫 */}
@@ -55,6 +57,7 @@ export default function PostCard({ post }: Props) {
             fill
             sizes="(max-width: 640px) 100vw, 600px"
             className="object-cover"
+            priority={priority}
           />
         )}
         {post.imageUrls.length > 1 && (

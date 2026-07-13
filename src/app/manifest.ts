@@ -1,24 +1,25 @@
 import type { MetadataRoute } from 'next'
+import { SITE_NAME } from '@/lib/site'
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: '猫と植物',
-        short_name: '猫と植物',
+        name: SITE_NAME,
+        short_name: SITE_NAME,
         description: '猫にとって安全な植物を探すためのサイトです。',
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',
-        theme_color: '#000000',
+        theme_color: '#2d5a27',
         icons: [
             {
-                src: '/images/logo.png',
+                src: '/images/icon-192.png',
                 sizes: '192x192',
-                type: 'image/jpg',
+                type: 'image/png',
             },
             {
-                src: '/images/logo.png',
+                src: '/images/icon-512.png',
                 sizes: '512x512',
-                type: 'image/jpg',
+                type: 'image/png',
             },
         ],
     }

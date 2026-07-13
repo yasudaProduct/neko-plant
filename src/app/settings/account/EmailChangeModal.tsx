@@ -22,6 +22,7 @@ export default function EmailChangeModal({
   currentEmail,
 }: EmailChangeModalProps) {
   const [newEmail, setNewEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -39,12 +40,34 @@ export default function EmailChangeModal({
       return;
     }
 
+    // セッション奪取だけでメールアドレスを変更 (→乗っ取り) できないよう、
+    // 現在のパスワードで再認証してから変更する
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.email) {
+      setError("メールアドレスの変更に失敗しました。もう一度ログインしてください。");
+      setLoading(false);
+      return;
+    }
+
+    const { error: reauthError } = await supabase.auth.signInWithPassword({
+      email: user.email,
+      password: currentPassword,
+    });
+    if (reauthError) {
+      setError("現在のパスワードが正しくありません。");
+      setLoading(false);
+      return;
+    }
+
     const { error } = await supabase.auth.updateUser({ email: newEmail });
 
     if (error) {
       setError("メールアドレスの変更に失敗しました。もう一度お試しください。");
     } else {
       setSuccess(true);
+      setCurrentPassword("");
     }
 
     setLoading(false);
@@ -52,6 +75,7 @@ export default function EmailChangeModal({
 
   const handleClose = () => {
     setNewEmail("");
+    setCurrentPassword("");
     setError("");
     setSuccess(false);
     setLoading(false);
@@ -80,6 +104,18 @@ export default function EmailChangeModal({
             placeholder="sample@example.com"
             required
           />
+          <label htmlFor="current-password" className="block text-sm font-medium">
+            現在のパスワード
+          </label>
+          <Input
+            id="current-password"
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder="現在のパスワード"
+            autoComplete="current-password"
+            required
+          />
           {error && <p className="text-red-500 text-sm">{error}</p>}
           {success && (
             <p className="text-green-500 text-sm">
@@ -96,7 +132,7 @@ export default function EmailChangeModal({
           <Button
             variant="default"
             onClick={handleEmailChange}
-            disabled={loading || !newEmail}
+            disabled={loading || !newEmail || !currentPassword}
           >
             {loading ? "保存中..." : "保存"}
           </Button>

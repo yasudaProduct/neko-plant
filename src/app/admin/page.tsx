@@ -1,8 +1,24 @@
 import prisma from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { getUserData } from "@/lib/user-data";
 
 export default async function AdminDashboard() {
+  // layout/middleware に加え、データ取得に最も近いここでも認可する (多層防御)
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    redirect("/signin");
+  }
+  const userData = await getUserData(user.id);
+  if (!userData || userData.role !== "admin") {
+    redirect("/");
+  }
+
   const [totalUsers, totalPlants, totalPosts, totalLikes] = await Promise.all([
     prisma.public_users.count(),
     prisma.plants.count(),

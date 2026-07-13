@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import { Plant } from "../types/plant";
 import { createClient } from "@/lib/supabase/server";
 import { STORAGE_PATH } from "@/lib/const";
+import { clampPage, clampPageSize, clampSearchQuery, MAX_PLANT_PAGE_SIZE } from "@/lib/pagination";
 import { ActionErrorCode, ActionResult } from "@/types/common";
 
 /** 並び順: 共存実績(ユニーク猫数) / 投稿数 / 名前 */
@@ -29,7 +30,10 @@ export async function searchPlants(
     pageSize: number = 9,
     filter: PlantFilter = "all"
 ): Promise<{ plants: Plant[], totalCount: number }> {
-    const trimmedQuery = query?.trim() ?? "";
+    // 公開アクションのため、外部から渡る値を必ず丸める (DoS・DB例外対策)
+    const trimmedQuery = clampSearchQuery(query);
+    const safePage = clampPage(page);
+    const safePageSize = clampPageSize(pageSize, MAX_PLANT_PAGE_SIZE);
 
     // 共存実績(ユニーク猫数・投稿数)での絞り込み・並び替えが必要なため、
     // ID選択はRaw SQLで行い、詳細はPrismaで取得する2段構え
@@ -66,7 +70,7 @@ export async function searchPlants(
         prisma.$queryRaw<{ id: number }[]>(Prisma.sql`
             ${baseQuery}
             ${orderBy}
-            LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}
+            LIMIT ${safePageSize} OFFSET ${(safePage - 1) * safePageSize}
         `),
     ]);
 
@@ -132,16 +136,24 @@ async function fetchCoexistenceMap(plantIds: number[]): Promise<Map<number, { po
 }
 
 export async function searchPlantName(name: string): Promise<{ id: number, name: string }[]> {
+    const trimmedName = clampSearchQuery(name);
+
+    // 空クエリで全件返さない・件数上限を設ける (公開アクションのため)
+    if (trimmedName === "") {
+        return [];
+    }
+
     const plants = await prisma.plants.findMany({
         where: {
             name: {
-                contains: name,
+                contains: trimmedName,
             },
         },
         select: {
             id: true,
             name: true,
         },
+        take: 20,
     });
 
     return plants.map((plant) => ({ id: plant.id, name: plant.name }));

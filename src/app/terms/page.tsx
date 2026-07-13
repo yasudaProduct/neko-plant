@@ -2,8 +2,9 @@ import { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "利用規約 | 猫と植物",
+  title: "利用規約",
   description: "猫と植物の利用規約です。",
+  alternates: { canonical: "/terms" },
 };
 
 export default function TermsPage() {

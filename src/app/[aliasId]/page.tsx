@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Pencil } from "lucide-react";
 import {
@@ -8,10 +8,12 @@ import {
   getUserProfile,
   getUserStats,
 } from "@/actions/user-action";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
+import JsonLd from "@/components/JsonLd";
 import { getPostsByUser } from "@/actions/post-action";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import BackLink from "@/components/np/BackLink";
+import Breadcrumbs from "@/components/np/Breadcrumbs";
 import ProfileTabs from "./ProfileTabs";
 
 export async function generateMetadata({
@@ -22,8 +24,27 @@ export async function generateMetadata({
   const { aliasId } = await params;
   const profile = await getUserProfile(aliasId);
 
+  if (!profile) {
+    return { title: "プロフィール", robots: { index: false } };
+  }
+
+  const stats = await getUserStats(profile.id);
+
   return {
-    title: profile ? `${profile.name}さんのプロフィール | 猫と植物` : "プロフィール | 猫と植物",
+    title: `${profile.name}さんのプロフィール`,
+    description: `${profile.name}さん (@${profile.aliasId}) の猫と植物の暮らし。投稿写真と共存実績を見られます。`,
+    alternates: { canonical: `/${profile.aliasId}` },
+    openGraph: {
+      type: "profile",
+      siteName: SITE_NAME,
+      locale: "ja_JP",
+      url: `/${profile.aliasId}`,
+      images: profile.imageSrc
+        ? [{ url: profile.imageSrc, alt: `${profile.name}さんのプロフィール画像` }]
+        : [{ url: "/images/og-image.png", width: 1200, height: 630, alt: SITE_NAME }],
+    },
+    // 投稿が無いプロフィールは薄いページなのでインデックスさせない
+    robots: stats.postCount === 0 ? { index: false, follow: true } : undefined,
   };
 }
 
@@ -36,8 +57,9 @@ export default async function ProfilePage({
 
   const userProfile = await getUserProfile(aliasId);
 
+  // 存在しないユーザーはトップへの redirect ではなく404を返す (soft 404対策)
   if (!userProfile) {
-    redirect("/");
+    notFound();
   }
 
   const [pets, { posts }, collection, stats] = await Promise.all([
@@ -49,9 +71,30 @@ export default async function ProfilePage({
 
   const isSelf = userProfile.isSelf === true;
 
+  const profileJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ProfilePage",
+    "@id": `${SITE_URL}/${userProfile.aliasId}`,
+    url: `${SITE_URL}/${userProfile.aliasId}`,
+    inLanguage: "ja",
+    mainEntity: {
+      "@type": "Person",
+      name: userProfile.name,
+      alternateName: `@${userProfile.aliasId}`,
+      url: `${SITE_URL}/${userProfile.aliasId}`,
+      ...(userProfile.imageSrc ? { image: userProfile.imageSrc } : {}),
+    },
+  };
+
   return (
     <div className="max-w-3xl mx-auto px-4 pt-6 pb-12 flex flex-col gap-5">
-      <BackLink />
+      <JsonLd data={profileJsonLd} />
+      <Breadcrumbs
+        items={[
+          { name: "ホーム", href: "/" },
+          { name: `${userProfile.name}さん` },
+        ]}
+      />
 
       {/* プロフィールカード */}
       <div className="bg-white rounded-xl border border-border shadow-sm p-6 flex items-center gap-5 flex-wrap">

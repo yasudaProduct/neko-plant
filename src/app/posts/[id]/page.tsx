@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPost, getPostsByPlant } from "@/actions/post-action";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
+import JsonLd from "@/components/JsonLd";
 import { formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -12,7 +14,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import BackLink from "@/components/np/BackLink";
+import Breadcrumbs from "@/components/np/Breadcrumbs";
 import LikeButton from "@/components/np/LikeButton";
 import PlantTag from "@/components/np/PlantTag";
 import CatChip from "@/components/np/CatChip";
@@ -29,14 +31,24 @@ export async function generateMetadata({
   const post = await getPost(Number(id));
 
   if (!post) {
-    return { title: "投稿が見つかりません | 猫と植物" };
+    return { title: "投稿が見つかりません", robots: { index: false } };
   }
 
   const plantNames = post.plants.map((plant) => plant.name).join("・");
 
   return {
-    title: `${post.user.name}さんの投稿${plantNames ? ` (${plantNames})` : ""} | 猫と植物`,
+    title: `${post.user.name}さんの投稿${plantNames ? ` (${plantNames})` : ""}`,
     description: post.comment ?? `${post.user.name}さんの猫と植物の暮らしの写真`,
+    alternates: { canonical: `/posts/${post.id}` },
+    openGraph: {
+      type: "article",
+      siteName: SITE_NAME,
+      locale: "ja_JP",
+      url: `/posts/${post.id}`,
+      images: post.imageUrls.length > 0
+        ? [{ url: post.imageUrls[0], alt: `${post.user.name}さんの猫と植物の写真` }]
+        : [{ url: "/images/og-image.png", width: 1200, height: 630, alt: SITE_NAME }],
+    },
   };
 }
 
@@ -64,9 +76,45 @@ export default async function PostDetailPage({
     ? (await getPostsByPlant(firstPlant.id, 1, 4)).posts.filter((p) => p.id !== post.id).slice(0, 3)
     : [];
 
+  // 投稿の構造化データ (post.comment は投稿の本文なので articleBody にマップする)
+  const postJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SocialMediaPosting",
+    "@id": `${SITE_URL}/posts/${post.id}`,
+    url: `${SITE_URL}/posts/${post.id}`,
+    headline: `${post.user.name}さんの猫と植物の写真`,
+    ...(post.comment ? { articleBody: post.comment } : {}),
+    image: post.imageUrls.map((url) => ({ "@type": "ImageObject", url })),
+    datePublished: post.createdAt.toISOString(),
+    inLanguage: "ja",
+    author: {
+      "@type": "Person",
+      name: post.user.name,
+      url: `${SITE_URL}/${post.user.aliasId}`,
+    },
+    publisher: { "@id": `${SITE_URL}/#organization` },
+    interactionStatistic: {
+      "@type": "InteractionCounter",
+      interactionType: { "@type": "LikeAction" },
+      userInteractionCount: post.likeCount,
+    },
+    about: post.plants.map((plant) => ({
+      "@type": "Thing",
+      name: plant.name,
+      url: `${SITE_URL}/plants/${plant.id}`,
+    })),
+  };
+
   return (
     <div className="max-w-4xl mx-auto px-4 pt-6 pb-12 flex flex-col gap-5">
-      <BackLink />
+      <JsonLd data={postJsonLd} />
+      <Breadcrumbs
+        items={[
+          { name: "ホーム", href: "/" },
+          { name: `${post.user.name}さんの投稿` },
+        ]}
+      />
+      <h1 className="sr-only">{post.user.name}さんの猫と植物の写真</h1>
 
       <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
         <div className="grid grid-cols-[3fr_2fr] max-md:grid-cols-1">
@@ -75,7 +123,7 @@ export default async function PostDetailPage({
             {post.imageUrls.length > 1 ? (
               <Carousel className="h-full">
                 <CarouselContent className="h-full">
-                  {post.imageUrls.map((url) => (
+                  {post.imageUrls.map((url, i) => (
                     <CarouselItem key={url}>
                       <div className="relative aspect-[4/3] min-h-[320px]">
                         <Image
@@ -84,7 +132,7 @@ export default async function PostDetailPage({
                           fill
                           sizes="(max-width: 768px) 100vw, 560px"
                           className="object-cover"
-                          priority
+                          priority={i === 0}
                         />
                       </div>
                     </CarouselItem>

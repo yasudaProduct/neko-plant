@@ -1,7 +1,7 @@
 "use server";
 
 import { unstable_cache } from "next/cache";
-import { notion, databaseId, NewsItem } from "@/lib/notion";
+import { getNotionClient, getNewsDatabaseId, NewsItem } from "@/lib/notion";
 import { BlockObjectResponse, GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { notFound } from "next/navigation";
 
@@ -11,8 +11,8 @@ const NEWS_CACHE_REVALIDATE_SECONDS = 3600;
 
 const fetchNewsList = unstable_cache(
     async (): Promise<NewsItem[]> => {
-        const response = await notion.databases.query({
-            database_id: databaseId,
+        const response = await getNotionClient().databases.query({
+            database_id: getNewsDatabaseId(),
             sorts: [
                 {
                     property: "create_date",
@@ -55,6 +55,8 @@ function normalizeNotionId(id: string): string {
 // お知らせDB配下のページでない場合は null を返す
 const fetchNewsItem = unstable_cache(
     async (id: string): Promise<NewsItem | null> => {
+        const notion = getNotionClient();
+
         const response: GetPageResponse = await notion.pages.retrieve({
             page_id: id,
         });
@@ -66,7 +68,7 @@ const fetchNewsItem = unstable_cache(
         // お知らせDB配下のページ以外は返さない (連携が共有する他ページの読み出し防止)
         if (
             response.parent.type !== "database_id" ||
-            normalizeNotionId(response.parent.database_id) !== normalizeNotionId(databaseId)
+            normalizeNotionId(response.parent.database_id) !== normalizeNotionId(getNewsDatabaseId())
         ) {
             return null;
         }

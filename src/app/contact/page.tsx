@@ -1,4 +1,11 @@
+import { Metadata } from "next";
 import { Card, CardContent } from "@/components/ui/card";
+
+export const metadata: Metadata = {
+  title: "お問い合わせ",
+  description: "猫と植物へのお問い合わせフォームです。ご意見・ご要望をお寄せください。",
+  alternates: { canonical: "/contact" },
+};
 
 export default function ContactPage() {
   return (

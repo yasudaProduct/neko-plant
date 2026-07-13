@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Metadata } from "next";
 import { ChevronLeft, ChevronRight, PawPrint, Search, Sprout } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getFeedPosts, getSiteStats } from "@/actions/post-action";
@@ -7,6 +8,10 @@ import { getPlants } from "@/actions/plant-action";
 import { Button } from "@/components/ui/button";
 import PostCard from "@/components/np/PostCard";
 import EmptyState from "@/components/np/EmptyState";
+
+export const metadata: Metadata = {
+  alternates: { canonical: "/" },
+};
 
 const PAGE_SIZE = 12;
 
@@ -87,8 +92,8 @@ export default async function Home({
 
           {posts.length > 0 ? (
             <div className="flex flex-col gap-5 max-w-[600px]">
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
+              {posts.map((post, i) => (
+                <PostCard key={post.id} post={post} priority={i === 0} />
               ))}
             </div>
           ) : (

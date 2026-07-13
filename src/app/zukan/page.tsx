@@ -10,9 +10,10 @@ import CoexistBadge from "@/components/np/CoexistBadge";
 import EmptyState from "@/components/np/EmptyState";
 
 export const metadata: Metadata = {
-  title: "共存図鑑 | 猫と植物",
+  title: "共存図鑑",
   description:
     "みんなの投稿から集計した、植物ごとの「猫との共存実績」の記録です。ポジティブリスト方式で、猫と一緒に暮らしている実績のある植物がわかります。",
+  alternates: { canonical: "/zukan" },
 };
 
 const VALID_SORTS: PlantSortBy[] = ["cats", "posts", "name"];

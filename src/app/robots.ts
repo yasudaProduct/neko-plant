@@ -11,7 +11,6 @@ export default function robots(): MetadataRoute.Robots {
                 '/settings',
                 '/auth/',
                 '/signin',
-                '/signup',
                 '/posts/new',
                 '/plants/new',
                 '/plants/*/edit',

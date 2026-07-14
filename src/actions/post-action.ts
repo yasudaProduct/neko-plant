@@ -3,6 +3,7 @@
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { createClient } from "@/lib/supabase/server";
+import { createClient as createClientAdmin } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
 import {
     MAX_POST_COMMENT_LENGTH,
@@ -12,6 +13,7 @@ import {
     STORAGE_PATH,
 } from "@/lib/const";
 import { isValidOwnedImagePath } from "@/lib/storage-path";
+import { clampPage, clampPageSize, clampSearchQuery } from "@/lib/pagination";
 import { ActionErrorCode, ActionResult } from "@/types/common";
 import { PlantCoexistence, Post, SiteStats } from "@/types/post";
 
@@ -125,6 +127,10 @@ async function fetchCatCountMap(plantIds: number[]): Promise<Map<number, number>
 }
 
 async function findPosts(where: Prisma.postsWhereInput, page: number, pageSize: number): Promise<{ posts: Post[], totalCount: number }> {
+    // 公開アクションのため、外部から渡る page/pageSize を必ず丸める (DoS・DB例外対策)
+    const safePage = clampPage(page);
+    const safePageSize = clampPageSize(pageSize);
+
     const me = await getCurrentPublicUser();
     const myUserId = me?.id ?? -1;
 
@@ -134,8 +140,8 @@ async function findPosts(where: Prisma.postsWhereInput, page: number, pageSize: 
             where,
             include: postInclude(myUserId),
             orderBy: { created_at: "desc" },
-            skip: (page - 1) * pageSize,
-            take: pageSize,
+            skip: (safePage - 1) * safePageSize,
+            take: safePageSize,
         }),
     ]);
 
@@ -170,7 +176,7 @@ export async function searchPosts(
     page: number = 1,
     pageSize: number = 12
 ): Promise<{ posts: Post[], totalCount: number }> {
-    const trimmedQuery = query?.trim() ?? "";
+    const trimmedQuery = clampSearchQuery(query);
 
     const conditions: Prisma.postsWhereInput[] = [];
 
@@ -417,9 +423,15 @@ export async function deletePost(postId: number): Promise<ActionResult> {
             where: { id: postId },
         });
 
-        // ストレージの画像を削除 (他人の投稿を管理者が消す場合はポリシー上残るが、DB側は消える)
+        // ストレージの画像を削除する。管理者が他人の投稿を消す場合、投稿者本人の
+        // クライアントではストレージRLSに弾かれ画像が公開URLで残るため、
+        // service_role で削除して確実に消す (モデレーションの実効性を担保)。
         if (post.post_images.length > 0) {
-            const { error } = await supabase.storage
+            const supabaseAdmin = createClientAdmin(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            );
+            const { error } = await supabaseAdmin.storage
                 .from("posts")
                 .remove(post.post_images.map((image) => image.image_url));
 

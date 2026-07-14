@@ -40,3 +40,9 @@ export const MAX_POST_PETS = 10;
 
 /** 猫の名前の文字数上限 */
 export const MAX_PET_NAME_LENGTH = 50;
+
+/** AI植物判定のレート制限: 1分あたりの上限回数 (バースト抑止) */
+export const AI_IDENTIFY_RATE_LIMIT_PER_MINUTE = 5;
+
+/** AI植物判定のレート制限: 24時間あたりの上限回数 (コスト濫用抑止) */
+export const AI_IDENTIFY_RATE_LIMIT_PER_DAY = 50;

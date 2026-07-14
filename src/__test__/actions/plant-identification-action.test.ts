@@ -13,6 +13,13 @@ vi.mock("@/lib/prisma", () => {
     plants: {
       findMany: vi.fn(),
     },
+    public_users: {
+      findUnique: vi.fn(),
+    },
+    plant_identification_logs: {
+      count: vi.fn(),
+      create: vi.fn(),
+    },
   };
   return { default: prisma };
 });
@@ -44,6 +51,14 @@ function createTestFile(
 describe("plant-identification-action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // ログイン済みユーザーの既定モック (レート制限は未到達)
+    vi.mocked(prisma.public_users.findUnique).mockResolvedValue({
+      id: 1,
+    } as unknown as Awaited<ReturnType<typeof prisma.public_users.findUnique>>);
+    vi.mocked(prisma.plant_identification_logs.count).mockResolvedValue(0);
+    vi.mocked(prisma.plant_identification_logs.create).mockResolvedValue(
+      {} as unknown as Awaited<ReturnType<typeof prisma.plant_identification_logs.create>>
+    );
   });
 
   afterEach(() => {
@@ -152,6 +167,28 @@ describe("plant-identification-action", () => {
     if (!result.success) {
       expect(result.code).toBe(ActionErrorCode.INTERNAL_SERVER_ERROR);
     }
+  });
+
+  it("レート制限に達している場合はRATE_LIMITEDでAPIを呼ばない", async () => {
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+      },
+    } as unknown as Awaited<ReturnType<typeof createClient>>);
+
+    // 1分あたりの上限 (5) に到達
+    vi.mocked(prisma.plant_identification_logs.count).mockResolvedValue(5);
+
+    const file = createTestFile("test.png", "image/png");
+
+    const result = await identifyPlantFromImage(file);
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.code).toBe(ActionErrorCode.RATE_LIMITED);
+    }
+    expect(vi.mocked(chatCompletion)).not.toHaveBeenCalled();
+    expect(vi.mocked(prisma.plant_identification_logs.create)).not.toHaveBeenCalled();
   });
 
   it("JPEG/PNG以外はVALIDATION_ERROR", async () => {

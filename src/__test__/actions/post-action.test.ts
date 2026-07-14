@@ -10,7 +10,7 @@ import {
 } from '@/actions/post-action';
 import { createClient } from '@/lib/supabase/server';
 import prisma from '@/lib/prisma';
-import { SupabaseClient } from '@supabase/supabase-js';
+import { SupabaseClient, createClient as createAdminClient } from '@supabase/supabase-js';
 import { ActionErrorCode } from '@/types/common';
 
 // Prismaのモック
@@ -58,6 +58,16 @@ vi.mock('@/lib/supabase/server', () => ({
     createClient: vi.fn(),
 }));
 
+// service_role クライアント (@supabase/supabase-js) のモック。
+// deletePost がストレージ削除に使うため createClient のみ差し替える。
+vi.mock('@supabase/supabase-js', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@supabase/supabase-js')>();
+    return {
+        ...actual,
+        createClient: vi.fn(),
+    };
+});
+
 vi.mock('next/cache', () => ({
     revalidatePath: vi.fn(),
 }));
@@ -86,6 +96,20 @@ function mockSupabase(user: { id: string } | null, uploadError: unknown = null) 
     };
     vi.mocked(createClient).mockResolvedValue(client as unknown as SupabaseClient);
     return { upload, remove };
+}
+
+/** service_role クライアントのストレージ削除をモックする (deletePost用) */
+function mockAdminStorage() {
+    const remove = vi.fn().mockResolvedValue({ error: null });
+    const client = {
+        storage: {
+            from: vi.fn().mockReturnValue({ remove }),
+        },
+    };
+    vi.mocked(createAdminClient).mockReturnValue(
+        client as unknown as ReturnType<typeof createAdminClient>
+    );
+    return { remove };
 }
 
 describe('Post Actions', () => {
@@ -331,8 +355,9 @@ describe('Post Actions', () => {
             expect(prisma.posts.delete).not.toHaveBeenCalled();
         });
 
-        it('本人の投稿は削除できる', async () => {
-            const { remove } = mockSupabase(mockUser);
+        it('本人の投稿は削除できる (画像は service_role で削除)', async () => {
+            mockSupabase(mockUser);
+            const { remove } = mockAdminStorage();
             vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
             vi.mocked(prisma.posts.findUnique).mockResolvedValue({
                 id: 10,

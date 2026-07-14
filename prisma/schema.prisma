@@ -376,19 +376,30 @@ model plants {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains an expression index which requires additional setup for migrations. Visit https://pris.ly/d/expression-indexes for more info.
 model public_users {
-  id         Int          @id @default(autoincrement())
-  auth_id    String       @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  alias_id   String       @db.VarChar
-  name       String       @db.VarChar
-  image      String?      @db.VarChar
-  created_at DateTime     @default(now()) @db.Timestamptz(6)
-  role       String?      @default("user") @db.VarChar(50)
-  pets       pets[]
-  post_likes post_likes[]
-  posts      posts[]
-  users      auth_users   @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                         Int                          @id @default(autoincrement())
+  auth_id                    String                       @unique @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  alias_id                   String                       @db.VarChar
+  name                       String                       @db.VarChar
+  image                      String?                      @db.VarChar
+  created_at                 DateTime                     @default(now()) @db.Timestamptz(6)
+  role                       String?                      @default("user") @db.VarChar(50)
+  pets                       pets[]
+  plant_identification_logs  plant_identification_logs[]
+  post_likes                 post_likes[]
+  posts                      posts[]
+  users                      auth_users                   @relation(fields: [auth_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@map("users")
+  @@schema("public")
+}
+
+model plant_identification_logs {
+  id         BigInt       @id @default(autoincrement())
+  user_id    Int
+  created_at DateTime     @default(now()) @db.Timestamptz(6)
+  users      public_users @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([user_id, created_at(sort: Desc)], map: "plant_identification_logs_user_created_idx")
   @@schema("public")
 }
 

@@ -7,6 +7,10 @@ import {
   chatCompletion,
   ChatMessage,
 } from "@/lib/ai-provider";
+import {
+  AI_IDENTIFY_RATE_LIMIT_PER_DAY,
+  AI_IDENTIFY_RATE_LIMIT_PER_MINUTE,
+} from "@/lib/const";
 import { ActionErrorCode, ActionResult } from "@/types/common";
 
 export type PlantIdentificationCandidate = {
@@ -78,6 +82,41 @@ export async function identifyPlantFromImage(
     };
   }
 
+  const userData = await prisma.public_users.findUnique({
+    where: { auth_id: user.id },
+    select: { id: true },
+  });
+
+  if (!userData) {
+    return {
+      success: false,
+      code: ActionErrorCode.AUTH_REQUIRED,
+      message: "ユーザーが見つかりません。",
+    };
+  }
+
+  // 有料APIの濫用を防ぐため、ユーザー単位で直近の実行回数を制限する
+  const now = Date.now();
+  const [countLastMinute, countLastDay] = await Promise.all([
+    prisma.plant_identification_logs.count({
+      where: { user_id: userData.id, created_at: { gte: new Date(now - 60 * 1000) } },
+    }),
+    prisma.plant_identification_logs.count({
+      where: { user_id: userData.id, created_at: { gte: new Date(now - 24 * 60 * 60 * 1000) } },
+    }),
+  ]);
+
+  if (
+    countLastMinute >= AI_IDENTIFY_RATE_LIMIT_PER_MINUTE ||
+    countLastDay >= AI_IDENTIFY_RATE_LIMIT_PER_DAY
+  ) {
+    return {
+      success: false,
+      code: ActionErrorCode.RATE_LIMITED,
+      message: "AI判定の利用回数が上限に達しました。時間をおいて再度お試しください。",
+    };
+  }
+
   if (!image) {
     return {
       success: false,
@@ -111,6 +150,11 @@ export async function identifyPlantFromImage(
       data: { candidates: [] },
     };
   }
+
+  // API消費の直前に実行を記録する。API失敗も1回として数え、エラー時の連打を抑える
+  await prisma.plant_identification_logs.create({
+    data: { user_id: userData.id },
+  });
 
   try {
     const buffer = Buffer.from(await image.arrayBuffer());

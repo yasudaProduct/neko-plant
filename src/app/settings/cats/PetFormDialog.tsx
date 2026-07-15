@@ -41,7 +41,7 @@ import {
   uploadImagesToBucket,
 } from "@/lib/client-image";
 import { createClient } from "@/lib/supabase/client";
-import { MAX_UPLOAD_SOURCE_IMAGE_SIZE } from "@/lib/const";
+import { MAX_PET_NAME_LENGTH, MAX_UPLOAD_SOURCE_IMAGE_SIZE } from "@/lib/const";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DatePicker } from "@/components/ui/datepicker";
 
@@ -49,11 +49,15 @@ type Props = {
   pet?: Pet;
   nekoSpecies: NekoSpecies[];
   trigger: React.ReactNode;
+  /** 新規作成が成功した直後に呼ばれる (投稿フローでその場登録した猫を即座に選択状態にするため) */
+  onCreated?: (pet: Pet) => void;
 };
 
 const formSchema = z.object({
   name: z.string().min(1, {
     message: "名前は必須です。",
+  }).max(MAX_PET_NAME_LENGTH, {
+    message: `名前は${MAX_PET_NAME_LENGTH}文字以内で入力してください。`,
   }),
   species: z.number().min(1, {
     message: "猫種を選択してください。",
@@ -89,7 +93,7 @@ const formSchema = z.object({
 });
 
 /** 猫プロフィールの追加・編集ダイアログ */
-export default function PetFormDialog({ pet, nekoSpecies, trigger }: Props) {
+export default function PetFormDialog({ pet, nekoSpecies, trigger, onCreated }: Props) {
   const { success, error } = useToast();
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -157,7 +161,7 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger }: Props) {
       }
 
       if (pet) {
-        await updatePet(
+        const result = await updatePet(
           pet.id,
           data.name,
           data.species,
@@ -166,9 +170,17 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger }: Props) {
           data.birthday || undefined,
           data.age
         );
+        if (!result.success) {
+          await removeUploadedImagesBestEffort("user_pets", imagePath ? [imagePath] : []);
+          error({
+            title: "猫プロフィールの更新に失敗しました",
+            description: result.message,
+          });
+          return;
+        }
         success({ title: "猫プロフィールを更新しました" });
       } else {
-        await addPet(
+        const result = await addPet(
           data.name,
           data.species,
           imagePath,
@@ -176,6 +188,26 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger }: Props) {
           data.birthday || undefined,
           data.age
         );
+        if (!result.success) {
+          await removeUploadedImagesBestEffort("user_pets", imagePath ? [imagePath] : []);
+          error({
+            title: "猫の追加に失敗しました",
+            description: result.message,
+          });
+          return;
+        }
+        const species = nekoSpecies.find((s) => s.id === data.species);
+        if (species && result.data) {
+          onCreated?.({
+            id: result.data.petId,
+            name: data.name,
+            neko: species,
+            sex: data.sex,
+            age: data.age,
+            birthday: data.birthday ? new Date(data.birthday) : undefined,
+            imageSrc: preview || undefined,
+          });
+        }
         success({ title: "猫を追加しました" });
       }
       setIsOpen(false);

@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import Link from "next/link";
 import {
   Camera,
   Check,
@@ -22,7 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Pet } from "@/types/neko";
+import { NekoSpecies, Pet } from "@/types/neko";
 import { ActionErrorCode } from "@/types/common";
 import { MAX_POST_COMMENT_LENGTH, MAX_POST_IMAGES, MAX_POST_PLANTS } from "@/lib/const";
 import {
@@ -39,9 +38,9 @@ import {
   identifyPlantFromImage,
   type PlantIdentificationCandidate,
 } from "@/actions/plant-identification-action";
-import CatChip from "@/components/np/CatChip";
+import PetFormDialog from "@/app/settings/cats/PetFormDialog";
 
-const STEPS = ["写真", "植物", "猫", "確認"] as const;
+const STEPS = ["写真・植物", "猫・確認"] as const;
 
 type SelectedPlant =
   | { mode: "existing"; id: number; name: string }
@@ -86,7 +85,13 @@ function StepIndicator({ step }: { step: number }) {
   );
 }
 
-export default function PostFlow({ myPets }: { myPets: Pet[] }) {
+export default function PostFlow({
+  myPets,
+  nekoSpecies,
+}: {
+  myPets: Pet[];
+  nekoSpecies: NekoSpecies[];
+}) {
   const router = useRouter();
   const { success, error, info } = useToast();
 
@@ -94,10 +99,16 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
   const [images, setImages] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [selectedPlants, setSelectedPlants] = useState<SelectedPlant[]>([]);
+  const [pets, setPets] = useState<Pet[]>(myPets);
   const [selectedPetIds, setSelectedPetIds] = useState<number[]>([]);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isProcessingImages, setIsProcessingImages] = useState(false);
+
+  // その場で猫を登録した後、router.refresh()で届く最新のmyPetsに置き換える (追記マージすると重複するので注意)
+  useEffect(() => {
+    setPets(myPets);
+  }, [myPets]);
 
   // AI判定
   const [isIdentifying, setIsIdentifying] = useState(false);
@@ -131,9 +142,9 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // ステップ2(植物)に入ったらAI判定を自動実行
+  // 写真が選択されたらAI判定を自動実行 (植物ステップに入るのを待たず、体感の待ち時間を減らす)
   useEffect(() => {
-    if (step !== 1 || hasIdentified || isIdentifying || images.length === 0) return;
+    if (hasIdentified || isIdentifying || images.length === 0) return;
 
     let cancelled = false;
     const identify = async () => {
@@ -168,7 +179,7 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [step]);
+  }, [images]);
 
   const onImagesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []).slice(0, MAX_POST_IMAGES);
@@ -243,14 +254,8 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
       ? { mode: "existing", id: candidate.matchedPlant.id, name: candidate.matchedPlant.name }
       : { mode: "new", name: candidate.name };
 
-  const canNext =
-    step === 0
-      ? images.length > 0 && !isProcessingImages
-      : step === 1
-        ? selectedPlants.length > 0
-        : step === 2
-          ? selectedPetIds.length > 0
-          : true;
+  const canNext = images.length > 0 && selectedPlants.length > 0 && !isProcessingImages;
+  const canSubmit = selectedPetIds.length > 0 && !isSubmitting;
 
   const onSubmit = async () => {
     setIsSubmitting(true);
@@ -333,8 +338,6 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
     }
   };
 
-  const petById = (id: number) => myPets.find((pet) => pet.id === id);
-
   return (
     <div className="max-w-xl mx-auto px-4 pt-6 pb-12 flex flex-col gap-5">
       <div className="text-center">
@@ -343,7 +346,7 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
       </div>
 
       <div className="bg-white rounded-xl border border-border shadow-sm p-6 flex flex-col gap-4">
-        {/* STEP 1: 写真 */}
+        {/* STEP 1: 写真・植物 */}
         {step === 0 && (
           <>
             <div>
@@ -396,169 +399,191 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
                 ))}
               </div>
             )}
-          </>
-        )}
 
-        {/* STEP 2: 植物 */}
-        {step === 1 && (
-          <>
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 mb-1">植物を紐付ける</h2>
-              <p className="text-xs text-gray-500">
-                AIが写真から植物を判定します。候補から選ぶか、手動で検索してください。
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5" />
-                AI判定の候補
-              </span>
-              {isIdentifying ? (
-                <div className="flex gap-2">
-                  <Skeleton className="w-36 h-9 rounded-full" />
-                  <Skeleton className="w-28 h-9 rounded-full" />
-                  <Skeleton className="w-28 h-9 rounded-full" />
+            {images.length > 0 && (
+              <div className="flex flex-col gap-4 pt-4 border-t border-border">
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900 mb-1">植物を紐付ける</h2>
+                  <p className="text-xs text-gray-500">
+                    AIが写真から植物を判定します。候補から選ぶか、手動で検索してください。
+                  </p>
                 </div>
-              ) : candidates.length > 0 ? (
-                <div className="flex gap-2 flex-wrap">
-                  {candidates.map((candidate) => {
-                    const plant = candidateToPlant(candidate);
-                    const selected = isPlantSelected(plant);
-                    return (
-                      <button
-                        key={plantKey(plant)}
-                        type="button"
-                        onClick={() => togglePlant(plant)}
-                        className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium border transition-all ${
-                          selected
-                            ? "bg-green-100 border-green-200 text-green-700 shadow-inner"
-                            : "bg-white border-border text-gray-600 shadow-sm hover:bg-gray-50"
-                        }`}
-                        data-testid="ai-candidate"
-                      >
-                        {selected ? <Check className="w-3.5 h-3.5" /> : <Leaf className="w-3.5 h-3.5" />}
-                        {candidate.name}
-                        {typeof candidate.confidence === "number" && (
-                          <span className="text-xs opacity-70">
-                            {Math.round(candidate.confidence * 100)}%
-                          </span>
-                        )}
-                        {!candidate.matchedPlant && (
-                          <span className="text-xs rounded-full bg-amber-100 text-amber-700 border border-amber-200 px-1.5">
-                            新規
-                          </span>
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-xs text-gray-500 bg-gray-50 rounded-md p-3">
-                  {hasIdentified
-                    ? "植物を判定できませんでした。下の検索から植物を選択してください。"
-                    : "写真を選択するとAI判定が実行されます。"}
-                </p>
-              )}
-            </div>
 
-            <div className="flex flex-col gap-2">
-              <span className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
-                <Search className="w-3.5 h-3.5" />
-                手動で検索
-              </span>
-              <Input
-                placeholder="植物名を入力（例: パキラ）"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                maxLength={50}
-                data-testid="plant-search-input"
-              />
-              {query.trim() && (
-                <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
-                  {suggestions.map((plant) => {
-                    const item: SelectedPlant = { mode: "existing", id: plant.id, name: plant.name };
-                    const selected = isPlantSelected(item);
-                    return (
-                      <button
-                        key={plant.id}
-                        type="button"
-                        onClick={() => togglePlant(item)}
-                        className="flex items-center gap-2 px-2.5 py-2 rounded-md text-left hover:bg-gray-100 transition-colors"
-                      >
-                        {selected ? (
-                          <Check className="w-4 h-4 text-green-600" />
-                        ) : (
-                          <Leaf className="w-4 h-4 text-gray-400" />
-                        )}
-                        <span className="flex-1 text-sm text-gray-800">{plant.name}</span>
-                      </button>
-                    );
-                  })}
-                  {!suggestions.some(
-                    (plant) => normalizePlantName(plant.name) === normalizePlantName(query),
-                  ) && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const name = normalizePlantName(query);
-                        if (!name) return;
-                        if (name.length > 50) {
-                          error({ title: "植物名は50文字以内で入力してください" });
-                          return;
-                        }
-                        togglePlant({ mode: "new", name });
-                        setQuery("");
-                      }}
-                      className="flex items-center gap-2 px-2.5 py-2 rounded-md text-left hover:bg-amber-50 transition-colors text-amber-700"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span className="text-sm">
-                        「{normalizePlantName(query)}」を新しく登録して選択
-                      </span>
-                    </button>
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5" />
+                    AI判定の候補
+                  </span>
+                  {isIdentifying ? (
+                    <div className="flex gap-2">
+                      <Skeleton className="w-36 h-9 rounded-full" />
+                      <Skeleton className="w-28 h-9 rounded-full" />
+                      <Skeleton className="w-28 h-9 rounded-full" />
+                    </div>
+                  ) : candidates.length > 0 ? (
+                    <div className="flex gap-2 flex-wrap">
+                      {candidates.map((candidate) => {
+                        const plant = candidateToPlant(candidate);
+                        const selected = isPlantSelected(plant);
+                        return (
+                          <button
+                            key={plantKey(plant)}
+                            type="button"
+                            onClick={() => togglePlant(plant)}
+                            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium border transition-all ${
+                              selected
+                                ? "bg-green-100 border-green-200 text-green-700 shadow-inner"
+                                : "bg-white border-border text-gray-600 shadow-sm hover:bg-gray-50"
+                            }`}
+                            data-testid="ai-candidate"
+                          >
+                            {selected ? <Check className="w-3.5 h-3.5" /> : <Leaf className="w-3.5 h-3.5" />}
+                            {candidate.name}
+                            {typeof candidate.confidence === "number" && (
+                              <span className="text-xs opacity-70">
+                                {Math.round(candidate.confidence * 100)}%
+                              </span>
+                            )}
+                            {!candidate.matchedPlant && (
+                              <span className="text-xs rounded-full bg-amber-100 text-amber-700 border border-amber-200 px-1.5">
+                                新規
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-gray-500 bg-gray-50 rounded-md p-3">
+                      {hasIdentified
+                        ? "植物を判定できませんでした。下の検索から植物を選択してください。"
+                        : "写真を選択するとAI判定が実行されます。"}
+                    </p>
                   )}
                 </div>
-              )}
-            </div>
 
-            {selectedPlants.length > 0 && (
-              <div className="flex flex-col gap-2 p-3 rounded-lg bg-gray-50">
-                <span className="text-xs text-gray-500">選択中の植物</span>
-                <div className="flex gap-2 flex-wrap">
-                  {selectedPlants.map((plant) => (
-                    <span
-                      key={plantKey(plant)}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-green-100 border border-green-200 text-green-700 pl-3 pr-2 py-1 text-xs font-medium"
-                    >
-                      <Leaf className="w-3.5 h-3.5" />
-                      {plant.name}
-                      {plant.mode === "new" && <span className="text-[10px] opacity-70">(新規)</span>}
-                      <button
-                        type="button"
-                        onClick={() => togglePlant(plant)}
-                        className="opacity-70 hover:opacity-100"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </span>
-                  ))}
+                <div className="flex flex-col gap-2">
+                  <span className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
+                    <Search className="w-3.5 h-3.5" />
+                    手動で検索
+                  </span>
+                  <Input
+                    placeholder="植物名を入力（例: パキラ）"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    maxLength={50}
+                    data-testid="plant-search-input"
+                  />
+                  {query.trim() && (
+                    <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
+                      {suggestions.map((plant) => {
+                        const item: SelectedPlant = { mode: "existing", id: plant.id, name: plant.name };
+                        const selected = isPlantSelected(item);
+                        return (
+                          <button
+                            key={plant.id}
+                            type="button"
+                            onClick={() => togglePlant(item)}
+                            className="flex items-center gap-2 px-2.5 py-2 rounded-md text-left hover:bg-gray-100 transition-colors"
+                          >
+                            {selected ? (
+                              <Check className="w-4 h-4 text-green-600" />
+                            ) : (
+                              <Leaf className="w-4 h-4 text-gray-400" />
+                            )}
+                            <span className="flex-1 text-sm text-gray-800">{plant.name}</span>
+                          </button>
+                        );
+                      })}
+                      {!suggestions.some(
+                        (plant) => normalizePlantName(plant.name) === normalizePlantName(query),
+                      ) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const name = normalizePlantName(query);
+                            if (!name) return;
+                            if (name.length > 50) {
+                              error({ title: "植物名は50文字以内で入力してください" });
+                              return;
+                            }
+                            togglePlant({ mode: "new", name });
+                            setQuery("");
+                          }}
+                          className="flex items-center gap-2 px-2.5 py-2 rounded-md text-left hover:bg-amber-50 transition-colors text-amber-700"
+                        >
+                          <Plus className="w-4 h-4" />
+                          <span className="text-sm">
+                            「{normalizePlantName(query)}」を新しく登録して選択
+                          </span>
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
+
+                {selectedPlants.length > 0 && (
+                  <div className="flex flex-col gap-2 p-3 rounded-lg bg-gray-50">
+                    <span className="text-xs text-gray-500">選択中の植物</span>
+                    <div className="flex gap-2 flex-wrap">
+                      {selectedPlants.map((plant) => (
+                        <span
+                          key={plantKey(plant)}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-green-100 border border-green-200 text-green-700 pl-3 pr-2 py-1 text-xs font-medium"
+                        >
+                          <Leaf className="w-3.5 h-3.5" />
+                          {plant.name}
+                          {plant.mode === "new" && <span className="text-[10px] opacity-70">(新規)</span>}
+                          <button
+                            type="button"
+                            onClick={() => togglePlant(plant)}
+                            className="opacity-70 hover:opacity-100"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </>
         )}
 
-        {/* STEP 3: 猫 + コメント */}
-        {step === 2 && (
+        {/* STEP 2: 猫・確認 */}
+        {step === 1 && (
           <>
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 mb-1">写っている猫を選択</h2>
-              <p className="text-xs text-gray-500">共存実績は、選択した猫ごとに集計されます。</p>
+            <div className="flex flex-col gap-2">
+              <span className="text-xs text-gray-500">選択した写真・植物</span>
+              <div className="flex gap-2">
+                {previews.map((url, i) => (
+                  <div key={url} className="relative w-[88px] aspect-square rounded-md overflow-hidden">
+                    <Image src={url} alt={`写真 ${i + 1}`} fill className="object-cover" />
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {selectedPlants.map((plant) => (
+                  <span
+                    key={plantKey(plant)}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-white border border-green-200 text-green-700 px-3 py-1 text-xs font-medium"
+                  >
+                    <Leaf className="w-3.5 h-3.5" />
+                    {plant.name}
+                    {plant.mode === "new" && <span className="text-[10px] opacity-70">(新規)</span>}
+                  </span>
+                ))}
+              </div>
             </div>
-            {myPets.length > 0 ? (
+
+            <div className="flex flex-col gap-2.5 pt-4 border-t border-border">
+              <div>
+                <h2 className="text-base font-semibold text-gray-900 mb-1">写っている猫を選択</h2>
+                <p className="text-xs text-gray-500">共存実績は、選択した猫ごとに集計されます。</p>
+              </div>
               <div className="flex gap-2.5 flex-wrap">
-                {myPets.map((pet) => {
+                {pets.map((pet) => {
                   const selected = selectedPetIds.includes(pet.id);
                   return (
                     <button
@@ -588,15 +613,31 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
                     </button>
                   );
                 })}
+                <PetFormDialog
+                  nekoSpecies={nekoSpecies}
+                  trigger={
+                    <button
+                      type="button"
+                      className="flex items-center gap-1.5 rounded-full py-2 px-4 border border-dashed border-gray-300 text-sm text-gray-500 hover:border-green-500 hover:text-green-700 transition-colors"
+                      data-testid="add-pet-trigger"
+                    >
+                      <Plus className="w-4 h-4" />
+                      新しい猫を登録
+                    </button>
+                  }
+                  onCreated={(pet) => {
+                    setPets((prev) => [...prev, pet]);
+                    setSelectedPetIds((prev) => [...prev, pet.id]);
+                  }}
+                />
               </div>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-sm text-gray-500 mb-3">猫が登録されていません</p>
-                <Button variant="outline" asChild>
-                  <Link href="/settings/cats">猫を登録する</Link>
-                </Button>
-              </div>
-            )}
+              {pets.length === 0 && (
+                <p className="text-xs text-gray-500">
+                  猫が登録されていません。上のボタンから追加できます。
+                </p>
+              )}
+            </div>
+
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="post-comment">コメント（任意）</Label>
               <Textarea
@@ -609,47 +650,7 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
                 data-testid="comment-input"
               />
             </div>
-          </>
-        )}
 
-        {/* STEP 4: 確認 */}
-        {step === 3 && (
-          <>
-            <div>
-              <h2 className="text-base font-semibold text-gray-900 mb-1">内容を確認</h2>
-              <p className="text-xs text-gray-500">この内容で投稿します。</p>
-            </div>
-            <div className="flex gap-2">
-              {previews.map((url, i) => (
-                <div key={url} className="relative w-[88px] aspect-square rounded-md overflow-hidden">
-                  <Image src={url} alt={`写真 ${i + 1}`} fill className="object-cover" />
-                </div>
-              ))}
-            </div>
-            <dl className="grid grid-cols-[auto_1fr] gap-x-5 gap-y-2.5 text-sm items-start">
-              <dt className="text-gray-500">植物</dt>
-              <dd className="flex gap-2 flex-wrap">
-                {selectedPlants.map((plant) => (
-                  <span
-                    key={plantKey(plant)}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-white border border-green-200 text-green-700 px-3 py-1 text-xs font-medium"
-                  >
-                    <Leaf className="w-3.5 h-3.5" />
-                    {plant.name}
-                    {plant.mode === "new" && <span className="text-[10px] opacity-70">(新規)</span>}
-                  </span>
-                ))}
-              </dd>
-              <dt className="text-gray-500">猫</dt>
-              <dd className="flex gap-2 flex-wrap">
-                {selectedPetIds.map((petId) => {
-                  const pet = petById(petId);
-                  return pet ? <CatChip key={petId} name={pet.name} /> : null;
-                })}
-              </dd>
-              <dt className="text-gray-500">コメント</dt>
-              <dd className="text-gray-700 whitespace-pre-wrap">{comment.trim() || "（なし）"}</dd>
-            </dl>
             <p className="p-3 rounded-md bg-gray-50 text-xs text-gray-500 leading-normal">
               投稿すると、植物の共存実績にすぐ反映されます。
             </p>
@@ -666,7 +667,7 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
             <ChevronLeft className="w-4 h-4" />
             {step === 0 ? "やめる" : "戻る"}
           </Button>
-          {step < 3 ? (
+          {step === 0 ? (
             <Button
               className="bg-green-600 hover:bg-green-700"
               disabled={!canNext}
@@ -679,7 +680,7 @@ export default function PostFlow({ myPets }: { myPets: Pet[] }) {
           ) : (
             <Button
               className="bg-green-600 hover:bg-green-700"
-              disabled={isSubmitting}
+              disabled={!canSubmit}
               onClick={onSubmit}
               data-testid="submit-post"
             >

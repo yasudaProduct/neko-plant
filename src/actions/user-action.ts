@@ -252,13 +252,17 @@ export async function updateUserImage(imagePath: string) {
 }
 
 /** imagePath はクライアントが user_pets バケットへ直接アップロード済みのパス */
-export async function addPet(name: string, speciesId: number, imagePath?: string, sex?: SexType, birthday?: string, age?: number) {
+export async function addPet(name: string, speciesId: number, imagePath?: string, sex?: SexType, birthday?: string, age?: number): Promise<ActionResult<{ petId: number }>> {
     const supabase = await createClient();
     const {
         data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-        throw new Error("ユーザーが見つかりません");
+        return {
+            success: false,
+            code: ActionErrorCode.AUTH_REQUIRED,
+            message: "ユーザーが見つかりません",
+        };
     }
 
     const userData = await prisma.public_users.findFirst({
@@ -270,30 +274,52 @@ export async function addPet(name: string, speciesId: number, imagePath?: string
     // TODO userIdを取得するのめんどくさくない？ authIdをpublic_usersの主キーにした方がいい？
 
     if (!userData) {
-        throw new Error("ユーザーが見つかりません");
+        return {
+            success: false,
+            code: ActionErrorCode.AUTH_REQUIRED,
+            message: "ユーザーが見つかりません",
+        };
     }
 
     if (!name || name.length > MAX_PET_NAME_LENGTH) {
-        throw new Error(`猫の名前は1〜${MAX_PET_NAME_LENGTH}文字で入力してください`);
+        return {
+            success: false,
+            code: ActionErrorCode.VALIDATION_ERROR,
+            message: `猫の名前は1〜${MAX_PET_NAME_LENGTH}文字で入力してください`,
+        };
     }
 
     if (imagePath && !isValidOwnedImagePath(imagePath, userData.auth_id)) {
-        throw new Error("画像の指定が不正です");
+        return {
+            success: false,
+            code: ActionErrorCode.VALIDATION_ERROR,
+            message: "画像の指定が不正です",
+        };
     }
 
-    await prisma.pets.create({
-        data: {
-            name: name,
-            neko_id: speciesId,
-            user_id: userData.id,
-            sex: sex as SexType,
-            age: age,
-            birthday: birthday ? new Date(birthday) : undefined,
-            image: imagePath,
-        } as pets,
-    });
+    try {
+        const pet = await prisma.pets.create({
+            data: {
+                name: name,
+                neko_id: speciesId,
+                user_id: userData.id,
+                sex: sex as SexType,
+                age: age,
+                birthday: birthday ? new Date(birthday) : undefined,
+                image: imagePath,
+            } as pets,
+        });
 
-    revalidatePath(`/${userData.alias_id}`);
+        revalidatePath(`/${userData.alias_id}`);
+        return { success: true, data: { petId: pet.id } };
+    } catch (error) {
+        console.error(error);
+        return {
+            success: false,
+            code: ActionErrorCode.INTERNAL_SERVER_ERROR,
+            message: "猫の追加に失敗しました",
+        };
+    }
 }
 
 /** imagePath はクライアントが user_pets バケットへ直接アップロード済みのパス */

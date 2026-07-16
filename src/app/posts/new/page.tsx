@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getUserPets, getUserProfileByAuthId } from "@/actions/user-action";
+import { getNekoSpecies } from "@/actions/neko-action";
 import PostFlow from "./PostFlow";
 
 export const metadata: Metadata = {
@@ -24,7 +25,10 @@ export default async function NewPostPage() {
     redirect("/signin");
   }
 
-  const pets = (await getUserPets(profile.id)) ?? [];
+  const [pets, nekoSpecies] = await Promise.all([
+    getUserPets(profile.id).then((result) => result ?? []),
+    getNekoSpecies(),
+  ]);
 
-  return <PostFlow myPets={pets} />;
+  return <PostFlow myPets={pets} nekoSpecies={nekoSpecies} />;
 }

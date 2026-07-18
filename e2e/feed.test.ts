@@ -75,7 +75,7 @@ test.describe('フィード / ランディング @public', () => {
   });
 
   test('未ログインでいいねするとログイン導線が表示される', async ({ page }) => {
-    await page.getByTestId('like-button').first().click();
+    await page.getByTestId('like-button').first().getByRole('button').click();
 
     // AuthDialogContext 経由のログインダイアログ
     await expect(page.locator('text=いいねするにはログインしてください')).toBeVisible();
@@ -102,9 +102,10 @@ test.describe('フィード（ログイン済み） @user', () => {
     // シード投稿カードのいいねボタンをトグル
     const seedCard = page.getByTestId('post-card').filter({ hasText: SEED_POST_COMMENT });
     const likeButton = seedCard.getByTestId('like-button');
+    const likeTrigger = likeButton.getByRole('button');
     const initialText = (await likeButton.textContent())?.trim() ?? '';
 
-    await clickLikeAndWait(page, likeButton);
+    await clickLikeAndWait(page, likeTrigger);
     await expect(likeButton).not.toHaveText(initialText);
     const afterText = (await likeButton.textContent())?.trim() ?? '';
 
@@ -120,7 +121,7 @@ test.describe('フィード（ログイン済み） @user', () => {
     await page.screenshot({ path: screenshotDir + 'like-toggled.png', fullPage: true });
 
     // 後続テストへの影響を避けるため元に戻す
-    await clickLikeAndWait(page, reloadedButton);
+    await clickLikeAndWait(page, reloadedButton.getByRole('button'));
     await expect(reloadedButton).toHaveText(initialText);
   });
 });

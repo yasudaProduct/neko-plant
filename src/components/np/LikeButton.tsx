@@ -13,10 +13,11 @@ type Props = {
   initialLiked: boolean;
   initialCount: number;
   size?: "md" | "lg";
+  className?: string;
 };
 
 /** いいねボタン (楽観的更新 + 未ログイン時はログインダイアログ) */
-export default function LikeButton({ postId, initialLiked, initialCount, size = "md" }: Props) {
+export default function LikeButton({ postId, initialLiked, initialCount, size = "md", className }: Props) {
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [pending, setPending] = useState(false);
@@ -63,22 +64,24 @@ export default function LikeButton({ postId, initialLiked, initialCount, size = 
   };
 
   return (
-    <button
-      type="button"
-      onClick={onToggle}
-      data-testid="like-button"
-      className={cn(
-        "inline-flex items-center gap-1.5 text-sm transition-colors",
-        liked ? "text-red-600" : "text-gray-500 hover:text-red-600",
-      )}
-    >
-      <Heart
+    <div data-testid="like-button" className={cn("inline-flex items-center gap-1.5 text-sm text-gray-500", className)}>
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-label={liked ? "いいねを取り消す" : "いいねする"}
         className={cn(
-          size === "lg" ? "w-7 h-7" : "w-6 h-6",
-          liked && "fill-red-600 np-like-pop",
+          "transition-colors",
+          liked ? "text-red-600" : "text-gray-500 hover:text-red-600",
         )}
-      />
-      いいね {count}件
-    </button>
+      >
+        <Heart
+          className={cn(
+            size === "lg" ? "w-7 h-7" : "w-6 h-6",
+            liked && "fill-red-600 np-like-pop",
+          )}
+        />
+      </button>
+      <span>いいね {count}件</span>
+    </div>
   );
 }

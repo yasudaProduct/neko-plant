@@ -22,7 +22,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { NekoSpecies, Pet } from "@/types/neko";
 import { ActionErrorCode } from "@/types/common";
-import { MAX_POST_COMMENT_LENGTH, MAX_POST_IMAGES, MAX_POST_PLANTS } from "@/lib/const";
+import {
+  MAX_POST_COMMENT_LENGTH,
+  MAX_POST_IMAGES,
+  MAX_POST_PLANTS,
+} from "@/lib/const";
 import {
   ClientImageError,
   processImageForUpload,
@@ -46,10 +50,20 @@ type SelectedPlant =
 const normalizePlantName = (name: string) => name.trim().replace(/\s+/g, " ");
 
 const plantKey = (plant: SelectedPlant) =>
-  plant.mode === "existing" ? `existing-${plant.id}` : `new-${normalizePlantName(plant.name)}`;
+  plant.mode === "existing"
+    ? `existing-${plant.id}`
+    : `new-${normalizePlantName(plant.name)}`;
 
 /** 番号バッジ + 縦線。完了すると緑のチェックに変わり、線もその区間だけ緑になる */
-function StepMarker({ number, done, isLast }: { number: number; done: boolean; isLast?: boolean }) {
+function StepMarker({
+  number,
+  done,
+  isLast,
+}: {
+  number: number;
+  done: boolean;
+  isLast?: boolean;
+}) {
   return (
     <div className="flex flex-col items-center">
       <span
@@ -61,7 +75,11 @@ function StepMarker({ number, done, isLast }: { number: number; done: boolean; i
       >
         {done ? <Check className="w-3.5 h-3.5" /> : number}
       </span>
-      {!isLast && <span className={`w-px flex-1 my-1 ${done ? "bg-green-300" : "bg-gray-200"}`} />}
+      {!isLast && (
+        <span
+          className={`w-px flex-1 my-1 ${done ? "bg-green-300" : "bg-gray-200"}`}
+        />
+      )}
     </div>
   );
 }
@@ -93,11 +111,15 @@ export default function PostFlow({
   // AI判定
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [hasIdentified, setHasIdentified] = useState(false);
-  const [candidates, setCandidates] = useState<PlantIdentificationCandidate[]>([]);
+  const [candidates, setCandidates] = useState<PlantIdentificationCandidate[]>(
+    [],
+  );
 
   // 手動検索
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<{ id: number; name: string }[]>([]);
+  const [suggestions, setSuggestions] = useState<
+    { id: number; name: string }[]
+  >([]);
   const queryRef = useRef(query);
 
   useEffect(() => {
@@ -232,20 +254,29 @@ export default function PostFlow({
 
   const togglePet = (petId: number) => {
     setSelectedPetIds((prev) =>
-      prev.includes(petId) ? prev.filter((id) => id !== petId) : [...prev, petId],
+      prev.includes(petId)
+        ? prev.filter((id) => id !== petId)
+        : [...prev, petId],
     );
   };
 
-  const candidateToPlant = (candidate: PlantIdentificationCandidate): SelectedPlant =>
+  const candidateToPlant = (
+    candidate: PlantIdentificationCandidate,
+  ): SelectedPlant =>
     candidate.matchedPlant
-      ? { mode: "existing", id: candidate.matchedPlant.id, name: candidate.matchedPlant.name }
+      ? {
+          mode: "existing",
+          id: candidate.matchedPlant.id,
+          name: candidate.matchedPlant.name,
+        }
       : { mode: "new", name: candidate.name };
 
   const photoDone = images.length > 0;
   const plantDone = selectedPlants.length > 0;
   const petDone = selectedPetIds.length > 0;
 
-  const canSubmit = photoDone && plantDone && petDone && !isProcessingImages && !isSubmitting;
+  const canSubmit =
+    photoDone && plantDone && petDone && !isProcessingImages && !isSubmitting;
 
   const onSubmit = async () => {
     setIsSubmitting(true);
@@ -262,7 +293,11 @@ export default function PostFlow({
         const created = await addPlant(plant.name);
         if (created.success && created.data) {
           plantIds.push(created.data.plantId);
-        } else if (!created.success && created.code === ActionErrorCode.ALREADY_EXISTS && created.data?.plantId) {
+        } else if (
+          !created.success &&
+          created.code === ActionErrorCode.ALREADY_EXISTS &&
+          created.data?.plantId
+        ) {
           plantIds.push(created.data.plantId);
         } else {
           error({
@@ -276,15 +311,21 @@ export default function PostFlow({
       // 画像はブラウザから posts バケットへ直接アップロードする
       // (Server Action経由だとVercelのリクエストボディ上限4.5MBに掛かるため)
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) {
-        error({ title: "投稿に失敗しました", description: "ログインが必要です。" });
+        error({
+          title: "投稿に失敗しました",
+          description: "ログインが必要です。",
+        });
         return;
       }
 
       const groupId = crypto.randomUUID();
       const imagePaths = images.map(
-        (_, i) => `${user.id}/${groupId}/${i + 1}_${generateImageName("post")}.jpg`,
+        (_, i) =>
+          `${user.id}/${groupId}/${i + 1}_${generateImageName("post")}.jpg`,
       );
 
       try {
@@ -294,7 +335,10 @@ export default function PostFlow({
         );
       } catch (e) {
         console.error(e);
-        error({ title: "投稿に失敗しました", description: "画像のアップロードに失敗しました。" });
+        error({
+          title: "投稿に失敗しました",
+          description: "画像のアップロードに失敗しました。",
+        });
         return;
       }
       uploadedPaths = imagePaths;
@@ -322,7 +366,10 @@ export default function PostFlow({
     } catch (e) {
       console.error(e);
       await removeUploadedImagesBestEffort("posts", uploadedPaths);
-      error({ title: "投稿に失敗しました", description: "再度お試しください。" });
+      error({
+        title: "投稿に失敗しました",
+        description: "再度お試しください。",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -337,11 +384,14 @@ export default function PostFlow({
           {/* 1. 写真 */}
           <div className="flex gap-4">
             <StepMarker number={1} done={photoDone} />
-            <div className="flex-1 min-w-0 flex flex-col gap-3 pb-6">
+            <div className="flex-1 min-w-0 flex flex-col gap-3 pb-10">
               <div>
-                <h2 className="text-base font-semibold text-gray-900 mb-1">写真を選択</h2>
+                <h2 className="text-base font-semibold text-gray-900 mb-1">
+                  写真を選択
+                </h2>
                 <p className="text-xs text-gray-500">
-                  猫と植物が一緒に写った写真を、{MAX_POST_IMAGES}枚まで選択できます。
+                  猫と植物が一緒に写った写真を、{MAX_POST_IMAGES}
+                  枚まで選択できます。
                   <br />
                   写真は植物名のAI判定のため、外部のAIサービスに送信されます。位置情報などのメタデータは公開時に自動で削除されます。
                 </p>
@@ -362,7 +412,10 @@ export default function PostFlow({
                 />
               </label>
               {isProcessingImages && (
-                <div className="grid grid-cols-3 gap-2" data-testid="image-processing">
+                <div
+                  className="grid grid-cols-3 gap-2"
+                  data-testid="image-processing"
+                >
                   <Skeleton className="aspect-square rounded-md" />
                 </div>
               )}
@@ -373,7 +426,12 @@ export default function PostFlow({
                       key={url}
                       className="relative aspect-square rounded-md overflow-hidden outline outline-2 -outline-offset-2 outline-green-500"
                     >
-                      <Image src={url} alt={`選択した写真 ${i + 1}`} fill className="object-cover" />
+                      <Image
+                        src={url}
+                        alt={`選択した写真 ${i + 1}`}
+                        fill
+                        className="object-cover"
+                      />
                       <span className="absolute top-1.5 left-1.5 inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-600 text-white text-xs font-bold">
                         {i + 1}
                       </span>
@@ -395,7 +453,7 @@ export default function PostFlow({
           {/* 2. 植物 (写真を選ぶと詳細が現れる) */}
           <div className="flex gap-4">
             <StepMarker number={2} done={plantDone} />
-            <div className="flex-1 min-w-0 flex flex-col gap-4 pb-6">
+            <div className="flex-1 min-w-0 flex flex-col gap-4 pb-10">
               <div>
                 <h2
                   className={`text-base font-semibold mb-1 ${photoDone ? "text-gray-900" : "text-gray-400"}`}
@@ -439,7 +497,11 @@ export default function PostFlow({
                               }`}
                               data-testid="ai-candidate"
                             >
-                              {selected ? <Check className="w-3.5 h-3.5" /> : <Leaf className="w-3.5 h-3.5" />}
+                              {selected ? (
+                                <Check className="w-3.5 h-3.5" />
+                              ) : (
+                                <Leaf className="w-3.5 h-3.5" />
+                              )}
                               {candidate.name}
                               {typeof candidate.confidence === "number" && (
                                 <span className="text-xs opacity-70">
@@ -479,7 +541,11 @@ export default function PostFlow({
                     {query.trim() && (
                       <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
                         {suggestions.map((plant) => {
-                          const item: SelectedPlant = { mode: "existing", id: plant.id, name: plant.name };
+                          const item: SelectedPlant = {
+                            mode: "existing",
+                            id: plant.id,
+                            name: plant.name,
+                          };
                           const selected = isPlantSelected(item);
                           return (
                             <button
@@ -493,12 +559,16 @@ export default function PostFlow({
                               ) : (
                                 <Leaf className="w-4 h-4 text-gray-400" />
                               )}
-                              <span className="flex-1 text-sm text-gray-800">{plant.name}</span>
+                              <span className="flex-1 text-sm text-gray-800">
+                                {plant.name}
+                              </span>
                             </button>
                           );
                         })}
                         {!suggestions.some(
-                          (plant) => normalizePlantName(plant.name) === normalizePlantName(query),
+                          (plant) =>
+                            normalizePlantName(plant.name) ===
+                            normalizePlantName(query),
                         ) && (
                           <button
                             type="button"
@@ -506,7 +576,9 @@ export default function PostFlow({
                               const name = normalizePlantName(query);
                               if (!name) return;
                               if (name.length > 50) {
-                                error({ title: "植物名は50文字以内で入力してください" });
+                                error({
+                                  title: "植物名は50文字以内で入力してください",
+                                });
                                 return;
                               }
                               togglePlant({ mode: "new", name });
@@ -516,7 +588,8 @@ export default function PostFlow({
                           >
                             <Plus className="w-4 h-4" />
                             <span className="text-sm">
-                              「{normalizePlantName(query)}」を新しく登録して選択
+                              「{normalizePlantName(query)}
+                              」を新しく登録して選択
                             </span>
                           </button>
                         )}
@@ -526,7 +599,9 @@ export default function PostFlow({
 
                   {selectedPlants.length > 0 && (
                     <div className="flex flex-col gap-2 p-3 rounded-lg bg-gray-50">
-                      <span className="text-xs text-gray-500">選択中の植物</span>
+                      <span className="text-xs text-gray-500">
+                        選択中の植物
+                      </span>
                       <div className="flex gap-2 flex-wrap">
                         {selectedPlants.map((plant) => (
                           <span
@@ -535,7 +610,11 @@ export default function PostFlow({
                           >
                             <Leaf className="w-3.5 h-3.5" />
                             {plant.name}
-                            {plant.mode === "new" && <span className="text-[10px] opacity-70">(新規)</span>}
+                            {plant.mode === "new" && (
+                              <span className="text-[10px] opacity-70">
+                                (新規)
+                              </span>
+                            )}
                             <button
                               type="button"
                               onClick={() => togglePlant(plant)}
@@ -558,8 +637,12 @@ export default function PostFlow({
             <StepMarker number={3} done={petDone} isLast />
             <div className="flex-1 min-w-0 flex flex-col gap-2.5">
               <div>
-                <h2 className="text-base font-semibold text-gray-900 mb-1">写っている猫を選択</h2>
-                <p className="text-xs text-gray-500">共存実績は、選択した猫ごとに集計されます。</p>
+                <h2 className="text-base font-semibold text-gray-900 mb-1">
+                  写っている猫を選択
+                </h2>
+                <p className="text-xs text-gray-500">
+                  共存実績は、選択した猫ごとに集計されます。
+                </p>
               </div>
               <div className="flex gap-2.5 flex-wrap">
                 {pets.map((pet) => {
@@ -586,7 +669,9 @@ export default function PostFlow({
                         >
                           {pet.name}
                         </span>
-                        <span className="text-xs text-gray-400">{pet.neko.name}</span>
+                        <span className="text-xs text-gray-400">
+                          {pet.neko.name}
+                        </span>
                       </span>
                       {selected && <Check className="w-4 h-4 text-green-600" />}
                     </button>
@@ -639,7 +724,11 @@ export default function PostFlow({
 
         {/* フッターナビ */}
         <div className="flex justify-between pt-2 border-t border-border">
-          <Button variant="ghost" onClick={() => router.back()} disabled={isSubmitting}>
+          <Button
+            variant="ghost"
+            onClick={() => router.back()}
+            disabled={isSubmitting}
+          >
             <ChevronLeft className="w-4 h-4" />
             やめる
           </Button>

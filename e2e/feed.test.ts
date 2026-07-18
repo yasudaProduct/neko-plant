@@ -68,7 +68,7 @@ test.describe('フィード / ランディング @public', () => {
 
   test('投稿者名からユーザープロフィールへ遷移できる（M6）', async ({ page }) => {
     const seedCard = page.getByTestId('post-card').filter({ hasText: SEED_POST_COMMENT });
-    await seedCard.getByRole('link', { name: 'テストユーザー' }).first().click();
+    await seedCard.locator('a[href="/testuser"]', { hasText: 'テストユーザー' }).click();
 
     await expect(page).toHaveURL('/testuser');
     await expect(page.getByTestId('profile-name')).toHaveText('テストユーザー');

@@ -27,7 +27,7 @@ export default function PostCard({ post, priority = false }: Props) {
       <Link
         href={postHref}
         className="absolute inset-0 z-0"
-        aria-label={`${post.user.name}さんの投稿を見る`}
+        aria-label="投稿を見る"
         data-testid="post-card-link"
       />
 

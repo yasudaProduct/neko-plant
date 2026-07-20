@@ -19,6 +19,7 @@ npm test                 # Vitestユニットテスト
 npm run test:coverage    # テストカバレッジレポート
 npm run e2e              # Playwright E2Eテスト
 npm run seed:e2e         # E2Eテストデータのシード
+npm run test:db          # pgTAPによるRLS/ストレージポリシーのDBテスト（要: supabase start）
 
 # データベース（スキーマの正は supabase/migrations/*.sql。詳細は下記「データベース変更のルール」）
 supabase db reset        # 全マイグレーション適用 + seeds/*.sql 投入（ローカルDBを作り直す）
@@ -70,6 +71,7 @@ npm run lint             # ESLint
 - Server ActionsはVitestを使用したユニットテスト
 - 重要なユーザーフローはPlaywright E2Eテストでカバー
 - E2Eテストには認証フローが含まれ、シードされたテストデータが必要
+- RLS・ストレージポリシーはpgTAPテスト（`supabase/tests/*.sql`、`supabase test db`で実行）で退行を検知。anonキーでPostgREST/Storageを直接叩かれても守れることを担保する。ポリシーを追加・変更するマイグレーションでは `01_rls_structure.sql` のポリシー一覧も更新する
 
 ### ローカライゼーション
 アプリケーションは主に日本語で、日本語フォント（M_PLUS_Rounded_1c）を使用。コンテンツとメタデータは日本語中心。

@@ -42,6 +42,11 @@ jobs:
             sleep 2
           done
 
+      # RLS・ストレージポリシーの pgTAP テスト（マイグレーション適用済みのローカルDBに対して実行）
+      # Playwright のブラウザインストールや E2E より先に実行して早期に失敗させる
+      - name: Run pgTAP database tests
+        run: supabase test db
+
       # Supabaseの接続情報を環境変数に設定
       - name: Set Supabase environment variables
         run: |

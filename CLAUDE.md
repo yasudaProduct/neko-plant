@@ -71,7 +71,7 @@ npm run lint             # ESLint
 - Server ActionsはVitestを使用したユニットテスト
 - 重要なユーザーフローはPlaywright E2Eテストでカバー
 - E2Eテストには認証フローが含まれ、シードされたテストデータが必要
-- RLS・ストレージポリシーはpgTAPテスト（`supabase/tests/*.sql`、`supabase test db`で実行）で退行を検知。anonキーでPostgREST/Storageを直接叩かれても守れることを担保する。ポリシーを追加・変更するマイグレーションでは `01_rls_structure.sql` のポリシー一覧も更新する
+- RLS・ストレージポリシーはpgTAPテスト（`supabase/tests/*.sql`、`supabase test db`で実行）で退行を検知。anonキーでPostgREST/Storageを直接叩かれても守れることを担保する。テーブルを追加・削除・リネームするマイグレーションでは `01_rls_structure.sql` のテーブル一覧を、ポリシーを追加・変更するマイグレーションでは同ファイルのポリシー一覧を、それぞれ更新する
 
 ### ローカライゼーション
 アプリケーションは主に日本語で、日本語フォント（M_PLUS_Rounded_1c）を使用。コンテンツとメタデータは日本語中心。
@@ -80,7 +80,7 @@ npm run lint             # ESLint
 データベースは自動ユーザープロフィール作成とデータ整合性のためのトリガーを使用。トリガーのドキュメントは`/doc/supabase.md`を参照。
 
 ### データベース変更のルール
-**スキーマの正は `supabase/migrations/*.sql`（Supabaseマイグレーション）。** `prisma/schema.prisma` は `prisma db pull` で生成する Prisma Client 用のイントロスペクション成果物であり、手で編集しない。RLS・ストレージポリシー・トリガー・関数もすべてマイグレーションSQLに含める（Prisma Migrate は使用しない）。
+**スキーマの正は `supabase/migrations/*.sql`（Supabaseマイグレーション）。** `prisma/schema.prisma` は `prisma db pull` で生成する Prisma Client 用のイントロスペクション成果物であり、手で編集しない。RLS・ストレージポリシー・トリガー・関数もすべてマイグレーションSQLに含める（Prisma Migrate は使用しない）。新規テーブルを作成する際は、同じマイグレーション内で原則 `ENABLE ROW LEVEL SECURITY` を設定する（意図的に無効のままにする場合は理由をPRに明記する）。
 
 変更手順:
 1. マイグレーションを作成する

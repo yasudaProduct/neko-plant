@@ -1,31 +1,50 @@
 -- =============================================================
 -- RLS 構造テスト（ドリフト検知）
 --
--- ポリシーの一覧・対象コマンド・対象ロール・テーブル権限をカタログから
--- 検証し、マイグレーションによる意図しない変更（ポリシーの追加/削除/
--- 拡大、GRANT の復活）を検知する。
--- ポリシーを追加・変更するマイグレーションを書いたら、このファイルの
--- 一覧もセットで更新すること（それがこのテストの目的）。
+-- テーブル一覧・RLS有効化状態・ポリシーの一覧・対象コマンド・対象ロール・
+-- テーブル権限をカタログから検証し、マイグレーションによる意図しない変更
+-- （テーブルの追加/削除、RLS無効化、ポリシーの追加/削除/拡大、GRANT の
+-- 復活）を検知する。
+-- テーブルを追加・削除・リネームする、またはポリシーを追加・変更する
+-- マイグレーションを書いたら、このファイルの一覧もセットで更新すること
+-- （それがこのテストの目的）。
 --
 -- 実行: supabase test db（ローカルスタック起動中に）
 -- =============================================================
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(84);
+select plan(76);
 
 -- -------------------------------------------------------------
--- 1. public スキーマ: 全10テーブルで RLS が有効
+-- 1. public スキーマ: テーブル一覧が想定どおり、かつ全テーブルで RLS が有効
+--    (a) tables_are: テーブルの追加・削除・リネームを検知する。
+--        新しいテーブルができたらここに追加しない限り必ず失敗する
+--        ＝ 2〜5節のポリシー断言を追加し忘れる事故を防ぐ仕掛け。
+--    (b) is_empty: このリストに載っているかどうかを問わず、RLS が
+--        無効なテーブルを検知する（新規テーブルの設定漏れ／既存
+--        テーブルの無効化への退行のどちらも拾う）。
 -- -------------------------------------------------------------
-select ok((select relrowsecurity from pg_class where oid = 'public.plants'::regclass), 'RLS 有効: plants');
-select ok((select relrowsecurity from pg_class where oid = 'public.neko'::regclass), 'RLS 有効: neko');
-select ok((select relrowsecurity from pg_class where oid = 'public.users'::regclass), 'RLS 有効: users');
-select ok((select relrowsecurity from pg_class where oid = 'public.pets'::regclass), 'RLS 有効: pets');
-select ok((select relrowsecurity from pg_class where oid = 'public.posts'::regclass), 'RLS 有効: posts');
-select ok((select relrowsecurity from pg_class where oid = 'public.post_images'::regclass), 'RLS 有効: post_images');
-select ok((select relrowsecurity from pg_class where oid = 'public.post_likes'::regclass), 'RLS 有効: post_likes');
-select ok((select relrowsecurity from pg_class where oid = 'public.post_pets'::regclass), 'RLS 有効: post_pets');
-select ok((select relrowsecurity from pg_class where oid = 'public.post_plants'::regclass), 'RLS 有効: post_plants');
-select ok((select relrowsecurity from pg_class where oid = 'public.plant_identification_logs'::regclass), 'RLS 有効: plant_identification_logs');
+select tables_are(
+    'public',
+    array[
+        'plants', 'neko', 'users', 'pets', 'posts',
+        'post_images', 'post_likes', 'post_pets', 'post_plants',
+        'plant_identification_logs'
+    ],
+    'public スキーマのテーブルは想定の10個のみ'
+);
+
+select is_empty(
+    $$select relname from pg_class
+      where relnamespace = 'public'::regnamespace
+        and relkind = 'r'
+        and not relrowsecurity$$,
+    'public スキーマの全テーブルで RLS が有効（新規・既存を問わず検知）'
+);
+-- 注: relkind = 'r'（通常テーブル）のみ対象。パーティションテーブル（'p'）や
+-- ビューはこの2つの断言の対象外（tables_are 自体の仕様、かつ現状どちらも
+-- 存在しない）。将来パーティションテーブルを導入する場合はこのセクションの
+-- 見直しが必要。
 
 -- -------------------------------------------------------------
 -- 2. public スキーマ: ポリシーの完全一覧（過不足を検知）
@@ -96,7 +115,8 @@ select table_privs_are('public', 'plant_identification_logs', 'authenticated', a
 -- -------------------------------------------------------------
 -- 6. storage.objects: RLS + ポリシー完全一覧
 --    （storage の GRANT・トリガー・カラムは storage-api / CLI バージョン
---      管理下のため断言しない。リポジトリ管理下のポリシーのみ固定する）
+--      管理下のため断言しない。リポジトリ管理下のポリシーのみ固定する。
+--      同じ理由で storage スキーマのテーブル一覧そのものも断言しない）
 -- -------------------------------------------------------------
 select ok((select relrowsecurity from pg_class where oid = 'storage.objects'::regclass), 'RLS 有効: storage.objects');
 

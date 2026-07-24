@@ -75,10 +75,16 @@ test.describe('フィード / ランディング @public', () => {
   });
 
   test('未ログインでいいねするとログイン導線が表示される', async ({ page }) => {
-    await page.getByTestId('like-button').first().getByRole('button').click();
+    // ダイアログ表示後は背景要素に aria-hidden が付き getByRole が拾えなくなるため、
+    // role ではなく生の button 要素で参照する
+    const likeButton = page.getByTestId('like-button').first().locator('button');
+    await likeButton.click();
 
     // AuthDialogContext 経由のログインダイアログ
     await expect(page.locator('text=いいねするにはログインしてください')).toBeVisible();
+    // 楽観的更新が先に走って一瞬いいね済み表示になってから戻る、という
+    // ちらつきが起きていないこと（未ログイン時は楽観的更新自体をスキップする）
+    await expect(likeButton).toHaveAttribute('aria-label', 'いいねする');
     await page.screenshot({ path: screenshotDir + 'like-login-dialog.png', fullPage: true });
   });
 });

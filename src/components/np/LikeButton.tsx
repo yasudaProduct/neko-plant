@@ -6,6 +6,7 @@ import { togglePostLike } from "@/actions/post-action";
 import { useAuthDialog } from "@/contexts/AuthDialogContext";
 import { ActionErrorCode } from "@/types/common";
 import { useToast } from "@/hooks/use-toast";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -26,6 +27,15 @@ export default function LikeButton({ postId, initialLiked, initialCount, size = 
 
   const onToggle = async () => {
     if (pending) return;
+
+    // 未ログイン時は楽観的更新の前に弾く (先に更新するとログインダイアログ表示時に
+    // いいね状態が一瞬反映されてから戻る、という見た目のちらつきが出るため)
+    const supabase = createClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      showLoginDialog("いいねするにはログインしてください");
+      return;
+    }
 
     const prevLiked = liked;
     const prevCount = count;

@@ -42,7 +42,9 @@ jobs:
         run: npm ci
 
       - name: Security Audit
-        run: npm audit --audit-level=high
+        # devDependencies (eslint/ts-node系ツール) は本番ビルド成果物に含まれないため対象外にする。
+        # 本番に出荷される dependencies のみを high 以上でゲートする。
+        run: npm audit --omit=dev --audit-level=high
 
   lint:
     runs-on: ubuntu-latest

@@ -122,6 +122,10 @@ export default defineConfig({
       if (process.env.SUPABASE_SERVICE_ROLE_KEY) env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
       if (process.env.DATABASE_URL) env.DATABASE_URL = process.env.DATABASE_URL;
       env.AI_PROVIDER = 'mock';
+      // AI判定はmockでコストが発生しないため、テスト数やリトライで
+      // 本番向けのレート制限(5回/分)に掛からないよう緩める
+      env.AI_IDENTIFY_RATE_LIMIT_PER_MINUTE = '1000';
+      env.AI_IDENTIFY_RATE_LIMIT_PER_DAY = '10000';
       return env;
     })(),
   },

@@ -26,6 +26,15 @@ type IdentifyPlantResponse =
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const SUPPORTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png"]);
 
+/**
+ * レート制限の上限を解決する。
+ * 既定値は本番想定だが、AIをモックするE2E等では環境変数で緩められるようにする。
+ */
+function resolveRateLimit(value: string | undefined, fallback: number): number {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : fallback;
+}
+
 function tryParseJson<T>(text: string): T | undefined {
   try {
     return JSON.parse(text) as T;
@@ -107,8 +116,16 @@ export async function identifyPlantFromImage(
   ]);
 
   if (
-    countLastMinute >= AI_IDENTIFY_RATE_LIMIT_PER_MINUTE ||
-    countLastDay >= AI_IDENTIFY_RATE_LIMIT_PER_DAY
+    countLastMinute >=
+      resolveRateLimit(
+        process.env.AI_IDENTIFY_RATE_LIMIT_PER_MINUTE,
+        AI_IDENTIFY_RATE_LIMIT_PER_MINUTE,
+      ) ||
+    countLastDay >=
+      resolveRateLimit(
+        process.env.AI_IDENTIFY_RATE_LIMIT_PER_DAY,
+        AI_IDENTIFY_RATE_LIMIT_PER_DAY,
+      )
   ) {
     return {
       success: false,

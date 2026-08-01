@@ -108,6 +108,17 @@ export default function PostFlow({
     setPets(myPets);
   }, [myPets]);
 
+  // 写真の追加時に既存プレビューのObjectURLを解放しなくなったため、離脱時にまとめて解放する
+  const previewsRef = useRef<string[]>([]);
+  useEffect(() => {
+    previewsRef.current = previews;
+  }, [previews]);
+  useEffect(() => {
+    return () => {
+      previewsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
+
   // AI判定
   const [isIdentifying, setIsIdentifying] = useState(false);
   const [hasIdentified, setHasIdentified] = useState(false);
@@ -144,15 +155,23 @@ export default function PostFlow({
     return () => clearTimeout(timer);
   }, [query]);
 
-  // 写真が選択されたらAI判定を自動実行
+  // 写真が選択されたらAI判定を自動実行する。
+  // 判定対象は1枚目だけなので、2枚目以降の追加・削除では再実行しない
+  // (依存を images[0] にすることで、実行中の判定が追加操作で中断されるのも防ぐ)
+  const identifyTarget = images[0];
+
   useEffect(() => {
-    if (hasIdentified || isIdentifying || images.length === 0) return;
+    if (!identifyTarget) {
+      setIsIdentifying(false);
+      return;
+    }
 
     let cancelled = false;
     const identify = async () => {
       setIsIdentifying(true);
+      setCandidates([]);
       try {
-        const result = await identifyPlantFromImage(images[0]);
+        const result = await identifyPlantFromImage(identifyTarget);
         if (cancelled) return;
 
         setHasIdentified(true);
@@ -181,12 +200,26 @@ export default function PostFlow({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [images]);
+  }, [identifyTarget]);
 
   const onImagesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []).slice(0, MAX_POST_IMAGES);
+    const selected = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (files.length === 0) return;
+    if (selected.length === 0) return;
+
+    // 既に選んだ写真は残したまま追加するので、空いている枠の分だけ受け付ける
+    const remaining = MAX_POST_IMAGES - images.length;
+    if (remaining <= 0) {
+      error({ title: `写真は最大${MAX_POST_IMAGES}枚までです` });
+      return;
+    }
+    const files = selected.slice(0, remaining);
+    if (files.length < selected.length) {
+      info({
+        title: `写真は最大${MAX_POST_IMAGES}枚までです`,
+        description: `先頭の${files.length}枚だけ追加しました。`,
+      });
+    }
 
     setIsProcessingImages(true);
     try {
@@ -208,13 +241,12 @@ export default function PostFlow({
       }
       if (processed.length === 0) return;
 
-      previews.forEach((url) => URL.revokeObjectURL(url));
-      setImages(processed);
-      setPreviews(processed.map((file) => URL.createObjectURL(file)));
-
-      // 画像が変わったらAI判定をやり直す
-      setHasIdentified(false);
-      setCandidates([]);
+      // 既存の写真は保持したまま末尾に追加する (既存プレビューのURLは解放しない)
+      setImages((prev) => [...prev, ...processed]);
+      setPreviews((prev) => [
+        ...prev,
+        ...processed.map((file) => URL.createObjectURL(file)),
+      ]);
     } finally {
       setIsProcessingImages(false);
     }
@@ -225,11 +257,12 @@ export default function PostFlow({
     const nextImages = images.filter((_, i) => i !== index);
     setImages(nextImages);
     setPreviews((prev) => prev.filter((_, i) => i !== index));
-    setHasIdentified(false);
-    setCandidates([]);
 
     // 写真が0枚になったら、それに紐付けていた植物・猫の選択もクリアする
+    // (1枚目が入れ替わった場合のAI判定のやり直しは identifyTarget のuseEffectが担う)
     if (nextImages.length === 0) {
+      setHasIdentified(false);
+      setCandidates([]);
       setSelectedPlants([]);
       setSelectedPetIds([]);
     }
@@ -397,29 +430,31 @@ export default function PostFlow({
                 </p>
               </div>
               <label
-                className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-green-500 transition-colors flex items-center justify-center gap-2 cursor-pointer text-gray-500 text-sm"
+                className={`border-2 border-dashed border-gray-300 rounded-lg p-6 transition-colors flex items-center justify-center gap-2 text-gray-500 text-sm ${
+                  isProcessingImages
+                    ? "opacity-60 cursor-not-allowed"
+                    : "cursor-pointer hover:border-green-500"
+                }`}
                 data-testid="image-upload-area"
               >
                 <Camera className="w-5 h-5" />
                 写真を追加する
+                {images.length > 0 && (
+                  <span className="text-xs text-gray-400">
+                    （残り{MAX_POST_IMAGES - images.length}枚）
+                  </span>
+                )}
                 <input
                   type="file"
                   accept="image/jpeg,image/png"
                   multiple
                   className="hidden"
+                  disabled={isProcessingImages}
                   onChange={onImagesSelected}
                   data-testid="image-input"
                 />
               </label>
-              {isProcessingImages && (
-                <div
-                  className="grid grid-cols-3 gap-2"
-                  data-testid="image-processing"
-                >
-                  <Skeleton className="aspect-square rounded-md" />
-                </div>
-              )}
-              {!isProcessingImages && previews.length > 0 && (
+              {(previews.length > 0 || isProcessingImages) && (
                 <div className="grid grid-cols-3 gap-2">
                   {previews.map((url, i) => (
                     <div
@@ -445,6 +480,13 @@ export default function PostFlow({
                       </button>
                     </div>
                   ))}
+                  {/* 処理中も既存の写真は表示したまま、追加分だけを仮表示する */}
+                  {isProcessingImages && (
+                    <Skeleton
+                      className="aspect-square rounded-md"
+                      data-testid="image-processing"
+                    />
+                  )}
                 </div>
               )}
             </div>

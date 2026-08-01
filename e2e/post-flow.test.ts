@@ -15,6 +15,7 @@ dotenv.config({ path: '.env.local' });
 
 const screenshotDir = 'test-results/screenshots/post-flow/';
 const testImagePath = path.resolve(__dirname, 'fixtures/test-plant.png');
+const secondImagePath = path.resolve(__dirname, 'fixtures/test-plant-2.png');
 
 test.describe('投稿フロー（未認証） @public', () => {
   test('未認証ユーザーはログインページにリダイレクトされる', async ({ page }) => {
@@ -85,6 +86,31 @@ test.describe('投稿フロー @user', () => {
     // 選択中に反映される
     const selected = page.locator('text=選択中の植物').locator('..');
     await expect(selected.getByText('モンステラ')).toBeVisible();
+  });
+
+  test('2枚目を追加しても1枚目が消えない', async ({ page }) => {
+    await page.getByTestId('image-input').setInputFiles(testImagePath);
+    await expect(page.getByTestId('remove-image')).toHaveCount(1);
+
+    // 1枚目に対してAI判定が走り、候補から植物を選ぶ
+    await expect(page.getByTestId('ai-candidate').first()).toBeVisible({ timeout: 15000 });
+    await page.getByTestId('ai-candidate').filter({ hasText: 'パキラ' }).first().click();
+    const selected = page.locator('text=選択中の植物').locator('..');
+    await expect(selected.getByText('パキラ')).toBeVisible();
+
+    // 2枚目を追加しても1枚目は残る（置き換えではなく追加）
+    await page.getByTestId('image-input').setInputFiles(secondImagePath);
+    await expect(page.getByTestId('remove-image')).toHaveCount(2);
+    await page.screenshot({ path: screenshotDir + 'multiple-images.png', fullPage: true });
+
+    // 判定対象は1枚目のままなので、AI候補と植物の選択も保持される
+    await expect(page.getByTestId('ai-candidate').first()).toBeVisible();
+    await expect(selected.getByText('パキラ')).toBeVisible();
+
+    // 2枚目だけ削除しても1枚目と選択内容は残る
+    await page.getByTestId('remove-image').nth(1).click();
+    await expect(page.getByTestId('remove-image')).toHaveCount(1);
+    await expect(selected.getByText('パキラ')).toBeVisible();
   });
 
   test('写真を全て削除すると、選択していた植物・猫もクリアされる', async ({ page }) => {

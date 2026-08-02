@@ -111,7 +111,7 @@ export async function chatCompletion(
 ): Promise<string> {
   if (config.provider === "mock") {
     return JSON.stringify({
-      candidates: [
+      plants: [
         { name: "パキラ", confidence: 0.92 },
         { name: "モンステラ", confidence: 0.65 },
         { name: "テスト新規植物", confidence: 0.3 },

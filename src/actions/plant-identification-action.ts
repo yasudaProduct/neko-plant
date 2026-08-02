@@ -19,9 +19,13 @@ export type PlantIdentificationCandidate = {
   matchedPlant?: { id: number; name: string };
 };
 
+type IdentifiedPlantEntry = { name: string; confidence?: number };
+
+// 現行形式は {"plants":[...]}。旧形式 {"candidates":[...]} と裸配列にも
+// フォールバックし、モデルが慣れたキー名で返しても救済できるようにする
 type IdentifyPlantResponse =
-  | { candidates: Array<{ name: string; confidence?: number }> }
-  | Array<{ name: string; confidence?: number }>;
+  | { plants?: IdentifiedPlantEntry[]; candidates?: IdentifiedPlantEntry[] }
+  | IdentifiedPlantEntry[];
 
 const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 const SUPPORTED_IMAGE_TYPES = new Set(["image/jpeg", "image/png"]);
@@ -74,7 +78,7 @@ function normalizePlantName(name: string): string {
   return name.trim().replace(/\s+/g, " ");
 }
 
-// AIで植物名を判定する
+// AIで写真に写っている植物 (複数可) の名前を判定する
 export async function identifyPlantFromImage(
   image: File
 ): Promise<ActionResult<{ candidates: PlantIdentificationCandidate[] }>> {
@@ -179,15 +183,17 @@ export async function identifyPlantFromImage(
     const dataUrl = `data:${image.type};base64,${base64}`;
 
     const systemPrompt = [
-      "あなたは植物の画像から植物名候補を推定するアシスタントです。",
+      "あなたは写真に写っている植物をすべて見つけて、それぞれの植物名を推定するアシスタントです。",
       "出力は必ずJSONのみ（説明文なし）で返してください。",
       "",
       "要件:",
-      '- 形式: {"candidates":[{"name":"植物名","confidence":0.0}]}',
-      "- candidatesは最大5件",
+      '- 形式: {"plants":[{"name":"植物名","confidence":0.0}]}',
+      "- 写真に写っている植物を種類ごとに1件ずつ列挙し、最も確からしい名前を付ける",
+      "- 同じ植物に別の有力な名前がある場合は、別の1件として追加してよい",
+      "- plantsは最大5件",
       "- nameは日本語の一般的な呼称を優先（分からなければ英名でも可）",
       "- confidenceは0〜1の小数（推定で可）",
-      "- 不明な場合はcandidatesを空配列",
+      "- 植物が写っていない場合はplantsを空配列",
     ].join("\n");
 
     const messages: ChatMessage[] = [
@@ -195,7 +201,10 @@ export async function identifyPlantFromImage(
       {
         role: "user",
         content: [
-          { type: "text", text: "この写真の植物名候補を推定してください。" },
+          {
+            type: "text",
+            text: "この写真に写っているすべての植物の名前を推定してください。",
+          },
           { type: "image_url", image_url: { url: dataUrl } },
         ],
       },
@@ -216,22 +225,29 @@ export async function identifyPlantFromImage(
     }
     const parsed = tryParseJson<IdentifyPlantResponse>(content);
 
-    const rawCandidates: Array<{ name: string; confidence?: number }> =
-      Array.isArray(parsed)
-        ? parsed
-        : parsed?.candidates && Array.isArray(parsed.candidates)
+    const rawCandidates: IdentifiedPlantEntry[] = Array.isArray(parsed)
+      ? parsed
+      : Array.isArray(parsed?.plants)
+        ? parsed.plants
+        : Array.isArray(parsed?.candidates)
           ? parsed.candidates
           : [];
 
+    // 同名の植物が複数写っていても、タグとしては1つなので名前で重複排除する (先勝ち)
+    const seenNames = new Set<string>();
     const normalizedCandidates = rawCandidates
       .map((c) => ({
         name: normalizePlantName(c.name ?? ""),
         confidence:
           typeof c.confidence === "number" ? Math.max(0, Math.min(1, c.confidence)) : undefined,
       }))
-      .filter((c) => c.name.length > 0);
+      .filter((c) => {
+        if (c.name.length === 0 || seenNames.has(c.name)) return false;
+        seenNames.add(c.name);
+        return true;
+      });
 
-    const uniqueNames = Array.from(new Set(normalizedCandidates.map((c) => c.name)));
+    const uniqueNames = normalizedCandidates.map((c) => c.name);
 
     const exactMatches =
       uniqueNames.length > 0

@@ -13,7 +13,7 @@
 -- =============================================================
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(76);
+select plan(81);
 
 -- -------------------------------------------------------------
 -- 1. public スキーマ: テーブル一覧が想定どおり、かつ全テーブルで RLS が有効
@@ -29,9 +29,9 @@ select tables_are(
     array[
         'plants', 'neko', 'users', 'pets', 'posts',
         'post_images', 'post_likes', 'post_pets', 'post_plants',
-        'plant_identification_logs'
+        'post_image_plants', 'plant_identification_logs'
     ],
-    'public スキーマのテーブルは想定の10個のみ'
+    'public スキーマのテーブルは想定の11個のみ'
 );
 
 select is_empty(
@@ -58,6 +58,7 @@ select policies_are('public', 'post_images', array['Post images are viewable by 
 select policies_are('public', 'post_likes', array['Post likes are viewable by everyone'], 'post_likes のポリシーは閲覧のみ');
 select policies_are('public', 'post_pets', array['Post pets are viewable by everyone'], 'post_pets のポリシーは閲覧のみ');
 select policies_are('public', 'post_plants', array['Post plants are viewable by everyone'], 'post_plants のポリシーは閲覧のみ');
+select policies_are('public', 'post_image_plants', array['Post image plants are viewable by everyone'], 'post_image_plants のポリシーは閲覧のみ');
 select policies_are('public', 'plant_identification_logs', array[]::name[], 'plant_identification_logs にポリシーはない（全拒否）');
 
 -- -------------------------------------------------------------
@@ -72,6 +73,7 @@ select policy_cmd_is('public', 'post_images', 'Post images are viewable by every
 select policy_cmd_is('public', 'post_likes', 'Post likes are viewable by everyone', 'SELECT', 'post_likes の閲覧ポリシーは SELECT のみ');
 select policy_cmd_is('public', 'post_pets', 'Post pets are viewable by everyone', 'SELECT', 'post_pets の閲覧ポリシーは SELECT のみ');
 select policy_cmd_is('public', 'post_plants', 'Post plants are viewable by everyone', 'SELECT', 'post_plants の閲覧ポリシーは SELECT のみ');
+select policy_cmd_is('public', 'post_image_plants', 'Post image plants are viewable by everyone', 'SELECT', 'post_image_plants の閲覧ポリシーは SELECT のみ');
 
 -- -------------------------------------------------------------
 -- 4. public スキーマ: ポリシーの対象ロール
@@ -85,6 +87,7 @@ select policy_roles_are('public', 'post_images', 'Post images are viewable by ev
 select policy_roles_are('public', 'post_likes', 'Post likes are viewable by everyone', array['anon', 'authenticated'], 'post_likes の閲覧は anon + authenticated');
 select policy_roles_are('public', 'post_pets', 'Post pets are viewable by everyone', array['anon', 'authenticated'], 'post_pets の閲覧は anon + authenticated');
 select policy_roles_are('public', 'post_plants', 'Post plants are viewable by everyone', array['anon', 'authenticated'], 'post_plants の閲覧は anon + authenticated');
+select policy_roles_are('public', 'post_image_plants', 'Post image plants are viewable by everyone', array['anon', 'authenticated'], 'post_image_plants の閲覧は anon + authenticated');
 
 -- -------------------------------------------------------------
 -- 5. public スキーマ: テーブル権限（20260712030221 の REVOKE の退行検知）
@@ -109,6 +112,8 @@ select table_privs_are('public', 'post_pets', 'anon', array['SELECT', 'REFERENCE
 select table_privs_are('public', 'post_pets', 'authenticated', array['SELECT', 'REFERENCES', 'TRIGGER'], 'authenticated の post_pets 権限は SELECT 系のみ');
 select table_privs_are('public', 'post_plants', 'anon', array['SELECT', 'REFERENCES', 'TRIGGER'], 'anon の post_plants 権限は SELECT 系のみ');
 select table_privs_are('public', 'post_plants', 'authenticated', array['SELECT', 'REFERENCES', 'TRIGGER'], 'authenticated の post_plants 権限は SELECT 系のみ');
+select table_privs_are('public', 'post_image_plants', 'anon', array['SELECT', 'REFERENCES', 'TRIGGER'], 'anon の post_image_plants 権限は SELECT 系のみ');
+select table_privs_are('public', 'post_image_plants', 'authenticated', array['SELECT', 'REFERENCES', 'TRIGGER'], 'authenticated の post_image_plants 権限は SELECT 系のみ');
 select table_privs_are('public', 'plant_identification_logs', 'anon', array[]::name[], 'anon は plant_identification_logs に一切の権限なし');
 select table_privs_are('public', 'plant_identification_logs', 'authenticated', array[]::name[], 'authenticated は plant_identification_logs に一切の権限なし');
 

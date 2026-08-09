@@ -119,31 +119,37 @@ export default async function PostDetailPage({
       <div className="bg-white rounded-xl border border-border shadow-sm overflow-hidden">
         <div className="grid grid-cols-[3fr_2fr] max-md:grid-cols-1">
           {/* 写真 */}
-          <div className="relative border-r border-border max-md:border-r-0 max-md:border-b bg-gray-100 min-h-[320px]">
-            {post.imageUrls.length > 1 ? (
-              <Carousel className="h-full">
-                <CarouselContent className="h-full">
-                  {post.imageUrls.map((url, i) => (
-                    <CarouselItem key={url}>
-                      <div className="relative aspect-[4/3] min-h-[320px]">
-                        <Image
-                          src={url}
-                          alt={`${post.user.name}さんの投稿`}
-                          fill
-                          sizes="(max-width: 768px) 100vw, 560px"
-                          className="object-cover"
-                          priority={i === 0}
-                        />
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-                <CarouselPrevious className="left-2" />
-                <CarouselNext className="right-2" />
-              </Carousel>
-            ) : (
-              <div className="relative aspect-[4/3] min-h-[320px]">
-                {post.imageUrls[0] && (
+          {/* min-w-0 必須: grid-cols-[3fr_2fr] の 3fr は minmax(auto, 3fr) なので、
+              これがないと写真列の min-content 幅 (カルーセルは画像枚数に比例する) が
+              トラックを押し広げ、情報列が潰れる */}
+          <div className="relative min-w-0 border-r border-border max-md:border-r-0 max-md:border-b bg-gray-100 min-h-[320px]">
+            {/* 写真列の高さの下限を 4:3 で確保するスペーサー。
+                情報列の方が高いときは、写真が行の高さいっぱいまで伸びる */}
+            <div className="aspect-[4/3] min-h-[320px]" />
+            <div className="absolute inset-0">
+              {post.imageUrls.length > 1 ? (
+                <Carousel className="h-full">
+                  <CarouselContent className="h-full">
+                    {post.imageUrls.map((url, i) => (
+                      <CarouselItem key={url} className="h-full">
+                        <div className="relative h-full">
+                          <Image
+                            src={url}
+                            alt={`${post.user.name}さんの投稿`}
+                            fill
+                            sizes="(max-width: 768px) 100vw, 560px"
+                            className="object-cover"
+                            priority={i === 0}
+                          />
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="left-2" />
+                  <CarouselNext className="right-2" />
+                </Carousel>
+              ) : (
+                post.imageUrls[0] && (
                   <Image
                     src={post.imageUrls[0]}
                     alt={`${post.user.name}さんの投稿`}
@@ -152,9 +158,9 @@ export default async function PostDetailPage({
                     className="object-cover"
                     priority
                   />
-                )}
-              </div>
-            )}
+                )
+              )}
+            </div>
           </div>
 
           {/* 情報 */}

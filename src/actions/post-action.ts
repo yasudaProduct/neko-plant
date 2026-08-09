@@ -251,15 +251,21 @@ export async function getSiteStats(): Promise<SiteStats> {
     };
 }
 
-export type CreatePostInput = {
+export type CreatePostImageInput = {
+    /** クライアントが posts バケットへ直接アップロード済みの画像パス */
+    path: string;
+    /** この写真に写っている植物 (0件可。投稿全体では1つ以上必要) */
     plantIds: number[];
-    petIds: number[];
-    comment?: string;
-    /** クライアントが posts バケットへ直接アップロード済みの画像パス (表示順) */
-    imagePaths: string[];
 };
 
-/** 投稿を作成する (写真1〜3枚 + 植物タグ + 猫タグ + コメント(任意)) */
+export type CreatePostInput = {
+    /** 表示順の画像。plantIds は写真ごとの植物タグ */
+    images: CreatePostImageInput[];
+    petIds: number[];
+    comment?: string;
+};
+
+/** 投稿を作成する (写真1〜3枚 + 写真ごとの植物タグ + 猫タグ + コメント(任意)) */
 export async function createPost(input: CreatePostInput): Promise<ActionResult<{ postId: number }>> {
     try {
         const supabase = await createClient();
@@ -279,24 +285,37 @@ export async function createPost(input: CreatePostInput): Promise<ActionResult<{
         }
 
         // バリデーション
-        if (!input.imagePaths || input.imagePaths.length === 0) {
+        if (!input.images || input.images.length === 0) {
             return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "写真を1枚以上選択してください。" };
         }
-        if (input.imagePaths.length > MAX_POST_IMAGES) {
+        if (input.images.length > MAX_POST_IMAGES) {
             return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: `写真は最大${MAX_POST_IMAGES}枚までです。` };
         }
-        if (new Set(input.imagePaths).size !== input.imagePaths.length) {
+        const imagePaths = input.images.map((image) => image.path);
+        if (new Set(imagePaths).size !== imagePaths.length) {
             return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "画像の指定が不正です。" };
         }
-        for (const imagePath of input.imagePaths) {
+        for (const imagePath of imagePaths) {
             if (!isValidOwnedImagePath(imagePath, userData.auth_id)) {
                 return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "画像の指定が不正です。" };
             }
         }
-        if (!input.plantIds || input.plantIds.length === 0) {
+        for (const image of input.images) {
+            if (!Array.isArray(image.plantIds)) {
+                return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "画像の指定が不正です。" };
+            }
+            if (image.plantIds.length > MAX_POST_PLANTS) {
+                return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: `植物は最大${MAX_POST_PLANTS}つまでです。` };
+            }
+        }
+        // 写真ごとのタグは写真内で重複排除し、投稿全体の植物は和集合で扱う
+        // (同じ植物が複数の写真に写っていても、投稿としては1つとして数える)
+        const imagePlantIds = input.images.map((image) => [...new Set(image.plantIds)]);
+        const unionPlantIds = [...new Set(imagePlantIds.flat())];
+        if (unionPlantIds.length === 0) {
             return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "植物を1つ以上選択してください。" };
         }
-        if (input.plantIds.length > MAX_POST_PLANTS) {
+        if (unionPlantIds.length > MAX_POST_PLANTS) {
             return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: `植物は最大${MAX_POST_PLANTS}つまでです。` };
         }
         if (!input.petIds || input.petIds.length === 0) {
@@ -309,7 +328,7 @@ export async function createPost(input: CreatePostInput): Promise<ActionResult<{
             return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: `コメントは${MAX_POST_COMMENT_LENGTH}文字以内で入力してください。` };
         }
 
-        const plantIds = [...new Set(input.plantIds)];
+        const plantIds = unionPlantIds;
         const petIds = [...new Set(input.petIds)];
 
         const [plantCount, myPetCount] = await Promise.all([
@@ -359,13 +378,24 @@ export async function createPost(input: CreatePostInput): Promise<ActionResult<{
             // 画像はクライアントが {auth_id}/{uuid}/... へ直接アップロード済み。
             // パスの実在確認はしない (偽パスで壊れるのは本人の投稿の表示のみで、
             // 他人のパスはプレフィックス検証で拒否済み。list のコストに見合わない)。
-            await tx.post_images.createMany({
-                data: input.imagePaths.map((imagePath, i) => ({
-                    post_id: post.id,
-                    image_url: imagePath,
-                    order: i,
-                })),
-            });
+            // createMany はIDを返さないため、写真ごとの植物タグの紐付けに備えて
+            // 1枚ずつ create する (最大 MAX_POST_IMAGES 枚)
+            const postImagePlantRows: { post_image_id: number; plant_id: number }[] = [];
+            for (const [i, image] of input.images.entries()) {
+                const createdImage = await tx.post_images.create({
+                    data: {
+                        post_id: post.id,
+                        image_url: image.path,
+                        order: i,
+                    },
+                });
+                for (const plantId of imagePlantIds[i]) {
+                    postImagePlantRows.push({ post_image_id: createdImage.id, plant_id: plantId });
+                }
+            }
+            if (postImagePlantRows.length > 0) {
+                await tx.post_image_plants.createMany({ data: postImagePlantRows });
+            }
 
             newPostId = post.id;
         });

@@ -102,7 +102,7 @@ describe("plant-identification-action", () => {
     expect(vi.mocked(prisma.plants.findMany)).not.toHaveBeenCalled();
   });
 
-  it("AIレスポンスをパースして既存plantsに照合する", async () => {
+  it("AIレスポンス (plants形式) をパースして既存plantsに照合する", async () => {
     vi.mocked(getAiProviderConfig).mockReturnValue({
       provider: "gemini",
       apiKey: "test-key",
@@ -111,7 +111,7 @@ describe("plant-identification-action", () => {
     });
 
     vi.mocked(chatCompletion).mockResolvedValue(
-      '{"candidates":[{"name":" パキラ ","confidence":0.9},{"name":"モンステラ","confidence":0.5}]}'
+      '{"plants":[{"name":" パキラ ","confidence":0.9},{"name":"モンステラ","confidence":0.5}]}'
     );
 
     vi.mocked(createClient).mockResolvedValue({
@@ -138,6 +138,77 @@ describe("plant-identification-action", () => {
       });
       expect(result.data?.candidates?.[1]?.name).toBe("モンステラ");
       expect(result.data?.candidates?.[1]?.matchedPlant).toBeUndefined();
+    }
+  });
+
+  it("旧形式 (candidatesキー) のレスポンスもパースできる", async () => {
+    vi.mocked(getAiProviderConfig).mockReturnValue({
+      provider: "gemini",
+      apiKey: "test-key",
+      model: "gemini-2.5-flash-lite",
+      endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    });
+
+    vi.mocked(chatCompletion).mockResolvedValue(
+      '{"candidates":[{"name":"パキラ","confidence":0.9}]}'
+    );
+
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+      },
+    } as unknown as Awaited<ReturnType<typeof createClient>>);
+
+    vi.mocked(prisma.plants.findMany).mockResolvedValue(
+      [] as unknown as Awaited<ReturnType<typeof prisma.plants.findMany>>
+    );
+
+    const file = createTestFile("test.png", "image/png");
+
+    const result = await identifyPlantFromImage(file);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data?.candidates).toHaveLength(1);
+      expect(result.data?.candidates?.[0]?.name).toBe("パキラ");
+    }
+  });
+
+  it("同名の植物が複数返っても名前で重複排除される", async () => {
+    vi.mocked(getAiProviderConfig).mockReturnValue({
+      provider: "gemini",
+      apiKey: "test-key",
+      model: "gemini-2.5-flash-lite",
+      endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    });
+
+    // 同じ植物が2鉢写っているケース: 正規化後に同名になるエントリを含む
+    vi.mocked(chatCompletion).mockResolvedValue(
+      '{"plants":[{"name":"パキラ","confidence":0.9},{"name":" パキラ ","confidence":0.8},{"name":"モンステラ","confidence":0.5}]}'
+    );
+
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+      },
+    } as unknown as Awaited<ReturnType<typeof createClient>>);
+
+    vi.mocked(prisma.plants.findMany).mockResolvedValue(
+      [] as unknown as Awaited<ReturnType<typeof prisma.plants.findMany>>
+    );
+
+    const file = createTestFile("test.png", "image/png");
+
+    const result = await identifyPlantFromImage(file);
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data?.candidates?.map((c) => c.name)).toEqual([
+        "パキラ",
+        "モンステラ",
+      ]);
+      // 先勝ちで confidence は最初のエントリのものが残る
+      expect(result.data?.candidates?.[0]?.confidence).toBe(0.9);
     }
   });
 
@@ -176,8 +247,8 @@ describe("plant-identification-action", () => {
       },
     } as unknown as Awaited<ReturnType<typeof createClient>>);
 
-    // 1分あたりの上限 (5) に到達
-    vi.mocked(prisma.plant_identification_logs.count).mockResolvedValue(5);
+    // 1分あたりの上限 (10) に到達
+    vi.mocked(prisma.plant_identification_logs.count).mockResolvedValue(10);
 
     const file = createTestFile("test.png", "image/png");
 

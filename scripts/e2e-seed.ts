@@ -93,6 +93,7 @@ export async function main() {
 
     // usersテーブル以外をtruncate（投稿系→ペット→マスタの順で依存関係を解消）
     await prisma.post_likes.deleteMany();
+    await prisma.post_image_plants.deleteMany();
     await prisma.post_images.deleteMany();
     await prisma.post_pets.deleteMany();
     await prisma.post_plants.deleteMany();
@@ -227,8 +228,13 @@ export async function main() {
             .upload(imagePath, imageBuffer, { contentType: 'image/png', upsert: true });
         if (uploadError) throw new Error(`Failed to upload seed post image: ${uploadError.message}`);
 
-        await prisma.post_images.create({
+        const image = await prisma.post_images.create({
             data: { post_id: post.id, image_url: imagePath, order: 0 },
+        });
+
+        // 写真ごとの植物タグ（シード投稿は1枚なので投稿の植物をそのまま紐付ける）
+        await prisma.post_image_plants.createMany({
+            data: seed.plantIds.map((plantId) => ({ post_image_id: image.id, plant_id: plantId })),
         });
     }
 

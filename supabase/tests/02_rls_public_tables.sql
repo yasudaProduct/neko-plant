@@ -16,7 +16,7 @@
 -- =============================================================
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(33);
+select plan(34);
 
 -- -------------------------------------------------------------
 -- fixtures（postgres として作成）
@@ -66,6 +66,10 @@ insert into public.post_plants (post_id, plant_id)
 select p.id, pl.id from public.posts p, public.plants pl
 where p.comment = 'rls-fixture-post-a' and pl.name = 'rls-test-plant';
 
+insert into public.post_image_plants (post_image_id, plant_id)
+select pi.id, pl.id from public.post_images pi, public.plants pl
+where pi.image_url = 'rls-fixture-image' and pl.name = 'rls-test-plant';
+
 -- -------------------------------------------------------------
 -- postgres: fixture の健全性（2）
 -- -------------------------------------------------------------
@@ -79,13 +83,13 @@ select is(
     'RLS Test A', 'トリガーが raw_user_meta_data の name を伝播する');
 
 -- -------------------------------------------------------------
--- anon ロール（16）
+-- anon ロール（17）
 -- -------------------------------------------------------------
 reset role;
 select set_config('request.jwt.claims', '', true);
 set local role anon;
 
--- 公開テーブルは読める（7）
+-- 公開テーブルは読める（8）
 select ok(exists(select 1 from public.plants where name = 'rls-test-plant'), 'anon: plants を読める');
 select ok(exists(select 1 from public.neko where name = 'rls-test-neko'), 'anon: neko を読める');
 select ok(exists(select 1 from public.posts where comment = 'rls-fixture-post-a'), 'anon: posts を読める');
@@ -96,6 +100,8 @@ select ok(exists(select 1 from public.post_pets pp join public.posts p on p.id =
                  where p.comment = 'rls-fixture-post-a'), 'anon: post_pets を読める');
 select ok(exists(select 1 from public.post_plants pp join public.posts p on p.id = pp.post_id
                  where p.comment = 'rls-fixture-post-a'), 'anon: post_plants を読める');
+select ok(exists(select 1 from public.post_image_plants pip join public.post_images pi on pi.id = pip.post_image_id
+                 where pi.image_url = 'rls-fixture-image'), 'anon: post_image_plants を読める');
 
 -- ユーザー固有データは1行も見えない（ポリシーが anon に SELECT を許可していない）（2）
 select is((select count(*)::int from public.users), 0, 'anon: users は1行も見えない');

@@ -1,0 +1,55 @@
+name: Deploy Supabase
+
+# main にマージされた（= main に push された）タイミングで、
+# supabase/migrations/*.sql を本番プロジェクトへ適用する。
+# 手動実行（workflow_dispatch）でも同じ処理を走らせられる。
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "supabase/migrations/**"
+      - ".github/workflows/supabase-deploy.yml"
+  workflow_dispatch:
+
+# 同一の本番DBに対して複数の push が同時に走らないようにする（キャンセルはしない）
+concurrency:
+  group: supabase-production
+  cancel-in-progress: false
+
+jobs:
+  db-push:
+    runs-on: ubuntu-latest
+    # GitHub の Environment（production）に保護ルールを設定すれば、
+    # 適用前に手動承認を挟める
+    environment: production
+    permissions:
+      contents: read
+
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Link to production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      # ローカル（リポジトリ）とリモートのマイグレーション適用状況をログに残す
+      - name: Show migration status
+        run: supabase migration list --linked
+
+      # 実際に流れるSQLをログに出してから適用する
+      - name: Dry run
+        run: supabase db push --dry-run
+
+      - name: Push migrations
+        run: supabase db push

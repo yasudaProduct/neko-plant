@@ -93,24 +93,116 @@ test.describe('投稿フロー @user', () => {
     await expect(page.getByTestId('remove-image')).toHaveCount(1);
 
     // 1枚目に対してAI判定が走り、候補から植物を選ぶ
-    await expect(page.getByTestId('ai-candidate').first()).toBeVisible({ timeout: 15000 });
-    await page.getByTestId('ai-candidate').filter({ hasText: 'パキラ' }).first().click();
-    const selected = page.locator('text=選択中の植物').locator('..');
-    await expect(selected.getByText('パキラ')).toBeVisible();
+    const photo1 = page.getByTestId('photo-plant-section').nth(0);
+    await expect(photo1.getByTestId('ai-candidate').first()).toBeVisible({ timeout: 15000 });
+    await photo1.getByTestId('ai-candidate').filter({ hasText: 'パキラ' }).first().click();
+    const selected1 = photo1.locator('text=選択中の植物').locator('..');
+    await expect(selected1.getByText('パキラ')).toBeVisible();
 
     // 2枚目を追加しても1枚目は残る（置き換えではなく追加）
     await page.getByTestId('image-input').setInputFiles(secondImagePath);
     await expect(page.getByTestId('remove-image')).toHaveCount(2);
-    await page.screenshot({ path: screenshotDir + 'multiple-images.png', fullPage: true });
+    await expect(page.getByTestId('photo-plant-section')).toHaveCount(2);
 
-    // 判定対象は1枚目のままなので、AI候補と植物の選択も保持される
-    await expect(page.getByTestId('ai-candidate').first()).toBeVisible();
-    await expect(selected.getByText('パキラ')).toBeVisible();
+    // 2枚目にも独立したAI判定が走り、1枚目の候補と選択は保持される
+    const photo2 = page.getByTestId('photo-plant-section').nth(1);
+    await expect(photo2.getByTestId('ai-candidate').first()).toBeVisible({ timeout: 15000 });
+    await expect(photo1.getByTestId('ai-candidate').first()).toBeVisible();
+    await expect(selected1.getByText('パキラ')).toBeVisible();
+    await page.screenshot({ path: screenshotDir + 'multiple-images.png', fullPage: true });
 
     // 2枚目だけ削除しても1枚目と選択内容は残る
     await page.getByTestId('remove-image').nth(1).click();
     await expect(page.getByTestId('remove-image')).toHaveCount(1);
+    await expect(page.getByTestId('photo-plant-section')).toHaveCount(1);
+    await expect(selected1.getByText('パキラ')).toBeVisible();
+  });
+
+  test('写真ごとにAI候補が表示され、写真ごとに植物を選択できる', async ({ page }) => {
+    await page.getByTestId('image-input').setInputFiles(testImagePath);
+    await page.getByTestId('image-input').setInputFiles(secondImagePath);
+    await expect(page.getByTestId('photo-plant-section')).toHaveCount(2);
+
+    const photo1 = page.getByTestId('photo-plant-section').nth(0);
+    const photo2 = page.getByTestId('photo-plant-section').nth(1);
+
+    // それぞれの写真に独立したAI候補が表示される（mockは3候補ずつ返す）
+    await expect(photo1.getByTestId('ai-candidate')).toHaveCount(3, { timeout: 15000 });
+    await expect(photo2.getByTestId('ai-candidate')).toHaveCount(3, { timeout: 15000 });
+
+    // 写真1にパキラ、写真2にモンステラを選ぶと、互いの選択が混ざらない
+    await photo1.getByTestId('ai-candidate').filter({ hasText: 'パキラ' }).click();
+    await photo2.getByTestId('ai-candidate').filter({ hasText: 'モンステラ' }).click();
+
+    const selected1 = photo1.locator('text=選択中の植物').locator('..');
+    const selected2 = photo2.locator('text=選択中の植物').locator('..');
+    await expect(selected1.getByText('パキラ')).toBeVisible();
+    await expect(selected1.getByText('モンステラ')).not.toBeVisible();
+    await expect(selected2.getByText('モンステラ')).toBeVisible();
+    await expect(selected2.getByText('パキラ')).not.toBeVisible();
+    await page.screenshot({ path: screenshotDir + 'per-photo-plants.png', fullPage: true });
+  });
+
+  test('1枚の写真から複数の植物を選択できる', async ({ page }) => {
+    await page.getByTestId('image-input').setInputFiles(testImagePath);
+
+    const photo1 = page.getByTestId('photo-plant-section').first();
+    await expect(photo1.getByTestId('ai-candidate').first()).toBeVisible({ timeout: 15000 });
+
+    // 1枚の写真に複数の植物が写っているケース: 候補から2つ選べる
+    await photo1.getByTestId('ai-candidate').filter({ hasText: 'パキラ' }).click();
+    await photo1.getByTestId('ai-candidate').filter({ hasText: 'モンステラ' }).click();
+
+    const selected = photo1.locator('text=選択中の植物').locator('..');
     await expect(selected.getByText('パキラ')).toBeVisible();
+    await expect(selected.getByText('モンステラ')).toBeVisible();
+  });
+
+  test('写真を削除するとその写真の植物タグだけが消える', async ({ page }) => {
+    await page.getByTestId('image-input').setInputFiles(testImagePath);
+    await page.getByTestId('image-input').setInputFiles(secondImagePath);
+    await expect(page.getByTestId('photo-plant-section')).toHaveCount(2);
+
+    const photo1 = page.getByTestId('photo-plant-section').nth(0);
+    const photo2 = page.getByTestId('photo-plant-section').nth(1);
+    await expect(photo1.getByTestId('ai-candidate').first()).toBeVisible({ timeout: 15000 });
+    await expect(photo2.getByTestId('ai-candidate').first()).toBeVisible({ timeout: 15000 });
+    await photo1.getByTestId('ai-candidate').filter({ hasText: 'パキラ' }).click();
+    await photo2.getByTestId('ai-candidate').filter({ hasText: 'モンステラ' }).click();
+    await page.getByTestId('pet-option').first().click();
+    await expect(page.getByTestId('submit-post')).toBeEnabled();
+
+    // 写真1を削除 → 写真1のパキラだけ消え、写真2のモンステラは残って投稿可能なまま
+    await page.getByTestId('remove-image').nth(0).click();
+    await expect(page.getByTestId('photo-plant-section')).toHaveCount(1);
+    const remaining = page.getByTestId('photo-plant-section').first();
+    const selected = remaining.locator('text=選択中の植物').locator('..');
+    await expect(selected.getByText('モンステラ')).toBeVisible();
+    await expect(selected.getByText('パキラ')).not.toBeVisible();
+    await expect(page.getByTestId('submit-post')).toBeEnabled();
+  });
+
+  test('同じ植物を複数の写真に選択して投稿まで完走できる', async ({ page }) => {
+    const marker = `E2E複数写真マーカー_${Date.now()}`;
+
+    await page.getByTestId('image-input').setInputFiles(testImagePath);
+    await page.getByTestId('image-input').setInputFiles(secondImagePath);
+
+    const photo1 = page.getByTestId('photo-plant-section').nth(0);
+    const photo2 = page.getByTestId('photo-plant-section').nth(1);
+    await expect(photo1.getByTestId('ai-candidate').first()).toBeVisible({ timeout: 15000 });
+    await expect(photo2.getByTestId('ai-candidate').first()).toBeVisible({ timeout: 15000 });
+
+    // 既存の「パキラ」を両方の写真に選ぶ（共存実績のユニーク猫数を変えない）
+    await photo1.getByTestId('ai-candidate').filter({ hasText: 'パキラ' }).click();
+    await photo2.getByTestId('ai-candidate').filter({ hasText: 'パキラ' }).click();
+    await page.getByTestId('pet-option').first().click();
+    await page.getByTestId('comment-input').fill(marker);
+
+    // 投稿 → フィードに反映される（写真単位のタグと投稿単位の和集合が両方書き込まれる経路）
+    await page.getByTestId('submit-post').click();
+    await page.waitForURL('/');
+    await expect(page.getByTestId('post-card').filter({ hasText: marker })).toBeVisible({ timeout: 15000 });
   });
 
   test('写真を全て削除すると、選択していた植物・猫もクリアされる', async ({ page }) => {

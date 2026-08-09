@@ -24,9 +24,12 @@ vi.mock('@/lib/prisma', () => {
             delete: vi.fn(),
         },
         post_images: {
-            createMany: vi.fn(),
+            create: vi.fn(),
         },
         post_plants: {
+            createMany: vi.fn(),
+        },
+        post_image_plants: {
             createMany: vi.fn(),
         },
         post_pets: {
@@ -186,10 +189,9 @@ describe('Post Actions', () => {
     describe('createPost', () => {
         const validPath = `${mockUser.id}/e2c1a6ab-0000-0000-0000-000000000000/1_post_20260712.jpg`;
         const validInput = {
-            plantIds: [5],
+            images: [{ path: validPath, plantIds: [5] }],
             petIds: [3],
             comment: 'テスト',
-            imagePaths: [validPath],
         };
 
         it('未ログインの場合はAUTH_REQUIRED', async () => {
@@ -205,7 +207,7 @@ describe('Post Actions', () => {
             mockSupabase(mockUser);
             vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
 
-            const result = await createPost({ ...validInput, imagePaths: [] });
+            const result = await createPost({ ...validInput, images: [] });
 
             expect(result.success).toBe(false);
             if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
@@ -217,7 +219,10 @@ describe('Post Actions', () => {
 
             const result = await createPost({
                 ...validInput,
-                imagePaths: [1, 2, 3, 4].map((i) => `${mockUser.id}/uuid/${i}_post.jpg`),
+                images: [1, 2, 3, 4].map((i) => ({
+                    path: `${mockUser.id}/uuid/${i}_post.jpg`,
+                    plantIds: [5],
+                })),
             });
 
             expect(result.success).toBe(false);
@@ -230,7 +235,7 @@ describe('Post Actions', () => {
 
             const result = await createPost({
                 ...validInput,
-                imagePaths: ['other-auth-id/uuid/1_post.jpg'],
+                images: [{ path: 'other-auth-id/uuid/1_post.jpg', plantIds: [5] }],
             });
 
             expect(result.success).toBe(false);
@@ -243,7 +248,7 @@ describe('Post Actions', () => {
 
             const result = await createPost({
                 ...validInput,
-                imagePaths: [`${mockUser.id}/../other/1_post.jpg`],
+                images: [{ path: `${mockUser.id}/../other/1_post.jpg`, plantIds: [5] }],
             });
 
             expect(result.success).toBe(false);
@@ -256,7 +261,7 @@ describe('Post Actions', () => {
 
             const result = await createPost({
                 ...validInput,
-                imagePaths: [`${mockUser.id}/uuid/1_post @.jpg`],
+                images: [{ path: `${mockUser.id}/uuid/1_post @.jpg`, plantIds: [5] }],
             });
 
             expect(result.success).toBe(false);
@@ -269,18 +274,54 @@ describe('Post Actions', () => {
 
             const result = await createPost({
                 ...validInput,
-                imagePaths: [validPath, validPath],
+                images: [
+                    { path: validPath, plantIds: [5] },
+                    { path: validPath, plantIds: [5] },
+                ],
             });
 
             expect(result.success).toBe(false);
             if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
         });
 
-        it('植物が選択されていない場合はVALIDATION_ERROR', async () => {
+        it('植物が1つも選択されていない場合はVALIDATION_ERROR', async () => {
             mockSupabase(mockUser);
             vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
 
-            const result = await createPost({ ...validInput, plantIds: [] });
+            const result = await createPost({
+                ...validInput,
+                images: [{ path: validPath, plantIds: [] }],
+            });
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
+        });
+
+        it('植物の和集合が上限を超える場合はVALIDATION_ERROR', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
+
+            // 写真ごとは5個以内でも、和集合で6個になればエラー
+            const result = await createPost({
+                ...validInput,
+                images: [
+                    { path: `${mockUser.id}/uuid/1_post.jpg`, plantIds: [1, 2, 3] },
+                    { path: `${mockUser.id}/uuid/2_post.jpg`, plantIds: [4, 5, 6] },
+                ],
+            });
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
+        });
+
+        it('1枚の写真の植物が上限を超える場合はVALIDATION_ERROR', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
+
+            const result = await createPost({
+                ...validInput,
+                images: [{ path: validPath, plantIds: [1, 2, 3, 4, 5, 6] }],
+            });
 
             expect(result.success).toBe(false);
             if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
@@ -308,12 +349,13 @@ describe('Post Actions', () => {
             if (!result.success) expect(result.code).toBe(ActionErrorCode.NOT_FOUND);
         });
 
-        it('正常系: 投稿・タグ・画像が作成される', async () => {
+        it('正常系: 投稿・タグ・画像・写真ごとの植物タグが作成される', async () => {
             const { upload } = mockSupabase(mockUser);
             vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
             vi.mocked(prisma.plants.count).mockResolvedValue(1);
             vi.mocked(prisma.pets.count).mockResolvedValue(1);
             vi.mocked(prisma.posts.create).mockResolvedValue({ id: 99 } as any);
+            vi.mocked(prisma.post_images.create).mockResolvedValue({ id: 501 } as any);
 
             const result = await createPost(validInput);
 
@@ -329,11 +371,97 @@ describe('Post Actions', () => {
             expect(prisma.post_pets.createMany).toHaveBeenCalledWith({
                 data: [{ post_id: 99, pet_id: 3 }],
             });
-            expect(prisma.post_images.createMany).toHaveBeenCalledWith({
-                data: [{ post_id: 99, image_url: validPath, order: 0 }],
+            expect(prisma.post_images.create).toHaveBeenCalledWith({
+                data: { post_id: 99, image_url: validPath, order: 0 },
+            });
+            expect(prisma.post_image_plants.createMany).toHaveBeenCalledWith({
+                data: [{ post_image_id: 501, plant_id: 5 }],
             });
             // アップロードはクライアントが直接行うため、サーバーからは呼ばれない
             expect(upload).not.toHaveBeenCalled();
+        });
+
+        it('同じ植物を2枚の写真に付けると post_plants は1行・post_image_plants は2行', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
+            vi.mocked(prisma.plants.count).mockResolvedValue(1);
+            vi.mocked(prisma.pets.count).mockResolvedValue(1);
+            vi.mocked(prisma.posts.create).mockResolvedValue({ id: 99 } as any);
+            vi.mocked(prisma.post_images.create)
+                .mockResolvedValueOnce({ id: 501 } as any)
+                .mockResolvedValueOnce({ id: 502 } as any);
+
+            const result = await createPost({
+                ...validInput,
+                images: [
+                    { path: `${mockUser.id}/uuid/1_post.jpg`, plantIds: [5] },
+                    { path: `${mockUser.id}/uuid/2_post.jpg`, plantIds: [5] },
+                ],
+            });
+
+            expect(result.success).toBe(true);
+            // 投稿単位では1つとして数える (和集合)
+            expect(prisma.post_plants.createMany).toHaveBeenCalledWith({
+                data: [{ post_id: 99, plant_id: 5 }],
+            });
+            expect(prisma.plants.count).toHaveBeenCalledWith({ where: { id: { in: [5] } } });
+            // 写真単位では2行
+            expect(prisma.post_image_plants.createMany).toHaveBeenCalledWith({
+                data: [
+                    { post_image_id: 501, plant_id: 5 },
+                    { post_image_id: 502, plant_id: 5 },
+                ],
+            });
+            // order は配列の並び順
+            expect(prisma.post_images.create).toHaveBeenNthCalledWith(1, {
+                data: { post_id: 99, image_url: `${mockUser.id}/uuid/1_post.jpg`, order: 0 },
+            });
+            expect(prisma.post_images.create).toHaveBeenNthCalledWith(2, {
+                data: { post_id: 99, image_url: `${mockUser.id}/uuid/2_post.jpg`, order: 1 },
+            });
+        });
+
+        it('植物のない写真を含んでも投稿でき、その写真のタグは作られない', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
+            vi.mocked(prisma.plants.count).mockResolvedValue(1);
+            vi.mocked(prisma.pets.count).mockResolvedValue(1);
+            vi.mocked(prisma.posts.create).mockResolvedValue({ id: 99 } as any);
+            vi.mocked(prisma.post_images.create)
+                .mockResolvedValueOnce({ id: 501 } as any)
+                .mockResolvedValueOnce({ id: 502 } as any);
+
+            const result = await createPost({
+                ...validInput,
+                images: [
+                    { path: `${mockUser.id}/uuid/1_post.jpg`, plantIds: [5] },
+                    { path: `${mockUser.id}/uuid/2_post.jpg`, plantIds: [] }, // 猫だけの写真
+                ],
+            });
+
+            expect(result.success).toBe(true);
+            expect(prisma.post_image_plants.createMany).toHaveBeenCalledWith({
+                data: [{ post_image_id: 501, plant_id: 5 }],
+            });
+        });
+
+        it('写真内で重複した植物IDは1行に重複排除される', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findUnique).mockResolvedValue(mockPublicUser as any);
+            vi.mocked(prisma.plants.count).mockResolvedValue(1);
+            vi.mocked(prisma.pets.count).mockResolvedValue(1);
+            vi.mocked(prisma.posts.create).mockResolvedValue({ id: 99 } as any);
+            vi.mocked(prisma.post_images.create).mockResolvedValue({ id: 501 } as any);
+
+            const result = await createPost({
+                ...validInput,
+                images: [{ path: validPath, plantIds: [5, 5] }],
+            });
+
+            expect(result.success).toBe(true);
+            expect(prisma.post_image_plants.createMany).toHaveBeenCalledWith({
+                data: [{ post_image_id: 501, plant_id: 5 }],
+            });
         });
     });
 

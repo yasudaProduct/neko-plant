@@ -1,20 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import {
-  Camera,
-  Check,
-  ChevronLeft,
-  Leaf,
-  Plus,
-  Search,
-  Sparkles,
-  X,
-} from "lucide-react";
+import { Camera, Check, ChevronLeft, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,11 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { NekoSpecies, Pet } from "@/types/neko";
 import { ActionErrorCode } from "@/types/common";
-import {
-  MAX_POST_COMMENT_LENGTH,
-  MAX_POST_IMAGES,
-  MAX_POST_PLANTS,
-} from "@/lib/const";
+import { MAX_POST_COMMENT_LENGTH, MAX_POST_IMAGES, MAX_POST_PLANTS } from "@/lib/const";
 import {
   ClientImageError,
   processImageForUpload,
@@ -36,23 +22,15 @@ import {
 import { generateImageName } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { createPost } from "@/actions/post-action";
-import { addPlant, searchPlantName } from "@/actions/plant-action";
-import {
-  identifyPlantFromImage,
-  type PlantIdentificationCandidate,
-} from "@/actions/plant-identification-action";
+import { addPlant } from "@/actions/plant-action";
+import { identifyPlantFromImage } from "@/actions/plant-identification-action";
 import PetFormDialog from "@/app/settings/cats/PetFormDialog";
-
-type SelectedPlant =
-  | { mode: "existing"; id: number; name: string }
-  | { mode: "new"; name: string };
-
-const normalizePlantName = (name: string) => name.trim().replace(/\s+/g, " ");
-
-const plantKey = (plant: SelectedPlant) =>
-  plant.mode === "existing"
-    ? `existing-${plant.id}`
-    : `new-${normalizePlantName(plant.name)}`;
+import PhotoPlantSection, {
+  normalizePlantName,
+  plantKey,
+  type PostPhoto,
+  type SelectedPlant,
+} from "./PhotoPlantSection";
 
 /** 番号バッジ + 縦線。完了すると緑のチェックに変わり、線もその区間だけ緑になる */
 function StepMarker({
@@ -94,9 +72,8 @@ export default function PostFlow({
   const router = useRouter();
   const { success, error, info } = useToast();
 
-  const [images, setImages] = useState<File[]>([]);
-  const [previews, setPreviews] = useState<string[]>([]);
-  const [selectedPlants, setSelectedPlants] = useState<SelectedPlant[]>([]);
+  // 写真ごとに「ファイル + プレビュー + AI判定結果 + 植物タグ」をまとめて持つ
+  const [photos, setPhotos] = useState<PostPhoto[]>([]);
   const [pets, setPets] = useState<Pet[]>(myPets);
   const [selectedPetIds, setSelectedPetIds] = useState<number[]>([]);
   const [comment, setComment] = useState("");
@@ -108,93 +85,87 @@ export default function PostFlow({
     setPets(myPets);
   }, [myPets]);
 
-  // AI判定
-  const [isIdentifying, setIsIdentifying] = useState(false);
-  const [hasIdentified, setHasIdentified] = useState(false);
-  const [candidates, setCandidates] = useState<PlantIdentificationCandidate[]>(
-    [],
-  );
-
-  // 手動検索
-  const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<
-    { id: number; name: string }[]
-  >([]);
-  const queryRef = useRef(query);
-
+  // 離脱時にプレビューのObjectURLをまとめて解放する。
+  // aliveRef はアンマウント後に遅れて届いたAI判定エラーのトーストを抑制する
+  const photosRef = useRef<PostPhoto[]>([]);
+  const aliveRef = useRef(true);
   useEffect(() => {
-    queryRef.current = query;
-  }, [query]);
-
+    photosRef.current = photos;
+  }, [photos]);
   useEffect(() => {
-    if (!query.trim()) {
-      setSuggestions([]);
-      return;
-    }
-    const q = query;
-    const timer = setTimeout(async () => {
-      try {
-        const result = await searchPlantName(q.trim());
-        if (queryRef.current !== q) return;
-        setSuggestions(result.slice(0, 8));
-      } catch (e) {
-        console.error(e);
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [query]);
-
-  // 写真が選択されたらAI判定を自動実行
-  useEffect(() => {
-    if (hasIdentified || isIdentifying || images.length === 0) return;
-
-    let cancelled = false;
-    const identify = async () => {
-      setIsIdentifying(true);
-      try {
-        const result = await identifyPlantFromImage(images[0]);
-        if (cancelled) return;
-
-        setHasIdentified(true);
-
-        if (!result.success) {
-          error({ title: "AI判定に失敗しました", description: result.message });
-          return;
-        }
-        if (result.message) {
-          info({ title: result.message });
-        }
-        setCandidates(result.data?.candidates ?? []);
-      } catch (e) {
-        console.error(e);
-        if (!cancelled) {
-          setHasIdentified(true);
-          error({ title: "AI判定に失敗しました" });
-        }
-      } finally {
-        if (!cancelled) setIsIdentifying(false);
-      }
-    };
-    identify();
-
+    aliveRef.current = true;
     return () => {
-      cancelled = true;
+      aliveRef.current = false;
+      photosRef.current.forEach((photo) => URL.revokeObjectURL(photo.previewUrl));
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [images]);
+  }, []);
+
+  /** 指定キーの写真だけを部分更新する (写真が削除済みなら何も起きない) */
+  const patchPhoto = (key: string, patch: Partial<PostPhoto>) => {
+    setPhotos((prev) =>
+      prev.map((photo) => (photo.key === key ? { ...photo, ...patch } : photo)),
+    );
+  };
+
+  // 写真1枚のAI判定。追加時に写真ごとに呼び、結果はkey指定で反映する。
+  // effectにしないことで「別の写真の追加・削除で実行中の判定が中断される」事故を避ける
+  const identifyPhoto = async (key: string, file: File) => {
+    try {
+      const result = await identifyPlantFromImage(file);
+      if (!result.success) {
+        patchPhoto(key, { identifyStatus: "error" });
+        if (aliveRef.current) {
+          error({ title: "AI判定に失敗しました", description: result.message });
+        }
+        return;
+      }
+      patchPhoto(key, {
+        identifyStatus: "done",
+        candidates: result.data?.candidates ?? [],
+      });
+    } catch (e) {
+      console.error(e);
+      patchPhoto(key, { identifyStatus: "error" });
+      if (aliveRef.current) {
+        error({ title: "AI判定に失敗しました" });
+      }
+    }
+  };
 
   const onImagesSelected = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files ?? []).slice(0, MAX_POST_IMAGES);
+    const selected = Array.from(e.target.files ?? []);
     e.target.value = "";
-    if (files.length === 0) return;
+    if (selected.length === 0) return;
+
+    // 既に選んだ写真は残したまま追加するので、空いている枠の分だけ受け付ける
+    const remaining = MAX_POST_IMAGES - photos.length;
+    if (remaining <= 0) {
+      error({ title: `写真は最大${MAX_POST_IMAGES}枚までです` });
+      return;
+    }
+    const files = selected.slice(0, remaining);
+    if (files.length < selected.length) {
+      info({
+        title: `写真は最大${MAX_POST_IMAGES}枚までです`,
+        description: `先頭の${files.length}枚だけ追加しました。`,
+      });
+    }
 
     setIsProcessingImages(true);
     try {
       // 縮小 + JPEG再エンコード (Exif除去)。メモリ節約のため直列に処理する
-      const processed: File[] = [];
+      const added: PostPhoto[] = [];
       for (const file of files) {
         try {
-          processed.push(await processImageForUpload(file));
+          const processed = await processImageForUpload(file);
+          added.push({
+            key: crypto.randomUUID(),
+            file: processed,
+            previewUrl: URL.createObjectURL(processed),
+            identifyStatus: "identifying",
+            candidates: [],
+            selectedPlants: [],
+          });
         } catch (err) {
           console.error(err);
           error({
@@ -206,51 +177,72 @@ export default function PostFlow({
           });
         }
       }
-      if (processed.length === 0) return;
+      if (added.length === 0) return;
 
-      previews.forEach((url) => URL.revokeObjectURL(url));
-      setImages(processed);
-      setPreviews(processed.map((file) => URL.createObjectURL(file)));
+      setPhotos((prev) => [...prev, ...added]);
 
-      // 画像が変わったらAI判定をやり直す
-      setHasIdentified(false);
-      setCandidates([]);
+      // 追加した写真ごとにAI判定を並行実行する
+      for (const photo of added) {
+        void identifyPhoto(photo.key, photo.file);
+      }
     } finally {
       setIsProcessingImages(false);
     }
   };
 
   const removeImage = (index: number) => {
-    URL.revokeObjectURL(previews[index]);
-    const nextImages = images.filter((_, i) => i !== index);
-    setImages(nextImages);
-    setPreviews((prev) => prev.filter((_, i) => i !== index));
-    setHasIdentified(false);
-    setCandidates([]);
+    const target = photos[index];
+    if (!target) return;
+    URL.revokeObjectURL(target.previewUrl);
+    const next = photos.filter((_, i) => i !== index);
+    setPhotos(next);
 
-    // 写真が0枚になったら、それに紐付けていた植物・猫の選択もクリアする
-    if (nextImages.length === 0) {
-      setSelectedPlants([]);
+    // 植物タグは写真と一緒に消える。写真が0枚になったら猫の選択もクリアする
+    if (next.length === 0) {
       setSelectedPetIds([]);
     }
   };
 
-  const togglePlant = (plant: SelectedPlant) => {
-    const key = plantKey(plant);
-    setSelectedPlants((prev) => {
-      if (prev.some((p) => plantKey(p) === key)) {
-        return prev.filter((p) => plantKey(p) !== key);
-      }
-      if (prev.length >= MAX_POST_PLANTS) {
-        error({ title: `植物は最大${MAX_POST_PLANTS}つまでです` });
-        return prev;
-      }
-      return [...prev, plant];
-    });
-  };
+  // 投稿全体の植物 (全写真の和集合。同じ植物は1つとして数える)
+  const unionPlants = useMemo(() => {
+    const seen = new Map<string, SelectedPlant>();
+    for (const plant of photos.flatMap((photo) => photo.selectedPlants)) {
+      const key = plantKey(plant);
+      if (!seen.has(key)) seen.set(key, plant);
+    }
+    return [...seen.values()];
+  }, [photos]);
 
-  const isPlantSelected = (plant: SelectedPlant) =>
-    selectedPlants.some((p) => plantKey(p) === plantKey(plant));
+  const togglePlantOnPhoto = (photoKey: string, plant: SelectedPlant) => {
+    const key = plantKey(plant);
+    const photo = photos.find((p) => p.key === photoKey);
+    if (!photo) return;
+
+    const selectedOnPhoto = photo.selectedPlants.some(
+      (p) => plantKey(p) === key,
+    );
+    if (!selectedOnPhoto) {
+      // 他の写真で選択済みの植物は、投稿全体の枠を新たに消費しない
+      const inUnion = unionPlants.some((p) => plantKey(p) === key);
+      if (!inUnion && unionPlants.length >= MAX_POST_PLANTS) {
+        error({ title: `植物は投稿全体で最大${MAX_POST_PLANTS}つまでです` });
+        return;
+      }
+    }
+
+    setPhotos((prev) =>
+      prev.map((p) =>
+        p.key !== photoKey
+          ? p
+          : {
+              ...p,
+              selectedPlants: selectedOnPhoto
+                ? p.selectedPlants.filter((pl) => plantKey(pl) !== key)
+                : [...p.selectedPlants, plant],
+            },
+      ),
+    );
+  };
 
   const togglePet = (petId: number) => {
     setSelectedPetIds((prev) =>
@@ -260,19 +252,8 @@ export default function PostFlow({
     );
   };
 
-  const candidateToPlant = (
-    candidate: PlantIdentificationCandidate,
-  ): SelectedPlant =>
-    candidate.matchedPlant
-      ? {
-          mode: "existing",
-          id: candidate.matchedPlant.id,
-          name: candidate.matchedPlant.name,
-        }
-      : { mode: "new", name: candidate.name };
-
-  const photoDone = images.length > 0;
-  const plantDone = selectedPlants.length > 0;
+  const photoDone = photos.length > 0;
+  const plantDone = unionPlants.length > 0;
   const petDone = selectedPetIds.length > 0;
 
   const canSubmit =
@@ -282,26 +263,29 @@ export default function PostFlow({
     setIsSubmitting(true);
     let uploadedPaths: string[] = [];
     try {
-      // 新規植物を先に登録してIDを確定する
-      const plantIds: number[] = [];
-      for (const plant of selectedPlants) {
-        if (plant.mode === "existing") {
-          plantIds.push(plant.id);
-          continue;
-        }
-
-        const created = await addPlant(plant.name);
+      // 新規植物は写真をまたいで同名を1回だけ登録し、IDを引き当てる
+      const newNames = [
+        ...new Set(
+          photos
+            .flatMap((photo) => photo.selectedPlants)
+            .filter((plant) => plant.mode === "new")
+            .map((plant) => normalizePlantName(plant.name)),
+        ),
+      ];
+      const nameToId = new Map<string, number>();
+      for (const name of newNames) {
+        const created = await addPlant(name);
         if (created.success && created.data) {
-          plantIds.push(created.data.plantId);
+          nameToId.set(name, created.data.plantId);
         } else if (
           !created.success &&
           created.code === ActionErrorCode.ALREADY_EXISTS &&
           created.data?.plantId
         ) {
-          plantIds.push(created.data.plantId);
+          nameToId.set(name, created.data.plantId);
         } else {
           error({
-            title: `「${plant.name}」の登録に失敗しました`,
+            title: `「${name}」の登録に失敗しました`,
             description: !created.success ? created.message : undefined,
           });
           return;
@@ -323,7 +307,7 @@ export default function PostFlow({
       }
 
       const groupId = crypto.randomUUID();
-      const imagePaths = images.map(
+      const imagePaths = photos.map(
         (_, i) =>
           `${user.id}/${groupId}/${i + 1}_${generateImageName("post")}.jpg`,
       );
@@ -331,7 +315,7 @@ export default function PostFlow({
       try {
         await uploadImagesToBucket(
           "posts",
-          images.map((file, i) => ({ path: imagePaths[i], file })),
+          photos.map((photo, i) => ({ path: imagePaths[i], file: photo.file })),
         );
       } catch (e) {
         console.error(e);
@@ -344,10 +328,23 @@ export default function PostFlow({
       uploadedPaths = imagePaths;
 
       const result = await createPost({
-        plantIds,
+        // 写真とパスは同じ配列indexから作るため、並び順はここでズレない
+        images: photos.map((photo, i) => ({
+          path: imagePaths[i],
+          // existing はそのままのID、new は登録で確定したID。
+          // 同一写真内で同じIDに解決された場合 (AI候補のexisting + 手入力のnew) は1つにまとめる
+          plantIds: [
+            ...new Set(
+              photo.selectedPlants.map((plant) =>
+                plant.mode === "existing"
+                  ? plant.id
+                  : nameToId.get(normalizePlantName(plant.name))!,
+              ),
+            ),
+          ],
+        })),
         petIds: selectedPetIds,
         comment: comment.trim() || undefined,
-        imagePaths,
       });
 
       if (!result.success) {
@@ -397,37 +394,39 @@ export default function PostFlow({
                 </p>
               </div>
               <label
-                className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-green-500 transition-colors flex items-center justify-center gap-2 cursor-pointer text-gray-500 text-sm"
+                className={`border-2 border-dashed border-gray-300 rounded-lg p-6 transition-colors flex items-center justify-center gap-2 text-gray-500 text-sm ${
+                  isProcessingImages
+                    ? "opacity-60 cursor-not-allowed"
+                    : "cursor-pointer hover:border-green-500"
+                }`}
                 data-testid="image-upload-area"
               >
                 <Camera className="w-5 h-5" />
                 写真を追加する
+                {photos.length > 0 && (
+                  <span className="text-xs text-gray-400">
+                    （残り{MAX_POST_IMAGES - photos.length}枚）
+                  </span>
+                )}
                 <input
                   type="file"
                   accept="image/jpeg,image/png"
                   multiple
                   className="hidden"
+                  disabled={isProcessingImages}
                   onChange={onImagesSelected}
                   data-testid="image-input"
                 />
               </label>
-              {isProcessingImages && (
-                <div
-                  className="grid grid-cols-3 gap-2"
-                  data-testid="image-processing"
-                >
-                  <Skeleton className="aspect-square rounded-md" />
-                </div>
-              )}
-              {!isProcessingImages && previews.length > 0 && (
+              {(photos.length > 0 || isProcessingImages) && (
                 <div className="grid grid-cols-3 gap-2">
-                  {previews.map((url, i) => (
+                  {photos.map((photo, i) => (
                     <div
-                      key={url}
+                      key={photo.key}
                       className="relative aspect-square rounded-md overflow-hidden outline outline-2 -outline-offset-2 outline-green-500"
                     >
                       <Image
-                        src={url}
+                        src={photo.previewUrl}
                         alt={`選択した写真 ${i + 1}`}
                         fill
                         className="object-cover"
@@ -445,12 +444,19 @@ export default function PostFlow({
                       </button>
                     </div>
                   ))}
+                  {/* 処理中も既存の写真は表示したまま、追加分だけを仮表示する */}
+                  {isProcessingImages && (
+                    <Skeleton
+                      className="aspect-square rounded-md"
+                      data-testid="image-processing"
+                    />
+                  )}
                 </div>
               )}
             </div>
           </div>
 
-          {/* 2. 植物 (写真を選ぶと詳細が現れる) */}
+          {/* 2. 植物 (写真ごとに選択する) */}
           <div className="flex gap-4">
             <StepMarker number={2} done={plantDone} />
             <div className="flex-1 min-w-0 flex flex-col gap-4 pb-10">
@@ -462,173 +468,20 @@ export default function PostFlow({
                 </h2>
                 <p className="text-xs text-gray-500">
                   {photoDone
-                    ? "AIが写真から植物を判定します。候補から選ぶか、手動で検索してください。"
+                    ? "写真ごとにAIが植物を判定します。それぞれの写真に写っている植物を選んでください。植物が写っていない写真は選択なしで構いません（投稿全体で1つ以上必要です）。"
                     : "写真を選択すると、AI判定や検索で植物を選べるようになります。"}
                 </p>
               </div>
 
-              {photoDone && (
-                <>
-                  <div className="flex flex-col gap-2">
-                    <span className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      AI判定の候補
-                    </span>
-                    {isIdentifying ? (
-                      <div className="flex gap-2">
-                        <Skeleton className="w-36 h-9 rounded-full" />
-                        <Skeleton className="w-28 h-9 rounded-full" />
-                        <Skeleton className="w-28 h-9 rounded-full" />
-                      </div>
-                    ) : candidates.length > 0 ? (
-                      <div className="flex gap-2 flex-wrap">
-                        {candidates.map((candidate) => {
-                          const plant = candidateToPlant(candidate);
-                          const selected = isPlantSelected(plant);
-                          return (
-                            <button
-                              key={plantKey(plant)}
-                              type="button"
-                              onClick={() => togglePlant(plant)}
-                              className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-sm font-medium border transition-all ${
-                                selected
-                                  ? "bg-green-100 border-green-200 text-green-700 shadow-inner"
-                                  : "bg-white border-border text-gray-600 shadow-sm hover:bg-gray-50"
-                              }`}
-                              data-testid="ai-candidate"
-                            >
-                              {selected ? (
-                                <Check className="w-3.5 h-3.5" />
-                              ) : (
-                                <Leaf className="w-3.5 h-3.5" />
-                              )}
-                              {candidate.name}
-                              {typeof candidate.confidence === "number" && (
-                                <span className="text-xs opacity-70">
-                                  {Math.round(candidate.confidence * 100)}%
-                                </span>
-                              )}
-                              {!candidate.matchedPlant && (
-                                <span className="text-xs rounded-full bg-amber-100 text-amber-700 border border-amber-200 px-1.5">
-                                  新規
-                                </span>
-                              )}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-gray-500 bg-gray-50 rounded-md p-3">
-                        {hasIdentified
-                          ? "植物を判定できませんでした。下の検索から植物を選択してください。"
-                          : "写真を選択するとAI判定が実行されます。"}
-                      </p>
-                    )}
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <span className="text-xs font-semibold text-gray-600 flex items-center gap-1.5">
-                      <Search className="w-3.5 h-3.5" />
-                      手動で検索
-                    </span>
-                    <Input
-                      placeholder="植物名を入力（例: パキラ）"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      maxLength={50}
-                      data-testid="plant-search-input"
-                    />
-                    {query.trim() && (
-                      <div className="flex flex-col gap-1 max-h-48 overflow-y-auto">
-                        {suggestions.map((plant) => {
-                          const item: SelectedPlant = {
-                            mode: "existing",
-                            id: plant.id,
-                            name: plant.name,
-                          };
-                          const selected = isPlantSelected(item);
-                          return (
-                            <button
-                              key={plant.id}
-                              type="button"
-                              onClick={() => togglePlant(item)}
-                              className="flex items-center gap-2 px-2.5 py-2 rounded-md text-left hover:bg-gray-100 transition-colors"
-                            >
-                              {selected ? (
-                                <Check className="w-4 h-4 text-green-600" />
-                              ) : (
-                                <Leaf className="w-4 h-4 text-gray-400" />
-                              )}
-                              <span className="flex-1 text-sm text-gray-800">
-                                {plant.name}
-                              </span>
-                            </button>
-                          );
-                        })}
-                        {!suggestions.some(
-                          (plant) =>
-                            normalizePlantName(plant.name) ===
-                            normalizePlantName(query),
-                        ) && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const name = normalizePlantName(query);
-                              if (!name) return;
-                              if (name.length > 50) {
-                                error({
-                                  title: "植物名は50文字以内で入力してください",
-                                });
-                                return;
-                              }
-                              togglePlant({ mode: "new", name });
-                              setQuery("");
-                            }}
-                            className="flex items-center gap-2 px-2.5 py-2 rounded-md text-left hover:bg-amber-50 transition-colors text-amber-700"
-                          >
-                            <Plus className="w-4 h-4" />
-                            <span className="text-sm">
-                              「{normalizePlantName(query)}
-                              」を新しく登録して選択
-                            </span>
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  {selectedPlants.length > 0 && (
-                    <div className="flex flex-col gap-2 p-3 rounded-lg bg-gray-50">
-                      <span className="text-xs text-gray-500">
-                        選択中の植物
-                      </span>
-                      <div className="flex gap-2 flex-wrap">
-                        {selectedPlants.map((plant) => (
-                          <span
-                            key={plantKey(plant)}
-                            className="inline-flex items-center gap-1.5 rounded-full bg-green-100 border border-green-200 text-green-700 pl-3 pr-2 py-1 text-xs font-medium"
-                          >
-                            <Leaf className="w-3.5 h-3.5" />
-                            {plant.name}
-                            {plant.mode === "new" && (
-                              <span className="text-[10px] opacity-70">
-                                (新規)
-                              </span>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => togglePlant(plant)}
-                              className="opacity-70 hover:opacity-100"
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+              {photoDone &&
+                photos.map((photo, i) => (
+                  <PhotoPlantSection
+                    key={photo.key}
+                    photo={photo}
+                    index={i}
+                    onToggle={(plant) => togglePlantOnPhoto(photo.key, plant)}
+                  />
+                ))}
             </div>
           </div>
 

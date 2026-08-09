@@ -1,3 +1,9 @@
+> **⚠️ これはアーカイブされた過去の記録です。現行仕様ではありません。**
+> このレポートの指摘は `supabase/migrations/20260321112724_enable_rls_and_add_policies.sql` で対応済みです。
+> ただし当時対象だったテーブル（`evaluations` / `plant_images` / `plant_favorites` / `plant_have`）は
+> その後のフォトSNS化改修で削除されています。
+> **現在のRLS設計は [03-architecture/security.md](../03-architecture/security.md) を参照してください。**
+
 # Security Advisor 監査レポート（2026-02-14）
 
 ## 概要

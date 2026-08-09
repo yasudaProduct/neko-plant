@@ -1,66 +1,72 @@
 ---
-description: 
-globs: 
+description: neko-plant のコーディングルール
+globs:
 alwaysApply: true
 ---
 # neko-plant コーディングルール
 
+**規約の正は [doc/02-development/coding-guidelines.md](../../doc/02-development/coding-guidelines.md) です。**
+このファイルには要点だけを置きます。詳細・背景はそちらを参照してください。
+
+ドキュメント全体の目次は [doc/README.md](../../doc/README.md)。
+
+## 最重要: DBへの2つの経路
+
+- **Prisma**（`DATABASE_URL`）は **RLS をバイパスする** → 認可は Server Action のコード側で明示的に書く
+- **Supabase クライアント**（anon key）は **RLS が適用される** → anon key はクライアントに露出しており、攻撃者も同じ権限で PostgREST / Storage API を直接叩ける
+
+→ [doc/03-architecture/overview.md](../../doc/03-architecture/overview.md)
+
 ## プロジェクト構造
 
-1. **ディレクトリ構成**
-   - ページ固有のコンポーネントはそのページのディレクトリに配置する
-   - 共通コンポーネントは `@/components` ディレクトリに配置する
-   - データフェッチングロジックは `@/actions` ディレクトリに配置する
-   - ユーティリティ関数は `@/lib` ディレクトリに配置する
+- ページ固有のコンポーネントはそのページのディレクトリに配置する
+- 共通コンポーネントは `@/components` に配置する（最初はページ配下、2箇所目で使うときに上げる）
+- データフェッチング・データ変更は `@/actions`（Server Actions）
+- ユーティリティ・定数は `@/lib`（マジックナンバーは `@/lib/const.ts` に定義する）
 
-2. **認証関連**
-   - 認証が必要なページでは未認証時に `/signin` にリダイレクトする
-   - 認証関連のUI処理は `@/contexts/AuthDialogContext` を使用する
+## 認証・認可
+
+- 認証が必要なページでは未認証時に `/signin` にリダイレクトする
+- 認証関連のUI処理は `@/contexts/AuthDialogContext` を使用する
+- **`getSession()` は JWT 署名を検証しないため認可に使わない。必ず `getUser()`**
+- `role` など権限に関わる情報を返す関数を `"use server"` に置かない
+- クライアント由来の画像パスは `isValidOwnedImagePath()` で再検証する
 
 ## 命名規則
 
-1. **ファイル名**
-   - コンポーネントファイルは PascalCase で命名する (例: `CommentForm.tsx`)
-   - 動的ルートは `[param]` のようにブラケットで囲む (例: `[id]`)
-   - 認証関連のページは `(auth-pages)` グループに配置する
-
-2. **コンポーネント名**
-   - 植物詳細ページは `PlantPage` として命名する
-   - 設定関連のページは `AccountPage` などの明確な名前を使用する
+- コンポーネントファイルは PascalCase（例: `UserManagement.tsx`）
+- ライブラリ・アクションは kebab-case（例: `plant-identification-action.ts`）
+- 動的ルートは `[param]`（例: `[aliasId]`）、ルートグループは `(auth-pages)`
 
 ## スタイリング
 
-1. **カラースキーム**
-   - プライマリーカラーとして緑系の色を使用する
-   - 良い評価表示には `text-green-600` を使用する
-   - 悪い評価表示には `text-indigo-500` を使用する
-   - 背景色はベースとして `bg-green-50` を使用する
-
-2. **レイアウト**
-   - cssはtailwindcssで記述する
-   - レスポンシブ対応する
-
-3. **UI要素**
-   - ボタンにはカテゴリに応じた適切な色とアイコンを使用する
-   - モバイル表示では単一カラム、デスクトップでは適宜マルチカラムレイアウトを使用する
+- cssはtailwindcssで記述する
+- 色は `tailwind.config.ts` のセマンティックトークン（`primary` / `muted` / `destructive` など、CSS変数ベース）を使う
+- shadcn/ui のコンポーネントがある場合はそれを使う
+- **レスポンシブ対応は必須**。モバイルは単一カラム、デスクトップは適宜マルチカラム
 
 ## エラー
 
-1. **エラー表示**
-   - ユーザーフレンドリーなエラーメッセージを日本語で表示する
+- ユーザーフレンドリーなエラーメッセージを日本語で表示する
+- Server Action の戻り値は `ActionResult` / `ActionErrorCode`（`@/types/common`）で構造化する
+
+## 表現のルール
+
+**植物の安全性について「危険」と断定しない。** 投稿がない植物は「情報がない」と表現する（ポジティブリスト方式）。
+文言の生成は `@/lib/coexistence.ts` に集約されている。
 
 ## データベース
 
-1. **データベース**
-   - データベースにはsupabaseを使用しています。
-   - supabase上のプロジェクトは"neko-plant"です。
-   - supabaseへは本番環境へMCP接続で操作できます。
-   - supabaseへの本番環境へ変更操作前は行わないでください。
+- データベースにはsupabaseを使用しています。supabase上のプロジェクトは"neko-plant"です。
+- **スキーマの正は `supabase/migrations/*.sql`。** `prisma/schema.prisma` は `prisma db pull` で生成する成果物であり手で編集しない
+- **`prisma db push` / `prisma migrate` は使わない**
+- 新規テーブルには原則 `ENABLE ROW LEVEL SECURITY` を設定し、`supabase/tests/01_rls_structure.sql` も更新する
+- supabaseへは本番環境へMCP接続で操作できます。**supabaseの本番環境への変更操作は事前確認なしに行わないでください。**
+
+→ [doc/04-operations/database.md](../../doc/04-operations/database.md)
 
 ## GitHub
 
-1. **リポジトリ情報**
-   - リポジトリオーナー: `yasudaProduct`
-   - リポジトリ名: `neko-plant`
-   - プロジェクト管理は GitHub Issues を使用します。
-   - プルリクエストは必ずレビューを経てからマージしてください。
+- リポジトリオーナー: `yasudaProduct` / リポジトリ名: `neko-plant`
+- プロジェクト管理は GitHub Issues を使用します。
+- PR は `develop` 向け。`main` へのマージで本番デプロイと DB マイグレーションが走ります。

@@ -32,6 +32,8 @@ yarn-error.log*
 # env files (can opt-in for commiting if needed)
 .env
 .env.*
+# テンプレートは追跡する（値は空。doc/02-development/setup.md が cp して使う手順を案内している）
+!.env.example
 
 # vercel
 .vercel

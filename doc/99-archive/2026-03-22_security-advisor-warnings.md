@@ -1,3 +1,8 @@
+> **⚠️ これはアーカイブされた過去の記録です。現行仕様ではありません。**
+> Function Search Path Mutable の4件は `supabase/migrations/20260322085405_fix_function_search_path.sql` で対応済みです
+> （`logging` 関数は削除、残り3関数に `SET search_path = ''` を付与）。
+> **現在のDB関数・トリガーは [03-architecture/auth.md](../03-architecture/auth.md) を参照してください。**
+
 # Security Advisor 警告レポート（2026-03-22）
 
 ## 概要

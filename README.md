@@ -1,111 +1,68 @@
-## secret env
+# neko-plant
+
+「猫と植物の暮らし」を共有するフォトSNS。
+
+猫と植物が一緒に写った写真を投稿し、植物は AI 判定または手動でタグ付けします。
+投稿の分布から、植物ごとの**共存実績**（何匹の猫と暮らしているか）が可視化されます。
+
+危険を断定せず、投稿がない植物は「情報がない」と表現する**ポジティブリスト方式**を採用しています。
+
+## 技術スタック
+
+Next.js 15 (App Router) / TypeScript / PostgreSQL + Prisma / Supabase (Auth・Storage) /
+Tailwind CSS + shadcn/ui / Vitest・Playwright・pgTAP / Vercel
+
+## クイックスタート
+
+前提: Node.js 22.14.0 / Docker / Supabase CLI 2.109.1
 
 ```bash
-# App
-NEXT_PUBLIC_APP_BASE_URL="http://localhost:3000"
-
-# Database
-DATABASE_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres:postgres@127.0.0.1:54322/postgres"
-
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL="http://localhost:54321"
-NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0
-SUPABASE_SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
-
-# Google
-SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=
-SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=
-
-# Notion
-NOTION_API_KEY=
-NOTION_DATABASE_ID=
-
-# AI（任意）
-# 画像から植物名候補を推定する機能で使用します。
-# AI_PROVIDER : "gemini"(デフォルト) | "openai"
-AI_PROVIDER=gemini
-GEMINI_API_KEY=
-# OPENAI_API_KEY=           # AI_PROVIDER=openai の場合に使用
-# AI_PLANT_ID_MODEL=        # 省略時はプロバイダーのデフォルトモデル
-
-# E2E
-E2E_TEST_USER_ADDRES="e2e@example.com"
-E2E_TEST_USER_PASSWORD="password"
-E2E_TEST_ADMIN_ADDRESS="admin@example.com"
-E2E_TEST_ADMIN_PASSWORD="adminpass"
-
+npm ci
+supabase start                 # ローカルSupabaseを起動
+cp .env.example .env.local     # supabase status のキーを転記する
+supabase db reset              # マイグレーション + マスタデータ
+npm run seed:e2e               # 開発用データ（ユーザー・猫・投稿）
+npm run dev                    # http://localhost:3000
 ```
 
-## dotenv
+詳しい手順と環境変数は **[doc/02-development/setup.md](./doc/02-development/setup.md)** を参照してください。
+
+## 主なコマンド
 
 ```bash
-./node_modules/.bin/dotenv -e .env.local --
+npm run dev          # 開発サーバー
+npm run build        # ビルド
+npm run lint         # ESLint
+
+npm test             # ユニットテスト (Vitest)
+npm run e2e          # E2Eテスト (Playwright)
+npm run test:db      # RLS・ストレージポリシー (pgTAP)
+
+supabase db reset    # DBを作り直す
+npm run db:pull      # schema.prisma をDBに追従させる
 ```
 
-## prisma
+全コマンドは [doc/02-development/commands.md](./doc/02-development/commands.md) にあります。
 
-```bash
-npx prisma db pull
-```
+## ドキュメント
 
-```bash
-npx prisma generate
-```
+**[doc/README.md](./doc/README.md) が全ドキュメントの目次です。**
 
-## supabase
+| | |
+| --- | --- |
+| [サービス仕様](./doc/01-product/service-description.md) | コンセプト、ユーザー動線、安全性表現の方針 |
+| [アーキテクチャ概要](./doc/03-architecture/overview.md) | 全体構成とデータの流れ |
+| [セットアップ](./doc/02-development/setup.md) | 環境構築と環境変数 |
+| [DB運用ルール](./doc/04-operations/database.md) | マイグレーションの手順（**Prisma Migrate は使いません**） |
+| [セキュリティ](./doc/03-architecture/security.md) | RLS・ストレージポリシー |
 
-### supabase cli
+> **最初に読むべき箇所**: [アーキテクチャ概要](./doc/03-architecture/overview.md) の「DBへの2つの経路」。
+> Prisma は RLS をバイパスし、Supabase クライアントは RLS が適用されます。
+> この非対称性が設計全体に効いています。
 
-```bash
+## 開発の流れ
 
-supabase db diff -f <fileName>
+PR は `develop` 向けに作成します。`main` へのマージで Vercel が本番デプロイし、
+GitHub Actions が `supabase db push` で DB マイグレーションを適用します。
 
-# storage, auth を含めて差分を出す
-supabase db diff --schema storage,auth,public -f <fileName>
-
-```
-
-```bash
-
-supabase db push -p [Database Password] --dry-run
-
-supabase db push
-
-```
-
-```bash
-# 指定したマイグレーションを適用させる
-supabase migration repair --status applied [タイムスタンプ]
-
-# 指定したマイグレーションを適用させる前の状態に戻す（＝無効化）させる。
-supabase migration repair --status reverted [タイムスタンプ]
-```
-
-## テストについて
-
-### ユニットテスト（Vitest）
-
-```bash
-npm run test
-```
-
-### E2Eテスト（Playwright）
-
-```bash
-npm run seed:e2e
-
-npm run e2e
-
-npm run e2e -- --project="no-auth"
-```
-
-- 初回のみ以下のコマンドでブラウザをインストールしてください。
-```bash
-npx playwright install
-```
-
-- レポート確認
-  ```bash
-  npx playwright show-report
-  ```
+詳細は [doc/04-operations/deployment.md](./doc/04-operations/deployment.md) を参照してください。

@@ -1,4 +1,4 @@
-// 共存実績の表示ランク (doc/service-description-photo-sns.md §5.3)
+// 共存実績の表示ランク (doc/01-product/service-description.md §5.3)
 // 「危険」と断定せず、情報が無い場合は「情報がない」と表現する。
 
 export type CoexistenceRank = "many" | "some" | "few" | "none";

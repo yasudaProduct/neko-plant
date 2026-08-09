@@ -1,3 +1,9 @@
+> **⚠️ これはアーカイブされた過去の記録です。現行仕様ではありません。**
+> この計画は実装済みです（`ba25ad1` 写真起点の投稿フロー、`757c8d9` フォトSNS化の全面改修）。
+> 計画時点の「現状」記述（good/bad評価ベース）は既に存在しない仕様です。
+> **現在の投稿フローは [01-product/service-description.md](../01-product/service-description.md)、**
+> **AI判定の実装は [03-architecture/ai-plant-identification.md](../03-architecture/ai-plant-identification.md) を参照してください。**
+
 ## 写真起点の投稿フロー + AI植物判定 改修計画（neko-plant）
 
 ### 背景（現状）

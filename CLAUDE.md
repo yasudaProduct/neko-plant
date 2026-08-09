@@ -91,7 +91,8 @@ npm run lint             # ESLint
 4. マイグレーションSQL と `schema.prisma` をコミット
 
 本番反映（リモートは本番のみ）:
-- `supabase db push`（事前に `supabase db push --dry-run` で当たるSQLを確認する）
+- **main にマージされると GitHub Actions（`.github/workflows/supabase-deploy.yml`）が `supabase db push` を自動実行する**（`supabase/migrations/**` に変更がある場合のみ。dry-run のSQLもログに残る）
+- 手動で流す場合は `supabase db push`（事前に `supabase db push --dry-run` で当たるSQLを確認する）
 - CIの Playwright ジョブが `supabase start` で全マイグレーションをまっさらなDBに適用するため、壊れたマイグレーションは本番前にCIで検知される
 
 禁止:

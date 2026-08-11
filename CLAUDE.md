@@ -56,14 +56,14 @@ npm run db:pull          # DB → schema.prisma を同期し Prisma Client を�
 - **テスト**: Vitest (unit) + Playwright (E2E) + pgTAP (RLS)
 
 ### 主要データベースモデル
-- `plants` - 植物カタログ（分類学：科、属、種）
+- `plants` - 植物カタログ（分類学：科、属、種）。正規化キー `lower(btrim(regexp_replace(normalize(name,NFKC),'\s+',' ','g')))` に一意インデックス
 - `posts` - 猫と植物の写真投稿（コメント付き）
 - `post_images` - 投稿写真（postsバケットに保存、パスは `{auth_id}/{post_id}/...`）
 - `post_plants` / `post_pets` - 投稿への植物・猫のタグ付け（多対多）
 - `post_image_plants` - 写真ごとの植物タグ付け
 - `post_likes` - いいね（post_id × user_id 一意）
 - `users` - トリガーによりSupabase authと同期されるユーザープロフィール（auth_idに一意制約）
-- `pets` - ユーザーの飼い猫プロフィール、`neko` - 猫種マスタ
+- `pets` - ユーザーの飼い猫プロフィール、`neko` - 猫種マスタ（49種、マイグレーションで投入）
 - `plant_identification_logs` - AI判定のレート制限用ログ
 
 → [doc/03-architecture/data-model.md](./doc/03-architecture/data-model.md)
@@ -96,11 +96,15 @@ npm run db:pull          # DB → schema.prisma を同期し Prisma Client を�
 
 新規テーブルには同じマイグレーション内で原則 `ENABLE ROW LEVEL SECURITY` を設定する（意図的に無効のままにする場合は理由をPRに明記）。
 
+**マスタデータは性質で置き場を分ける。** `pets.neko_id` のように参照整合が必要な運用マスタ（`neko`）は**マイグレーション**に置く（`seeds/*.sql` は `supabase db push` でリモートに届かないため本番に入らない）。ユーザーが増やすUGCマスタ（`plants`）は**マイグレーションに入れない**（本番とdevでIDがずれる）。
+
+**式インデックスは `schema.prisma` に現れない**（doc コメントのみ）。`prisma migrate` を使うと黙って DROP されるので、禁止事項を特に厳守する。正規化を伴う一意制約はアプリ側の実装（`src/lib/plant-name.ts` / `plant-name-query.ts`）と式を1:1で対応させ、必ず同時に変更する。
+
 → [doc/04-operations/database.md](./doc/04-operations/database.md)
 
 ### pgTAPテストの同期
 
-テーブルを追加・削除・リネームする、またはポリシーを追加・変更するマイグレーションを書いたら、**`supabase/tests/01_rls_structure.sql` のテーブル一覧・ポリシー一覧・`plan()` の件数もセットで更新する**。このテストは更新し忘れたら失敗するように作られている。
+テーブルを追加・削除・リネームする、ポリシーを追加・変更する、または**一意インデックスを追加・削除する**マイグレーションを書いたら、**`supabase/tests/01_rls_structure.sql` のテーブル一覧・ポリシー一覧・一意インデックス（第7節）・`plan()` の件数もセットで更新する**。このテストは更新し忘れたら失敗するように作られている。
 
 ### Server Actions の認可
 

@@ -100,17 +100,19 @@ npm run test:db      # = supabase test db（要: supabase start）
 
 | ファイル | 検証内容 |
 | --- | --- |
-| `01_rls_structure.sql` | テーブル一覧・RLS有効化・ポリシー完全一覧・対象コマンド・対象ロール・テーブル権限 |
+| `01_rls_structure.sql` | テーブル一覧・RLS有効化・ポリシー完全一覧・対象コマンド・対象ロール・テーブル権限・一意インデックス |
 | `02_rls_public_tables.sql` | public テーブルへの実アクセス挙動 |
 | `03_storage_posts_bucket.sql` | posts バケットの実アクセス挙動 |
 | `04_storage_profile_pet_buckets.sql` | profile / pet バケットの実アクセス挙動 |
+| `05_plant_name_unique.sql` | 植物名の正規化キー一意インデックスの挙動（表記揺れを弾くか） |
 
 `01_rls_structure.sql` は **`tables_are` でテーブル一覧を固定**しているため、
 新しいテーブルを作ると必ず失敗します。これは意図的な仕掛けで、
 「テーブルを足したのにポリシーの断言を書き忘れる」事故を防ぎます。
 
-> **テーブルを追加・削除・リネームしたら、またはポリシーを追加・変更したら、
-> `01_rls_structure.sql` の一覧もセットで更新してください。** `plan(81)` の件数も合わせる必要があります。
+> **テーブルを追加・削除・リネームしたら、ポリシーを追加・変更したら、または一意インデックスを
+> 追加・削除したら、`01_rls_structure.sql` の一覧もセットで更新してください。**
+> `plan(84)` の件数も合わせる必要があります。
 
 CI では Playwright ジョブがブラウザインストールより先に `supabase test db` を実行し、早期に失敗させます。
 

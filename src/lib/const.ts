@@ -41,6 +41,9 @@ export const MAX_POST_PETS = 10;
 /** 猫の名前の文字数上限 */
 export const MAX_PET_NAME_LENGTH = 50;
 
+/** 植物名の文字数上限 */
+export const MAX_PLANT_NAME_LENGTH = 50;
+
 /**
  * AI植物判定のレート制限: 1分あたりの上限回数 (バースト抑止)。
  * 写真ごとに判定するため、1投稿で最大 MAX_POST_IMAGES 回消費する。

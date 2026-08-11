@@ -11,6 +11,8 @@ import {
   AI_IDENTIFY_RATE_LIMIT_PER_DAY,
   AI_IDENTIFY_RATE_LIMIT_PER_MINUTE,
 } from "@/lib/const";
+import { normalizePlantName, plantNameKey } from "@/lib/plant-name";
+import { findPlantsByNameKeys } from "@/lib/plant-name-query";
 import { ActionErrorCode, ActionResult } from "@/types/common";
 
 export type PlantIdentificationCandidate = {
@@ -72,10 +74,6 @@ function tryParseJson<T>(text: string): T | undefined {
   }
 
   return undefined;
-}
-
-function normalizePlantName(name: string): string {
-  return name.trim().replace(/\s+/g, " ");
 }
 
 // AIで写真に写っている植物 (複数可) の名前を判定する
@@ -233,8 +231,9 @@ export async function identifyPlantFromImage(
           ? parsed.candidates
           : [];
 
-    // 同名の植物が複数写っていても、タグとしては1つなので名前で重複排除する (先勝ち)
-    const seenNames = new Set<string>();
+    // 同名の植物が複数写っていても、タグとしては1つなので名前で重複排除する (先勝ち)。
+    // DB の一意キーと同じ基準で寄せるため、大文字小文字違いも同一候補として扱う
+    const seenKeys = new Set<string>();
     const normalizedCandidates = rawCandidates
       .map((c) => ({
         name: normalizePlantName(c.name ?? ""),
@@ -242,28 +241,22 @@ export async function identifyPlantFromImage(
           typeof c.confidence === "number" ? Math.max(0, Math.min(1, c.confidence)) : undefined,
       }))
       .filter((c) => {
-        if (c.name.length === 0 || seenNames.has(c.name)) return false;
-        seenNames.add(c.name);
+        const key = plantNameKey(c.name);
+        if (key.length === 0 || seenKeys.has(key)) return false;
+        seenKeys.add(key);
         return true;
       });
 
-    const uniqueNames = normalizedCandidates.map((c) => c.name);
-
-    const exactMatches =
-      uniqueNames.length > 0
-        ? await prisma.plants.findMany({
-          where: { name: { in: uniqueNames } },
-          select: { id: true, name: true },
-        })
-        : [];
-    const exactMatchMap = new Map(exactMatches.map((p) => [p.name, p]));
+    // 既存植物との照合も正規化キーで行う。完全一致だけで引くと AI が 'monstera' と
+    // 返したときに既存の 'Monstera' に当たらず、UIに誤った「新規」バッジが出てしまう
+    const matches = await findPlantsByNameKeys(normalizedCandidates.map((c) => c.name));
 
     const candidates: PlantIdentificationCandidate[] = normalizedCandidates
       .slice(0, 5)
       .map((c) => ({
         name: c.name,
         confidence: c.confidence,
-        matchedPlant: exactMatchMap.get(c.name),
+        matchedPlant: matches.get(plantNameKey(c.name)),
       }));
 
     return {

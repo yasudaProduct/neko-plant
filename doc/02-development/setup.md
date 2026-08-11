@@ -60,7 +60,8 @@ cp .env.example .env.local
 supabase db reset
 ```
 
-`supabase/migrations/*.sql` を全適用し、`supabase/seeds/*.sql`（猫種・植物マスタ）を投入します。
+`supabase/migrations/*.sql` を全適用し、`supabase/seeds/*.sql`（植物マスタのサンプル）を投入します。
+猫種マスタはマイグレーションに含まれるため、マイグレーション適用の時点で入ります。
 
 ### 5. 開発用データを投入
 

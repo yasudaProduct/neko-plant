@@ -91,9 +91,9 @@ AI_IDENTIFY_RATE_LIMIT_PER_DAY=10000
 
 `npm run seed:e2e`（`scripts/e2e-seed.ts`）が行うこと:
 
-1. 既存テストデータのクリーンアップ（ユーザー以外）
+1. 既存テストデータのクリーンアップ（ユーザーと猫種マスタ以外）
 2. Supabase Auth 経由でテストユーザー・管理者を作成/更新
-3. 猫種・植物データと、猫・投稿のシード
+3. 植物データと、猫・投稿のシード（猫種マスタはマイグレーションで投入されるため触らない）
 
 必要な環境変数は `E2E_TEST_USER_ADDRESS` / `E2E_TEST_USER_PASSWORD` /
 `E2E_TEST_ADMIN_ADDRESS` / `E2E_TEST_ADMIN_PASSWORD`（[setup.md](./setup.md#e2eテスト用) 参照）。
@@ -106,16 +106,19 @@ supabase start     # 起動していなければ
 npm run test:db    # = supabase test db
 ```
 
-RLS とストレージポリシーを**カタログから検証**し、マイグレーションによる意図しない変更を検知します。
+RLS・ストレージポリシー・一意インデックスを**カタログから検証**し、
+マイグレーションによる意図しない変更を検知します。
 
 | ファイル | 内容 |
 | --- | --- |
-| `supabase/tests/01_rls_structure.sql` | テーブル一覧・RLS有効化・ポリシー完全一覧・対象ロール・権限 |
+| `supabase/tests/01_rls_structure.sql` | テーブル一覧・RLS有効化・ポリシー完全一覧・対象ロール・権限・一意インデックス |
 | `supabase/tests/02_rls_public_tables.sql` | public テーブルへの実アクセス挙動 |
 | `supabase/tests/03_storage_posts_bucket.sql` | posts バケットの実アクセス挙動 |
 | `supabase/tests/04_storage_profile_pet_buckets.sql` | profile / pet バケットの実アクセス挙動 |
+| `supabase/tests/05_plant_name_unique.sql` | 植物名の正規化キー一意インデックスの挙動（表記揺れを弾くか） |
 
-> **テーブルやポリシーを変更したら `01_rls_structure.sql` の一覧と `plan()` の件数も更新してください。**
+> **テーブル・ポリシー・一意インデックスを変更したら
+> `01_rls_structure.sql` の一覧と `plan()` の件数も更新してください。**
 > このテストは「更新し忘れたら失敗する」ように作られています（詳細は
 > [../03-architecture/security.md](../03-architecture/security.md#pgtap-による退行検知)）。
 

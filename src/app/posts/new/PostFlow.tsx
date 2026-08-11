@@ -25,8 +25,8 @@ import { createPost } from "@/actions/post-action";
 import { addPlant } from "@/actions/plant-action";
 import { identifyPlantFromImage } from "@/actions/plant-identification-action";
 import PetFormDialog from "@/app/settings/cats/PetFormDialog";
+import { normalizePlantName, plantNameKey } from "@/lib/plant-name";
 import PhotoPlantSection, {
-  normalizePlantName,
   plantKey,
   type PostPhoto,
   type SelectedPlant,
@@ -263,26 +263,30 @@ export default function PostFlow({
     setIsSubmitting(true);
     let uploadedPaths: string[] = [];
     try {
-      // 新規植物は写真をまたいで同名を1回だけ登録し、IDを引き当てる
-      const newNames = [
-        ...new Set(
-          photos
-            .flatMap((photo) => photo.selectedPlants)
-            .filter((plant) => plant.mode === "new")
-            .map((plant) => normalizePlantName(plant.name)),
-        ),
-      ];
-      const nameToId = new Map<string, number>();
-      for (const name of newNames) {
+      // 新規植物は写真をまたいで1回だけ登録し、IDを引き当てる。
+      // キーは plantNameKey (= DBの一意キー) に寄せる。'Monstera' と 'monstera' は
+      // DB では同じ植物になるため、別名として2回 addPlant する意味がない
+      const newNamesByKey = new Map<string, string>();
+      for (const plant of photos.flatMap((photo) => photo.selectedPlants)) {
+        if (plant.mode !== "new") continue;
+        const key = plantNameKey(plant.name);
+        if (!newNamesByKey.has(key)) {
+          newNamesByKey.set(key, normalizePlantName(plant.name));
+        }
+      }
+
+      const keyToId = new Map<string, number>();
+      for (const [key, name] of newNamesByKey) {
         const created = await addPlant(name);
         if (created.success && created.data) {
-          nameToId.set(name, created.data.plantId);
+          keyToId.set(key, created.data.plantId);
         } else if (
           !created.success &&
           created.code === ActionErrorCode.ALREADY_EXISTS &&
           created.data?.plantId
         ) {
-          nameToId.set(name, created.data.plantId);
+          // 表記揺れで既存植物に当たった場合もそのIDを使う (投稿は止めない)
+          keyToId.set(key, created.data.plantId);
         } else {
           error({
             title: `「${name}」の登録に失敗しました`,
@@ -338,7 +342,7 @@ export default function PostFlow({
               photo.selectedPlants.map((plant) =>
                 plant.mode === "existing"
                   ? plant.id
-                  : nameToId.get(normalizePlantName(plant.name))!,
+                  : keyToId.get(plantNameKey(plant.name))!,
               ),
             ),
           ],

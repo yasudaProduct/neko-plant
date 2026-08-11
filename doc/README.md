@@ -73,6 +73,8 @@
 | 変更 | 更新するドキュメント |
 | --- | --- |
 | テーブル・ポリシーの追加/変更 | [data-model.md](./03-architecture/data-model.md), [security.md](./03-architecture/security.md) + `supabase/tests/01_rls_structure.sql` |
+| 一意インデックス・制約の追加/変更 | [data-model.md](./03-architecture/data-model.md), [database.md](./04-operations/database.md), [security.md](./03-architecture/security.md) + `supabase/tests/01_rls_structure.sql` の第7節と `plan()` |
+| マスタデータの追加/変更 | [database.md](./04-operations/database.md#マスタデータの置き場) — 運用マスタはマイグレーション、UGCマスタは `seeds/` |
 | 環境変数の追加 | [setup.md](./02-development/setup.md) + `.env.example` |
 | npm script の追加 | [commands.md](./02-development/commands.md) |
 | CI ワークフローの変更 | [deployment.md](./04-operations/deployment.md) |

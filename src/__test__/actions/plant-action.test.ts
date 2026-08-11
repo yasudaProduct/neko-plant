@@ -10,6 +10,7 @@ import {
 } from '@/actions/plant-action';
 import { createClient } from '@/lib/supabase/server';
 import prisma from '@/lib/prisma';
+import { Prisma } from '@prisma/client';
 import { SupabaseClient } from '@supabase/supabase-js';
 import { ActionErrorCode } from '@/types/common';
 
@@ -57,6 +58,14 @@ function mockRole(role: string | null) {
     vi.mocked(prisma.public_users.findFirst).mockResolvedValue(
         role ? ({ role } as any) : null,
     );
+}
+
+/**
+ * addPlant / updatePlant の重複チェック (findPlantByNameKey) をモックする。
+ * 正規化キーでの照合は式インデックスを使うため $queryRaw で実装されている。
+ */
+function mockNameKeyLookup(plant: { id: number; name: string } | null) {
+    vi.mocked(prisma.$queryRaw).mockResolvedValue((plant ? [plant] : []) as any);
 }
 
 // searchPlants用の詳細データ (post_plants経由の最新投稿画像を含む)
@@ -129,6 +138,21 @@ describe('Plant Actions', () => {
 
             expect(result).toEqual([{ id: 1, name: 'パキラ' }]);
         });
+
+        it('大文字小文字を区別せず、正規化したクエリで検索する', async () => {
+            vi.mocked(prisma.plants.findMany).mockResolvedValue([
+                { id: 1, name: 'Monstera' },
+            ] as any);
+
+            // 'monstera' で 'Monstera' が引けないと新規登録に進んで一意違反になる
+            await searchPlantName('　ｍｏｎｓｔｅｒａ　');
+
+            expect(prisma.plants.findMany).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    where: { name: { contains: 'monstera', mode: 'insensitive' } },
+                }),
+            );
+        });
     });
 
     describe('getPlant', () => {
@@ -188,7 +212,7 @@ describe('Plant Actions', () => {
 
         it('重複する場合はALREADY_EXISTSと既存IDを返す', async () => {
             mockSupabase(mockUser);
-            vi.mocked(prisma.plants.findFirst).mockResolvedValue({ id: 5, name: 'パキラ' } as any);
+            mockNameKeyLookup({ id: 5, name: 'パキラ' });
 
             const result = await addPlant('パキラ');
 
@@ -201,13 +225,58 @@ describe('Plant Actions', () => {
 
         it('正常系: 植物を作成しIDを返す', async () => {
             mockSupabase(mockUser);
-            vi.mocked(prisma.plants.findFirst).mockResolvedValue(null);
+            mockNameKeyLookup(null);
             vi.mocked(prisma.plants.create).mockResolvedValue({ id: 7, name: '新しい植物' } as any);
 
             const result = await addPlant('新しい植物');
 
             expect(result.success).toBe(true);
             if (result.success) expect(result.data?.plantId).toBe(7);
+        });
+
+        it('全角・半角カナ・連続空白を正規化して保存する (大文字小文字は保持)', async () => {
+            mockSupabase(mockUser);
+            mockNameKeyLookup(null);
+            vi.mocked(prisma.plants.create).mockResolvedValue({ id: 8 } as any);
+
+            await addPlant('　Ｍｏｎｓｔｅｒａ　ﾃﾞﾘｼｵｰｻ ');
+
+            // 表示名なので大文字は残し、表記だけ揃える
+            // (期待値は plants_name_normalized_key の式を PG で評価した結果と一致)
+            expect(prisma.plants.create).toHaveBeenCalledWith({
+                data: { name: 'Monstera デリシオーサ' },
+            });
+        });
+
+        it('空白のみの名前はVALIDATION_ERROR', async () => {
+            mockSupabase(mockUser);
+
+            const result = await addPlant('　  　');
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
+            expect(prisma.plants.create).not.toHaveBeenCalled();
+        });
+
+        it('競合でP2002が出た場合はALREADY_EXISTSにフォールバックする', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.$queryRaw)
+                .mockResolvedValueOnce([] as any)                            // 事前チェック: 重複なし
+                .mockResolvedValueOnce([{ id: 9, name: 'パキラ' }] as any);  // P2002 後の再検索
+            vi.mocked(prisma.plants.create).mockRejectedValue(
+                new Prisma.PrismaClientKnownRequestError('unique violation', {
+                    code: 'P2002',
+                    clientVersion: 'test',
+                }),
+            );
+
+            const result = await addPlant('パキラ');
+
+            expect(result.success).toBe(false);
+            if (!result.success) {
+                expect(result.code).toBe(ActionErrorCode.ALREADY_EXISTS);
+                expect(result.data?.plantId).toBe(9);
+            }
         });
     });
 
@@ -226,7 +295,7 @@ describe('Plant Actions', () => {
         it('別の植物と名前が重複する場合はALREADY_EXISTS', async () => {
             mockSupabase(mockUser);
             mockRole('admin');
-            vi.mocked(prisma.plants.findFirst).mockResolvedValue({ id: 2, name: 'パキラ' } as any);
+            mockNameKeyLookup({ id: 2, name: 'パキラ' });
 
             const result = await updatePlant(1, { name: 'パキラ' });
 
@@ -237,13 +306,39 @@ describe('Plant Actions', () => {
         it('正常系: 管理者は植物を更新できる', async () => {
             mockSupabase(mockUser);
             mockRole('admin');
-            vi.mocked(prisma.plants.findFirst).mockResolvedValue(null);
+            mockNameKeyLookup(null);
             vi.mocked(prisma.plants.update).mockResolvedValue({ id: 1 } as any);
 
             const result = await updatePlant(1, { name: 'パキラ', family: 'アオイ科' });
 
             expect(result.success).toBe(true);
             expect(prisma.plants.update).toHaveBeenCalled();
+        });
+
+        it('正規化した名前で更新する', async () => {
+            mockSupabase(mockUser);
+            mockRole('admin');
+            mockNameKeyLookup(null);
+            vi.mocked(prisma.plants.update).mockResolvedValue({ id: 1 } as any);
+
+            await updatePlant(1, { name: '  モンステラ　デリシオーサ  ' });
+
+            expect(prisma.plants.update).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    data: expect.objectContaining({ name: 'モンステラ デリシオーサ' }),
+                }),
+            );
+        });
+
+        it('51文字以上はVALIDATION_ERROR', async () => {
+            mockSupabase(mockUser);
+            mockRole('admin');
+
+            const result = await updatePlant(1, { name: 'あ'.repeat(51) });
+
+            expect(result.success).toBe(false);
+            if (!result.success) expect(result.code).toBe(ActionErrorCode.VALIDATION_ERROR);
+            expect(prisma.plants.update).not.toHaveBeenCalled();
         });
     });
 

@@ -17,6 +17,10 @@ prisma migrate      # ✗ 使わない
 マイグレーションを迂回してスキーマを変更すると、リポジトリと実DBがドリフトします。
 本番へは `supabase db push` でしか反映されないため、`prisma db push` で入れた変更は**本番に届きません**。
 
+さらに、**式インデックス（例: `plants_name_normalized_key`）は Prisma のスキーマに現れません**
+（`prisma db pull` は doc コメントを付けるだけ）。この状態で `prisma migrate` / `prisma db push` を使うと、
+Prisma は認識していないインデックスを**黙って DROP します**。
+
 ## 変更手順
 
 ### 1. マイグレーションを作成する
@@ -64,6 +68,23 @@ npm run db:pull      # prisma db pull + prisma generate
 
 詳細は [../03-architecture/security.md](../03-architecture/security.md) を参照してください。
 
+## 一意インデックスを追加するとき
+
+1. **既存データの重複を先に解消する。** 参照されている行を消すと関連データを失うため、
+   削除ではなく代表行への**マージ**（子テーブルの外部キーを付け替え）にする。
+   何をマージしたかは `RAISE NOTICE` で本番の適用ログに残す
+   （実例: `20260809152920_add_plants_name_normalized_unique_index.sql`）
+2. `supabase/tests/01_rls_structure.sql` の第7節に `has_index` / `index_is_unique` を追加し、
+   `plan()` 件数を更新する（式インデックスは `col_is_unique` では検証できない）
+3. 正規化を伴う場合は、**アプリ側の実装と式を1:1で対応**させる
+   （`src/lib/plant-name.ts` / `src/lib/plant-name-query.ts` が実例）。
+   片方だけ変えると「アプリは重複と判定しないのに DB が一意違反を返す」状態になる
+4. `npm run db:pull` しても**式インデックスは `schema.prisma` に現れない**（doc コメントのみ）。
+   Prisma Client は制約を知らないので `upsert` / `connectOrCreate` は使えず、
+   「事前チェック → `create` → P2002 を握って既存IDを返す」パターンが必要になる
+5. **`supabase db reset` は空テーブルにインデックスを張るだけなのでマージ処理を通らない。**
+   重複を仕込んでマイグレーションを単体実行し、関連データが保たれることを別途確認する
+
 ## 本番反映
 
 **リモートの Supabase プロジェクトは本番のみ**です。
@@ -107,14 +128,29 @@ supabase migration repair --status reverted <タイムスタンプ>  # 未適用
 | `config.toml` の `[storage.buckets.*]` がリモートに反映されない | **ローカルCLI専用の設定**。バケットの実体はマイグレーション内で `insert into storage.buckets ...` する（`20260711165057` の教訓） |
 | `db diff` がストレージポリシーを拾わない | `--schema storage,auth,public` を指定するか手動追記 |
 | 古いマイグレーションが今は存在しないテーブルを参照している | 正常。歴代の積み上げなので、**現在の状態は最新のマイグレーション群と pgTAP テストで確認**する |
+| マスタデータを `seeds/` に置いたのに本番に入っていない | `seeds/*.sql` は**ローカルの `db reset` 専用**でリモートに届かない（`supabase db push` はマイグレーションのみ）。参照整合が必要なマスタはマイグレーションへ移す |
+| 式インデックスが `schema.prisma` に出てこない | 正常。Prisma は式インデックスを表現できず doc コメントだけが付く。`prisma migrate` を使うと消えるので使わない |
+
+## マスタデータの置き場
+
+**性質で置き場を分けます。** どちらも「マスタ」でも扱いは正反対です。
+
+| | 運用マスタ（例: `neko`） | UGCマスタ（例: `plants`） |
+| --- | --- | --- |
+| 性質 | 閉じた一覧。書き込みAPIがなく、増えない | ユーザーが `addPlant` で増やす。増え続ける |
+| 置き場 | **マイグレーション** | **`seeds/`（開発・E2E用サンプルのみ）** |
+| 理由 | `pets.neko_id` が参照する。誤字が本番に出れば全ユーザーのプロフィールに出る。環境間で内容が一致すべき | 本番のID空間はユーザー起点。マイグレーションで固定行を入れると本番とdevでIDがずれ、本番にサンプルを押し込むことになる |
+| 追加・修正 | 新しいマイグレーションで `INSERT ... ON CONFLICT DO NOTHING`（冪等に）。表記の修正は `UPDATE` を `INSERT` より**先**に置く（逆順だと新旧2件が並ぶ） | 管理画面 or Server Action（`plants` は `updatePlant` / `deletePlant` が管理者限定） |
 
 ## シードデータ
 
 | ファイル | 内容 | 実行タイミング |
 | --- | --- | --- |
-| `supabase/seeds/neko.sql` | 猫種マスタ | `supabase db reset` で自動 |
-| `supabase/seeds/plants.sql` | 植物マスタ | `supabase db reset` で自動 |
-| `scripts/e2e-seed.ts` | ユーザー・猫・投稿 | `npm run seed:e2e` |
+| `supabase/seeds/plants.sql` | 植物マスタ（開発・E2E用サンプル。UGCマスタなのでマイグレーションに入れない） | `supabase db reset` で自動 |
+| `scripts/e2e-seed.ts` | ユーザー・植物・猫・投稿 | `npm run seed:e2e` |
+
+猫種マスタ（`neko`）は**マイグレーションで投入**されます（`20260809153832_neko_breeds_master_to_migration.sql`、49種）。
+`scripts/e2e-seed.ts` は `neko` を削除しないので、シードを何度実行しても猫種のIDはずれません。
 
 ## 関連ドキュメント
 

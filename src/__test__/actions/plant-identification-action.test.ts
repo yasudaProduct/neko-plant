@@ -20,6 +20,8 @@ vi.mock("@/lib/prisma", () => {
       count: vi.fn(),
       create: vi.fn(),
     },
+    // 既存植物との照合は正規化キー (式インデックス) で引くため Raw SQL
+    $queryRaw: vi.fn(),
   };
   return { default: prisma };
 });
@@ -99,7 +101,7 @@ describe("plant-identification-action", () => {
     if (result.success) {
       expect(result.data?.candidates).toEqual([]);
     }
-    expect(vi.mocked(prisma.plants.findMany)).not.toHaveBeenCalled();
+    expect(vi.mocked(prisma.$queryRaw)).not.toHaveBeenCalled();
   });
 
   it("AIレスポンス (plants形式) をパースして既存plantsに照合する", async () => {
@@ -120,9 +122,10 @@ describe("plant-identification-action", () => {
       },
     } as unknown as Awaited<ReturnType<typeof createClient>>);
 
-    vi.mocked(prisma.plants.findMany).mockResolvedValue([
-      { id: 10, name: "パキラ" },
-    ] as unknown as Awaited<ReturnType<typeof prisma.plants.findMany>>);
+    // name_key は findPlantsByNameKeys が Map のキーに使うため必須
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([
+      { id: 10, name: "パキラ", name_key: "パキラ" },
+    ] as unknown as Awaited<ReturnType<typeof prisma.$queryRaw>>);
 
     const file = createTestFile("test.png", "image/png");
 
@@ -138,6 +141,70 @@ describe("plant-identification-action", () => {
       });
       expect(result.data?.candidates?.[1]?.name).toBe("モンステラ");
       expect(result.data?.candidates?.[1]?.matchedPlant).toBeUndefined();
+    }
+  });
+
+  it("大文字小文字が違うAI候補も既存plantsに照合する", async () => {
+    vi.mocked(getAiProviderConfig).mockReturnValue({
+      provider: "gemini",
+      apiKey: "test-key",
+      model: "gemini-2.5-flash-lite",
+      endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    });
+
+    // AIは 'monstera' と返すが、DBには 'Monstera' で登録されている
+    vi.mocked(chatCompletion).mockResolvedValue(
+      '{"plants":[{"name":"monstera","confidence":0.8}]}'
+    );
+
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+      },
+    } as unknown as Awaited<ReturnType<typeof createClient>>);
+
+    vi.mocked(prisma.$queryRaw).mockResolvedValue([
+      { id: 11, name: "Monstera", name_key: "monstera" },
+    ] as unknown as Awaited<ReturnType<typeof prisma.$queryRaw>>);
+
+    const result = await identifyPlantFromImage(createTestFile("test.png", "image/png"));
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // matchedPlant が付かないと「新規」扱いになり重複登録に進んでしまう
+      expect(result.data?.candidates?.[0]?.matchedPlant).toEqual({ id: 11, name: "Monstera" });
+    }
+  });
+
+  it("大文字小文字だけが違うAI候補は1つに重複排除する", async () => {
+    vi.mocked(getAiProviderConfig).mockReturnValue({
+      provider: "gemini",
+      apiKey: "test-key",
+      model: "gemini-2.5-flash-lite",
+      endpoint: "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions",
+    });
+
+    vi.mocked(chatCompletion).mockResolvedValue(
+      '{"plants":[{"name":"Monstera","confidence":0.9},{"name":"　ｍｏｎｓｔｅｒａ ","confidence":0.4}]}'
+    );
+
+    vi.mocked(createClient).mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: "u1" } } }),
+      },
+    } as unknown as Awaited<ReturnType<typeof createClient>>);
+
+    vi.mocked(prisma.$queryRaw).mockResolvedValue(
+      [] as unknown as Awaited<ReturnType<typeof prisma.$queryRaw>>
+    );
+
+    const result = await identifyPlantFromImage(createTestFile("test.png", "image/png"));
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      // DB では同じ植物になるため、タグ候補としても1つに寄せる (先勝ち)
+      expect(result.data?.candidates).toHaveLength(1);
+      expect(result.data?.candidates?.[0]?.name).toBe("Monstera");
     }
   });
 
@@ -159,8 +226,8 @@ describe("plant-identification-action", () => {
       },
     } as unknown as Awaited<ReturnType<typeof createClient>>);
 
-    vi.mocked(prisma.plants.findMany).mockResolvedValue(
-      [] as unknown as Awaited<ReturnType<typeof prisma.plants.findMany>>
+    vi.mocked(prisma.$queryRaw).mockResolvedValue(
+      [] as unknown as Awaited<ReturnType<typeof prisma.$queryRaw>>
     );
 
     const file = createTestFile("test.png", "image/png");
@@ -193,8 +260,8 @@ describe("plant-identification-action", () => {
       },
     } as unknown as Awaited<ReturnType<typeof createClient>>);
 
-    vi.mocked(prisma.plants.findMany).mockResolvedValue(
-      [] as unknown as Awaited<ReturnType<typeof prisma.plants.findMany>>
+    vi.mocked(prisma.$queryRaw).mockResolvedValue(
+      [] as unknown as Awaited<ReturnType<typeof prisma.$queryRaw>>
     );
 
     const file = createTestFile("test.png", "image/png");

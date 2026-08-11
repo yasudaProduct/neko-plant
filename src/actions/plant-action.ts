@@ -4,8 +4,10 @@ import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { Plant } from "../types/plant";
 import { createClient } from "@/lib/supabase/server";
-import { STORAGE_PATH } from "@/lib/const";
+import { MAX_PLANT_NAME_LENGTH, STORAGE_PATH } from "@/lib/const";
 import { clampPage, clampPageSize, clampSearchQuery, MAX_PLANT_PAGE_SIZE } from "@/lib/pagination";
+import { normalizePlantName } from "@/lib/plant-name";
+import { findPlantByNameKey } from "@/lib/plant-name-query";
 import { ActionErrorCode, ActionResult } from "@/types/common";
 
 /** 並び順: 共存実績(ユニーク猫数) / 投稿数 / 名前 */
@@ -30,8 +32,9 @@ export async function searchPlants(
     pageSize: number = 9,
     filter: PlantFilter = "all"
 ): Promise<{ plants: Plant[], totalCount: number }> {
-    // 公開アクションのため、外部から渡る値を必ず丸める (DoS・DB例外対策)
-    const trimmedQuery = clampSearchQuery(query);
+    // 公開アクションのため、外部から渡る値を必ず丸める (DoS・DB例外対策)。
+    // 保存値と同じ正規化も掛ける (全角英字・全角スペースで入力しても取りこぼさない)
+    const trimmedQuery = normalizePlantName(clampSearchQuery(query));
     const safePage = clampPage(page);
     const safePageSize = clampPageSize(pageSize, MAX_PLANT_PAGE_SIZE);
 
@@ -136,7 +139,8 @@ async function fetchCoexistenceMap(plantIds: number[]): Promise<Map<number, { po
 }
 
 export async function searchPlantName(name: string): Promise<{ id: number, name: string }[]> {
-    const trimmedName = clampSearchQuery(name);
+    // 保存値と同じ正規化を掛けてから検索する (全角英字・全角スペースで入力してもヒットする)
+    const trimmedName = normalizePlantName(clampSearchQuery(name));
 
     // 空クエリで全件返さない・件数上限を設ける (公開アクションのため)
     if (trimmedName === "") {
@@ -147,6 +151,11 @@ export async function searchPlantName(name: string): Promise<{ id: number, name:
         where: {
             name: {
                 contains: trimmedName,
+                // 保存値は大文字小文字を保持するため 'monstera' で 'Monstera' を拾えるようにする。
+                // ここが大文字小文字を区別すると、ユーザーは既存植物を見つけられず新規登録に進み、
+                // plants_name_normalized_key で一意違反になる
+                // (searchPlants の ILIKE、post-action.ts の mode:"insensitive" と挙動を揃える)
+                mode: "insensitive",
             },
         },
         select: {
@@ -183,20 +192,22 @@ export async function addPlant(name: string): Promise<ActionResult<{ plantId: nu
         return { success: false, code: ActionErrorCode.AUTH_REQUIRED };
     }
 
-    if (!name) {
+    // 保存する値を先に確定させる。空白のみの入力は正規化後に空になるため、
+    // 検証は正規化後の値に対して行う (従来は "   " が名前として保存できた)
+    const normalizedName = normalizePlantName(name);
+
+    if (!normalizedName) {
         return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "植物の名前は必須です。" };
     }
 
-    if (name.length > 50) {
-        return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "植物の名前は50文字以内で入力してください。" };
+    if (normalizedName.length > MAX_PLANT_NAME_LENGTH) {
+        return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: `植物の名前は${MAX_PLANT_NAME_LENGTH}文字以内で入力してください。` };
     }
 
-    // 植物名が重複していないか
-    const existingPlant = await prisma.plants.findFirst({
-        where: {
-            name: name
-        },
-    });
+    // 重複判定は DB の一意インデックスと同じ正規化キーで行う。
+    // 見つかった場合は既存IDを返す (投稿フローと /plants/new がこのIDに依存して
+    // 「こちら」リンクを出す)
+    const existingPlant = await findPlantByNameKey(normalizedName);
     if (existingPlant) {
         return { success: false, code: ActionErrorCode.ALREADY_EXISTS, message: "植物名が重複しています。", data: { plantId: existingPlant.id } };
     }
@@ -204,15 +215,49 @@ export async function addPlant(name: string): Promise<ActionResult<{ plantId: nu
     try {
         const plant = await prisma.plants.create({
             data: {
-                name: name,
+                name: normalizedName,
             },
         });
 
         return { success: true, data: { plantId: plant.id } };
     } catch (error) {
+        const duplicated = await recoverAlreadyExists(error, normalizedName);
+        if (duplicated) {
+            return duplicated;
+        }
+
         console.error("error", error);
         return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "植物の追加に失敗しました。" };
     }
+}
+
+/**
+ * 一意インデックス違反 (P2002) を「既にあります + そのID」に変換する。
+ * 該当しなければ undefined を返し、呼び出し側は通常のエラー処理に落ちる。
+ *
+ * Prisma は式インデックスを認識しないため、P2002 が唯一の通知手段になる。
+ * 投稿フローは新規植物を逐次 addPlant するので、送信の二度押しや2ユーザーの
+ * 同時登録で事前チェックと INSERT の間に競合が実際に起きる。これが無いと catch が
+ * INTERNAL_SERVER_ERROR を返し、投稿全体が中断してしまう
+ * (植物は登録済みなのに投稿できない、という理不尽な失敗)。
+ * JS と PG の Unicode 実装差で正規化結果がずれた場合の保険も兼ねる。
+ */
+async function recoverAlreadyExists(
+    error: unknown,
+    name: string,
+    excludeId?: number,
+): Promise<ActionResult<{ plantId: number }> | undefined> {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") {
+        return undefined;
+    }
+
+    const existing = await findPlantByNameKey(name, excludeId);
+    return {
+        success: false,
+        code: ActionErrorCode.ALREADY_EXISTS,
+        message: "植物名が重複しています。",
+        data: existing ? { plantId: existing.id } : undefined,
+    };
 }
 
 /**
@@ -240,17 +285,19 @@ export async function updatePlant(id: number, plant: { name: string, scientific_
         return { success: false, code: ActionErrorCode.FORBIDDEN, message: "植物の編集には管理者権限が必要です。" };
     }
 
-    if (!plant.name) {
+    const normalizedName = normalizePlantName(plant.name);
+
+    if (!normalizedName) {
         return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: "植物の名前は必須です。" };
     }
 
-    // 植物名が重複していないか
-    const existingPlant = await prisma.plants.findFirst({
-        where: {
-            id: { not: id },
-            name: plant.name
-        },
-    });
+    // plants.name は長さ無制限の varchar なので DB では止まらない。addPlant と揃える
+    if (normalizedName.length > MAX_PLANT_NAME_LENGTH) {
+        return { success: false, code: ActionErrorCode.VALIDATION_ERROR, message: `植物の名前は${MAX_PLANT_NAME_LENGTH}文字以内で入力してください。` };
+    }
+
+    // 自分以外に正規化キーが一致する植物がないか (DB の一意インデックスと同じ基準)
+    const existingPlant = await findPlantByNameKey(normalizedName, id);
     if (existingPlant) {
         return { success: false, code: ActionErrorCode.ALREADY_EXISTS, message: "植物名が重複しています。", data: { plantId: existingPlant.id } };
     }
@@ -259,7 +306,7 @@ export async function updatePlant(id: number, plant: { name: string, scientific_
         await prisma.plants.update({
             where: { id: id },
             data: {
-                name: plant.name,
+                name: normalizedName,
                 scientific_name: plant.scientific_name,
                 family: plant.family,
                 genus: plant.genus,
@@ -269,6 +316,11 @@ export async function updatePlant(id: number, plant: { name: string, scientific_
 
         return { success: true, data: { plantId: id } };
     } catch (error) {
+        const duplicated = await recoverAlreadyExists(error, normalizedName, id);
+        if (duplicated) {
+            return duplicated;
+        }
+
         console.error("error", error);
         return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "植物の更新に失敗しました。" };
     }

@@ -8,18 +8,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { searchPlantName } from "@/actions/plant-action";
 import type { PlantIdentificationCandidate } from "@/actions/plant-identification-action";
+import { MAX_PLANT_NAME_LENGTH } from "@/lib/const";
+import { normalizePlantName, plantNameKey } from "@/lib/plant-name";
 
 export type SelectedPlant =
   | { mode: "existing"; id: number; name: string }
   | { mode: "new"; name: string };
 
-export const normalizePlantName = (name: string) =>
-  name.trim().replace(/\s+/g, " ");
-
+// 新規植物のキーは DB の一意キー (plantNameKey) に寄せる。
+// 'Monstera' と 'monstera' は DB では同じ植物になるため、同一写真で
+// 別の選択肢として二重に持てないようにする
 export const plantKey = (plant: SelectedPlant) =>
   plant.mode === "existing"
     ? `existing-${plant.id}`
-    : `new-${normalizePlantName(plant.name)}`;
+    : `new-${plantNameKey(plant.name)}`;
 
 export type PhotoIdentifyStatus = "identifying" | "done" | "error";
 
@@ -181,7 +183,7 @@ export default function PhotoPlantSection({
           placeholder="植物名を入力（例: パキラ）"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          maxLength={50}
+          maxLength={MAX_PLANT_NAME_LENGTH}
           data-testid="plant-search-input"
         />
         {query.trim() && (
@@ -211,18 +213,19 @@ export default function PhotoPlantSection({
                 </button>
               );
             })}
+            {/* 既存候補と正規化キーが一致するなら「新しく登録」は出さない。
+                大文字小文字違いで登録に進むと DB の一意インデックスに弾かれるため */}
             {!suggestions.some(
-              (plant) =>
-                normalizePlantName(plant.name) === normalizePlantName(query),
+              (plant) => plantNameKey(plant.name) === plantNameKey(query),
             ) && (
               <button
                 type="button"
                 onClick={() => {
                   const name = normalizePlantName(query);
                   if (!name) return;
-                  if (name.length > 50) {
+                  if (name.length > MAX_PLANT_NAME_LENGTH) {
                     error({
-                      title: "植物名は50文字以内で入力してください",
+                      title: `植物名は${MAX_PLANT_NAME_LENGTH}文字以内で入力してください`,
                     });
                     return;
                   }

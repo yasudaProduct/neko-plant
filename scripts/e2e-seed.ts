@@ -91,7 +91,10 @@ export async function main() {
         throw new Error('E2E_TEST_USER_ADDRESS or E2E_TEST_USER_PASSWORD is not defined in environment variables');
     }
 
-    // usersテーブル以外をtruncate（投稿系→ペット→マスタの順で依存関係を解消）
+    // usersテーブル以外をtruncate（投稿系→ペット→植物の順で依存関係を解消）
+    // neko（猫種マスタ）はマイグレーションで投入されるため消さない。
+    // 消すと下の「猫種マスタが空です」で落ち、e2e/global-setup.ts 経由で
+    // 全E2Eが起動前に失敗する
     await prisma.post_likes.deleteMany();
     await prisma.post_image_plants.deleteMany();
     await prisma.post_images.deleteMany();
@@ -99,7 +102,6 @@ export async function main() {
     await prisma.post_plants.deleteMany();
     await prisma.posts.deleteMany();
     await prisma.pets.deleteMany();
-    await prisma.neko.deleteMany();
     await prisma.plants.deleteMany();
 
     console.log(' => users');
@@ -134,17 +136,15 @@ export async function main() {
         role: 'user',
     });
 
-    console.log(' => neko / plants');
-    for (const sql of sqlDivision(readFileSync('./supabase/seeds/neko.sql', 'utf-8'))) {
-        await prisma.$executeRawUnsafe(sql);
-    }
+    console.log(' => plants');
     for (const sql of sqlDivision(readFileSync('./supabase/seeds/plants.sql', 'utf-8'))) {
         await prisma.$executeRawUnsafe(sql);
     }
 
     console.log(' => pets');
+    // 猫種マスタはマイグレーションで投入されるため、seed 実行ごとに id がずれない
     const nekoSpecies = await prisma.neko.findFirst({ orderBy: { id: 'asc' } });
-    if (!nekoSpecies) throw new Error('猫種マスタが空です');
+    if (!nekoSpecies) throw new Error('猫種マスタが空です。supabase db reset を実行してください。');
 
     const mike = await prisma.pets.create({
         data: { user_id: testUser.userId, neko_id: nekoSpecies.id, name: 'ミケ' },

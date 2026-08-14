@@ -10,13 +10,17 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { addPlant } from "@/actions/plant-action";
+import { MAX_PLANT_NAME_LENGTH } from "@/lib/const";
 import Link from "next/link";
 
 const plantSchema = z.object({
   name: z
     .string()
     .min(1, "植物の名前は必須です")
-    .max(50, "植物の名前は50文字以内で入力してください"),
+    .max(
+      MAX_PLANT_NAME_LENGTH,
+      `植物の名前は${MAX_PLANT_NAME_LENGTH}文字以内で入力してください`,
+    ),
 });
 
 type PlantFormData = z.infer<typeof plantSchema>;

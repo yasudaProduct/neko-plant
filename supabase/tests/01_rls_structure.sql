@@ -2,18 +2,18 @@
 -- RLS 構造テスト（ドリフト検知）
 --
 -- テーブル一覧・RLS有効化状態・ポリシーの一覧・対象コマンド・対象ロール・
--- テーブル権限をカタログから検証し、マイグレーションによる意図しない変更
--- （テーブルの追加/削除、RLS無効化、ポリシーの追加/削除/拡大、GRANT の
--- 復活）を検知する。
--- テーブルを追加・削除・リネームする、またはポリシーを追加・変更する
--- マイグレーションを書いたら、このファイルの一覧もセットで更新すること
--- （それがこのテストの目的）。
+-- テーブル権限・一意インデックスをカタログから検証し、マイグレーションによる
+-- 意図しない変更（テーブルの追加/削除、RLS無効化、ポリシーの追加/削除/拡大、
+-- GRANT の復活、一意制約の消失）を検知する。
+-- テーブルを追加・削除・リネームする、ポリシーを追加・変更する、または
+-- 一意インデックスを追加・削除するマイグレーションを書いたら、
+-- このファイルの一覧もセットで更新すること（それがこのテストの目的）。
 --
 -- 実行: supabase test db（ローカルスタック起動中に）
 -- =============================================================
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(81);
+select plan(84);
 
 -- -------------------------------------------------------------
 -- 1. public スキーマ: テーブル一覧が想定どおり、かつ全テーブルで RLS が有効
@@ -196,6 +196,22 @@ select is(
     '{public}', 'pet 削除は TO 句なし（public）');
 select policy_cmd_is('storage', 'objects', 'Users can list their own pet images', 'SELECT', 'pet 一覧は SELECT');
 select policy_roles_are('storage', 'objects', 'Users can list their own pet images', array['authenticated'], 'pet 一覧は authenticated のみ');
+
+-- -------------------------------------------------------------
+-- 7. 一意インデックス（データ品質の退行検知）
+--    plants の正規化キーは式インデックスなので col_is_unique
+--    （UNIQUE 制約が対象）では検証できない。存在と unique 性だけを
+--    ここで固定し、「どう正規化されるか」の意味は
+--    05_plant_name_unique.sql で実際の INSERT の挙動として断言する。
+--    式そのものを文字列で固定しないのは、has_index の期待値が name 型
+--    （63文字上限）で式が切り詰められてしまうため。
+-- -------------------------------------------------------------
+select has_index('public', 'plants', 'plants_name_normalized_key',
+    'plants に正規化キーの一意インデックスがある');
+select index_is_unique('public', 'plants', 'plants_name_normalized_key',
+    'plants_name_normalized_key は unique');
+select col_is_unique('public', 'neko', 'name',
+    'neko.name は一意（猫種マスタの重複投入を防ぐ）');
 
 select * from finish();
 rollback;

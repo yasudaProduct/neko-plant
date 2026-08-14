@@ -35,7 +35,7 @@ erDiagram
 | --- | --- | --- |
 | `users` | ユーザープロフィール | `auth.users` とトリガーで同期。`auth_id` に一意制約 |
 | `pets` | 飼い猫のプロフィール | 名前・猫種・写真・年齢・誕生日・性別 |
-| `neko` | 猫種マスタ | `name` に一意制約。`supabase/seeds/neko.sql` で投入 |
+| `neko` | 猫種マスタ | `name` に一意制約。マイグレーションで投入（49種）。書き込みAPIを持たない運用マスタ |
 
 `users.alias_id` は URL に使う短い識別子（`/[aliasId]`）。`users.role` は `'user'`（既定）または `'admin'`。
 
@@ -60,11 +60,47 @@ erDiagram
 
 | テーブル | 役割 | 補足 |
 | --- | --- | --- |
-| `plants` | 植物カタログ | 分類学情報（`scientific_name` / `family` / `genus` / `species`） |
+| `plants` | 植物カタログ | 分類学情報（`scientific_name` / `family` / `genus` / `species`）。正規化キーに一意インデックス（後述） |
 | `plant_identification_logs` | AI判定の実行ログ | レート制限の判定に使う。`(user_id, created_at DESC)` にインデックス |
 
 `plant_identification_logs` は **RLS ポリシーを1本も持ちません**（= PostgREST 経由では全拒否）。
 Prisma 経由でのみアクセスします。
+
+### 植物名の正規化と一意制約
+
+`plants` は `addPlant` でログインユーザーが誰でも追加できる **UGCマスタ**です。
+表記揺れの重複が入ると共存実績（後述）が分断され、投稿があるのに「情報がない」という
+誤ったシグナルを出してしまうため、DB側で正規化キーに一意インデックスを張っています。
+
+```sql
+-- plants_name_normalized_key
+lower(btrim(regexp_replace(normalize(name, NFKC), '\s+', ' ', 'g')))
+```
+
+これで `モンステラ` / `モンステラ ` / `Monstera` / `ｍｏｎｓｔｅｒａ` / `ﾊﾟｷﾗ` の重複が入りません。
+`normalize(NFKC)` を**最初**に適用するのが要点で、全角スペース（U+3000）や半角カナは
+NFKC で畳まれて初めて `\s` で拾えます（順序を逆にすると `　` が空白として扱われません）。
+
+アプリ側の対応実装は3箇所で、**式を変えるなら必ず同時に変更**します。
+
+| 場所 | 役割 |
+| --- | --- |
+| マイグレーション `20260809152920_*` | 一意インデックスの式（正） |
+| `src/lib/plant-name.ts` | `normalizePlantName`（保存する表示名。大文字小文字は保持）と `plantNameKey`（重複判定キー。lower まで適用） |
+| `src/lib/plant-name-query.ts` | `findPlantByNameKey` / `findPlantsByNameKeys`。式インデックスを使わせるため Raw SQL |
+
+実装上の注意:
+
+- **Prisma は式インデックスを表現できません。** `prisma db pull` しても `schema.prisma` には
+  doc コメントが付くだけで `@@unique` は生成されず、`upsert` / `connectOrCreate` も使えません。
+  「`findPlantByNameKey` で事前チェック → `create` → P2002 を握って既存IDを返す」パターンを維持します
+- `addPlant` / `updatePlant` は P2002（一意違反）を `ALREADY_EXISTS` + 既存IDに変換します。
+  投稿フローは新規植物を逐次登録するため、二度押しや同時登録で競合が実際に起きます。
+  ここで `INTERNAL_SERVER_ERROR` を返すと「植物は登録済みなのに投稿できない」失敗になります
+- `searchPlantName` は `mode: "insensitive"` です。ここが大文字小文字を区別すると、
+  ユーザーが `monstera` と入力しても既存の `Monstera` を見つけられず新規登録に進み、一意違反になります
+- AI判定（`plant-identification-action.ts`）の既存植物との照合も正規化キーで行います。
+  完全一致だけで引くと、AIが `monstera` と返したときに `Monstera` に当たらず重複登録に進みます
 
 ## 共存実績（Coexistence）の集計
 

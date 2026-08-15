@@ -85,7 +85,7 @@ export default async function ZukanPage({
             <Link
               key={plant.id}
               href={`/plants/${plant.id}`}
-              className={`flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors ${
+              className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 sm:flex-nowrap sm:gap-4 sm:px-5 sm:py-3.5 hover:bg-gray-50 transition-colors ${
                 i < plants.length - 1 ? "border-b border-border" : ""
               }`}
               data-testid="zukan-row"
@@ -93,13 +93,14 @@ export default async function ZukanPage({
               <span className="w-10 shrink-0 text-xs text-gray-400 font-medium">
                 No.{String(i + 1).padStart(2, "0")}
               </span>
-              <span className="w-36 shrink-0 flex flex-col gap-0.5 min-w-0">
+              <span className="flex-1 min-w-0 flex flex-col gap-0.5 sm:flex-none sm:w-36">
                 <span className="text-sm font-bold text-gray-900 truncate">{plant.name}</span>
                 {plant.scientific_name && (
                   <span className="text-xs text-gray-400 italic truncate">{plant.scientific_name}</span>
                 )}
               </span>
-              <span className="flex-1 min-w-[60px]">
+              {/* モバイルは「No+名前+匹数 / バー全幅」の2行 (右端の匹数が見切れるのを防ぐ) */}
+              <span className="order-last w-full sm:order-none sm:w-auto sm:flex-1 sm:min-w-[60px]">
                 <CoexistBar value={plant.catCount} max={maxCats} />
               </span>
               <span

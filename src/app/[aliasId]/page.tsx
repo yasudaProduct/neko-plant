@@ -120,6 +120,11 @@ export default async function ProfilePage({
               <strong className="text-gray-900">{stats.plantCount}</strong> 植物
             </span>
           </div>
+          {userProfile.bio && (
+            <p className="pt-1 text-sm text-gray-600 whitespace-pre-wrap break-words">
+              {userProfile.bio}
+            </p>
+          )}
         </div>
         {isSelf && (
           <div className="flex gap-2 flex-wrap">

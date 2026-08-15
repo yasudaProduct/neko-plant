@@ -22,6 +22,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
 import Image from "next/image";
 import { updateUser } from "@/actions/user-action";
+import { MAX_USER_BIO_LENGTH } from "@/lib/const";
 interface UserProfileProps {
   userProfile: UserProfile;
 }
@@ -30,13 +31,19 @@ const userProfileSchema = z.object({
   name: z
     .string()
     .min(1, { message: "ユーザー名は必須です。" })
-    .max(20, { message: "ユーザー名は7文字以内で入力してください。" }),
+    .max(20, { message: "ユーザー名は20文字以内で入力してください。" }),
   aliasId: z
     .string()
-    .min(1, { message: "表示名は必須です。" })
-    .max(10, { message: "表示名は10文字以内で入力してください。" })
-    .regex(/^[a-zA-Z0-9]+$/, { message: "表示名は英数字で入力してください。" }),
-  bio: z.string().optional(),
+    .min(1, { message: "ユーザーIDは必須です。" })
+    .max(10, { message: "ユーザーIDは10文字以内で入力してください。" })
+    // サーバー側 (updateUser) の検証と一致させる (数字を許すとサーバーで弾かれ原因が伝わらない)
+    .regex(/^[a-zA-Z]+$/, { message: "ユーザーIDは半角英字で入力してください。" }),
+  bio: z
+    .string()
+    .max(MAX_USER_BIO_LENGTH, {
+      message: `自己紹介は${MAX_USER_BIO_LENGTH}文字以内で入力してください。`,
+    })
+    .optional(),
 });
 
 export default function AccountPageContent({ userProfile }: UserProfileProps) {
@@ -47,13 +54,14 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
     defaultValues: {
       name: userProfile.name,
       aliasId: userProfile.aliasId,
+      bio: userProfile.bio ?? "",
     },
   });
 
   const handleSubmit = async (formData: z.infer<typeof userProfileSchema>) => {
     try {
       setIsSubmitting(true);
-      await updateUser(formData.name, formData.aliasId);
+      await updateUser(formData.name, formData.aliasId, formData.bio);
 
       success({
         title: "更新しました",
@@ -94,13 +102,7 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
                   <FormItem>
                     <FormLabel>名前</FormLabel>
                     <FormControl>
-                      <Input
-                        id="username"
-                        defaultValue={userProfile.name}
-                        value={field.value}
-                        onChange={(e) => field.onChange(e.target.value)}
-                        className="max-w-full"
-                      />
+                      <Input id="username" className="max-w-full" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -116,13 +118,7 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
                   <FormItem>
                     <FormLabel>ユーザーID</FormLabel>
                     <FormControl>
-                      <Input
-                        id="displayName"
-                        defaultValue={userProfile.aliasId}
-                        value={field.value}
-                        onChange={(e) => field.onChange(e.target.value)}
-                        className="max-w-full"
-                      />
+                      <Input id="displayName" className="max-w-full" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -140,10 +136,9 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
                     <FormControl>
                       <Textarea
                         id="bio"
-                        defaultValue={userProfile.bio}
-                        value={field.value}
-                        onChange={(e) => field.onChange(e.target.value)}
                         className="min-h-[150px] max-w-full"
+                        maxLength={MAX_USER_BIO_LENGTH}
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />

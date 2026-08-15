@@ -41,8 +41,10 @@ export async function getNews(): Promise<NewsItem[]> {
     try {
         return await fetchNewsList();
     } catch (error) {
+        // Notion 側の障害や未設定で /news 全体が落ちないよう、一覧は空として扱う
+        // (ページ側は「お知らせはありません」を表示する。sitemap も同様に空でよい)
         console.error("Failed to fetch news:", error);
-        throw new Error("Failed to fetch news");
+        return [];
     }
 }
 

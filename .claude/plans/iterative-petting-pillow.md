@@ -1,81 +1,65 @@
-# UIレビュー優先度高(🔴 #1〜8)の修正プラン
+# UIレビュー 🟡操作性(#9〜16)の改善プラン
 
 ## Context
 
-UIレビュー(本セッション前半、実機スクリーンショット48枚+コードレビュー)で洗い出した改善点のうち、ユーザー指示「優先度高いもの」= 🔴 8件を修正する。
+UIレビュー(本セッション、実機スクリーンショット48枚+全画面コードレビュー)の優先度高🔴8件は実装済み(PR #108、コミット `9ba9ef7`〜`3303392`)。本プランはその続き=優先度提案「次のスプリント(操作性)」**#9〜16**を対応する。モバイル操作性が中心で、フォトSNSとして最も使われるスマホでの日常操作(回遊・投稿・いいね)の使い勝手を引き上げる。
 
-- **#1〜5**: スマホ(390px)で実際に崩れている表示バグ
-- **#6〜8**: 機能として壊れているUI
+前提: 検証環境は構築済み(ローカルSupabase+dev server+Playwright撮影スクリプト)。ブランチは `claude/ui-improvement-review-110nnk`(push すると PR #108 が自動更新される)。
 
-#6はユーザー確認済み: **usersテーブルにbioカラムを追加し、保存+公開プロフィール表示まで実装**。
+## 変更内容
 
-検証環境は構築済み: ローカルSupabase(54321/54322)+dev server(localhost:3000)起動中、シード済み、Playwright撮影スクリプトあり(`scratchpad/shoot.js`)。ブランチ `claude/ui-improvement-review-110nnk` チェックアウト済み。
+### 1. #9+#10: モバイルを下部固定タブバーに再編 — コミット1
 
-## Phase 1: モバイル表示崩れのCSS修正(#1〜5) — コミット1
+**新規 `src/components/BottomNav.tsx`**(client component):
+- 5項目: フィード(`/`)・図鑑(`/zukan`)・**投稿(`/posts/new`、中央の強調ボタン)**・さがす(`/plants`)・マイページ(ログイン時 `/{aliasId}`、未ログイン時 `/signin`)
+- `fixed bottom-0 inset-x-0 z-40 sm:hidden bg-white border-t border-border`、セーフエリア対応 `pb-[env(safe-area-inset-bottom)]`
+- アイコン+テキストラベル(text-[10px])の縦積み。`usePathname()`でアクティブ状態(HeaderNavの`isActive`ロジックを踏襲)。各リンク高さ≥44px(`py-2`+アイコン20px+ラベル)
+- 中央の投稿ボタンは円形グリーン(`bg-green-600 text-white rounded-full w-12 h-12 -mt-4 shadow`)。未ログインタップ時は既存middleware(`src/middleware.ts` の `/posts/new` 保護)が `/signin` へ誘導するのでクライアント側の分岐は不要
+- `data-testid="bottom-nav"` と各項目にtestidを付与(E2E用)
 
-1. **図鑑行の「N匹」見切れ** `src/app/zukan/page.tsx:88-104` — モバイルは2行に折る(sm以上は現状と完全同一):
-   - 行Link: `flex items-center gap-4 px-5 py-3.5` → `flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 sm:flex-nowrap sm:gap-4 sm:px-5 sm:py-3.5`
-   - 名前span: `w-36 shrink-0 ...` → `flex-1 min-w-0 ... sm:flex-none sm:w-36`(`min-w-0`を落とさない=truncate維持)
-   - バーspan: `flex-1 min-w-[60px]` → `order-last w-full sm:order-none sm:w-auto sm:flex-1 sm:min-w-[60px]`
-   - No・匹数・バッジ等は無変更。`data-testid="zukan-row"`とテキスト維持(e2e/search-zukan.test.ts:74-88はレイアウト非依存で影響なし)
-2. **カタログ表ラベル縦割れ** `src/app/plants/[id]/page.tsx:206-224` — 6つの`dt`に`whitespace-nowrap`追加
-3. **設定タブ折り返し** `src/app/settings/layout.tsx:21-55` — タブ行に`overflow-x-auto`、各タブ`shrink-0 whitespace-nowrap text-sm`。あわせて不正な`<Link><button>`入れ子を`<Link className=...>`直スタイルへ(見た目同一。text-smはPCでも16→14pxになるが許容)
-4. **フッター折り返し** `src/components/Footer.tsx:7-11` — `flex flex-wrap justify-center gap-x-4 gap-y-2`+各リンク`whitespace-nowrap`
-5. **iOS入力ズーム** `src/components/ui/input.tsx:13` — `text-sm`→`text-base md:text-sm`(textarea.tsx:12と同一パターン。使用箇所でのサイズ上書きなしを確認済み)
+**組み込み**(`src/components/Header.tsx`):
+- Header(server component、既に `getUserProfileByAuthId()` 取得済み)がフラグメントで `<BottomNav aliasId={...} isLoggedIn={...} />` を併せて返す(fixed配置なのでDOM上はheader内でも問題ない。プロフィール取得の重複クエリを増やさない)
+- ヘッダー側のモバイル表示を整理: `HeaderNav` に `max-sm:hidden`(アイコンのみで意味不明だった3リンクはタブバーに移管)、モバイル用カメラボタン(`Header.tsx:46-50`)を削除(中央の投稿タブに移管)。**デスクトップは無変更**
 
-## Phase 2: bio保存対応(#6) — コミット2(DB) + コミット3(アプリ)
+**下部バーとの重なり回避**(`src/app/layout.tsx`): `<main>` に `max-sm:pb-20` を追加(フッター最下部がタブバーに隠れないように)
 
-**DB(CLAUDE.md手順厳守。`prisma db push`/`prisma migrate`禁止)**:
-```
-npx supabase migration new add_users_bio   # SQL: alter table public.users add column bio varchar;
-npx supabase db reset
-npm run db:pull      # schema.prisma差分が public_users.bio 1行のみなこと確認(他が出たら停止して報告)
-npm run seed:e2e     # resetで消えるため再投入
-# dev server再起動(Prisma Client再生成の反映)
-```
-- RLS/ポリシー/一意Index変更なし → pgTAP更新不要(構造テストは列を検査しないことを確認済み)
-- コミット2 = migration SQL + schema.prisma のセット
+### 2. #11+#12+#16: フィードカードの操作性 — コミット2
 
-**アプリ側(コミット3)**:
-- `src/lib/const.ts`: `MAX_USER_BIO_LENGTH = 300` 追加
-- `src/actions/user-action.ts`:
-  - `getUserProfile`(:21): selectに`bio: true`、返却に`bio: userData.bio ?? undefined`
-  - `getUserProfileByAuthId`(:52): 返却に`bio`追加(select無しのため返却のみ)
-  - `updateUser(name, aliasId, bio?: string)`(:150): 既存throwスタイルで検証を追加し、**bio未指定時に既存値を消さない**条件スプレッドで更新:
-    `data: { name, alias_id: aliasId, ...(bio !== undefined ? { bio: bio.trim() || null } : {}) }`(空文字はnull化)。
-    `revalidatePath("/settings/profile")`に加え`revalidatePath(\`/${aliasId}\`)`も実行(公開プロフィールの古いbio/名前対策)
-- `src/app/settings/profile/AccountPageContent.tsx`:
-  - zod: `bio: z.string().max(MAX_USER_BIO_LENGTH, ...).optional()`追加、nameのmaxメッセージ「7文字以内」→「20文字以内」に修正
-  - **aliasIdのclient/server検証不一致も同時修正**(client `/^[a-zA-Z0-9]+$/`・server `/^[a-zA-Z]+$/`(:180)。数字入りが汎用エラートーストになる罠。zodをサーバに合わせ`/^[a-zA-Z]+$/`+メッセージ「ユーザーIDは半角英字で…」にし、「表示名」表記も「ユーザーID」へ)
-  - `defaultValues`に`bio: userProfile.bio ?? ""`追加、3フィールドとも`defaultValue`/`value`/`onChange`を削除し`{...field}`化(controlled/uncontrolled警告の根治)、Textareaに`maxLength`
-  - submit: `updateUser(formData.name, formData.aliasId, formData.bio)`
-- `src/app/[aliasId]/page.tsx`(:112直後): `{userProfile.bio && <p className="pt-1 text-sm text-gray-600 whitespace-pre-wrap break-words">…</p>}`
-- テスト `src/__test__/actions/user-action.test.ts`(:164-): bio 301字で`rejects`+update未呼び出し、bio付き正常系(`'こんにちは'`→そのまま/空白のみ→`null`)を追加。既存正常系は条件スプレッド採用により無変更でpass
-- doc: `doc/03-architecture/data-model.md`のusers行にbioを追記(doc/README対応表に従う。security.mdはカラム列挙なしのため対象外)
+- **#11 いいねのタップ領域**(`src/components/np/LikeButton.tsx`): buttonに `p-2 -m-2`(見た目不変で実効44px確保)。投稿詳細(size="lg")も同様
+- **#12 モバイルで猫チップ表示**(`src/components/np/PostCard.tsx:52-61`): ヘッダー右の猫チップ(`max-sm:hidden`)はデスクトップ用に維持し、本文セクション(植物タグの行の上)に `sm:hidden` の猫チップ行を追加(モバイルでも「猫×植物」の中核情報が見えるように)。3匹以上の「+N」表記は既存ロジックを共通化して流用
+- **#16 共存バッジをタップ可能に**(`PostCard.tsx:95-103`): PlantTag横の `CoexistBadge` を `<Link href={/plants/${plant.id}} className="pointer-events-auto">` でラップ(現状はタップすると意図せず投稿詳細に飛ぶ。バッジ=実績表示なので植物ページへ)。CoexistBadge自体は無変更
 
-## Phase 3: /newsクラッシュ対策(#7) — コミット4
+### 3. #13+#15: 行き止まりの解消 — コミット3
 
-- `src/actions/news-action.ts:40-47`: `getNews()`のcatchで`throw`→`return []`(console.error維持)。目的は/newsページの白画面解消(news/page.tsxは空配列で「お知らせはありません」表示済み。sitemap.tsは既にtry/catch済みで影響なし)。`getNewsById`はthrow維持
-- `src/app/error.tsx` **新規作成**: `"use client"`、`{ error, reset }`を受ける標準エラーバウンダリ。not-found.tsxと同じトーン(PawPrint+「一時的な問題が発生しました」+`reset()`再試行ボタン+ホームへ戻る)。エラー内容は画面に出さずconsoleのみ。root layout自体のエラーは対象外(layoutはデータ取得をしないため許容)
+- **#13 検索0件時の導線**(`src/components/np/EmptyState.tsx` + `src/app/plants/page.tsx`):
+  - EmptyStateに任意の `action?: React.ReactNode` propを追加(テキスト下に描画するだけの小変更)
+  - /plants の植物タブ0件時: 「共存図鑑で全植物を見る」ボタン(→`/zukan`)+「投稿時には新しい植物名を登録できます」の補足文を action で渡す。投稿タブ0件時: 「絞り込みを解除する」リンク(→`/plants?tab=posts`)
+- **#15 投稿ボタンの無効理由**(`src/app/posts/new/PostFlow.tsx:582-601` フッターナビ):
+  - `!canSubmit && !isSubmitting` のとき、ボタンの上に不足項目を1行表示: 「あと 写真の選択 / 植物の選択 / 猫の選択 が必要です」(photoDone/plantDone/petDone から未完了のものだけを列挙、`text-xs text-gray-500`)。全て揃えば消える
 
-## Phase 4: /contactフォールバック(#8) — コミット5
+### 4. #14 ページネーション(もっと見る/無限スクロール)は**今回見送り**
 
-`src/app/contact/page.tsx`: iframeに`title="お問い合わせフォーム"`、下に「フォームが表示されない場合は こちら」リンク(`/ebd/`を除いた通常URL `https://confirmed-giant-27d.notion.site/1c69f17f06688007995fc3497043f841` を`target="_blank" rel="noopener noreferrer"`で)
+フィードのデータ取得をクライアント追記型に作り替える必要があり(サーバーコンポーネント→client feed への再設計)、このトランシェの他7件と粒度が違うため。レビュー報告どおり中期課題として別PRを推奨。
+
+## E2Eへの影響(実装時に必ず確認)
+
+- `@mobile` タグのE2E(`playwright.config.ts:59-65`、Pixel 5)がヘッダーナビ/カメラボタンをタップしている場合、下部タブバーのtestidに差し替える(`e2e/navigation.test.ts`・`e2e/feed.test.ts`・`e2e/post-flow.test.ts` を実装前にgrepし、`max-sm:hidden` 化した要素への依存を洗い出す)
+- PostCardの構造変更(#12/#16)は `post-card-link` オーバーレイのクリック領域に影響しないこと(`pointer-events-auto` の付け忘れに注意)
 
 ## 検証
 
-1. `npm run lint` / `npm test` / `npm run build` すべてpass
+1. `npm run lint` / `npm test` / `npm run build`
 2. Playwright再撮影(390x844 + 1440x900):
-   - /zukan: 全行で「N匹」が見切れない(モバイル2行化)。**PCは修正前と同一**
-   - /plants/[id]: カタログ表のラベルが横書き1行
-   - /settings/*: タブが語中で折れない
-   - フッター: 項目単位で折り返し
-   - /contact: フォールバックリンク表示
-3. bio実機フロー(/signin/dev → e2e@example.com/password): 設定で自己紹介入力→保存→リロードで残存→公開プロフィール`/testuser`に表示。空で保存→表示が消える(null)。/settings/profileでコンソール警告が出ない
-4. /news: ローカル(Notion未設定)で白画面にならず「お知らせはありません」
-5. e2e必要時: `npm run e2e -- --grep @public`(search-zukan含む)
+   - モバイル: 全主要ページで下部タブバー表示・アクティブ状態・フッターが隠れない・ヘッダーがロゴ+ログイン/アバターだけになる
+   - デスクトップ: ヘッダー/フィードが**修正前と同一**(回帰なし)
+   - フィード: モバイルで猫チップが本文に表示、いいねタップ領域、バッジタップで植物ページへ遷移
+   - /plants?q=存在しない名前: 0件導線(図鑑ボタン)表示
+   - /posts/new: 写真だけ選んだ状態で「あと 植物の選択 / 猫の選択 が必要です」表示→全選択で消えて投稿可能
+3. E2E: `npm run e2e -- --grep @mobile` と `--grep @public` をローカル実行し、必要なら selector を更新
+4. push(PR #108 が自動更新される)
 
-## コミット/プッシュ
+## コミット構成
 
-- 5コミット構成(上記Phase単位)、ブランチ `claude/ui-improvement-review-110nnk` へ `git push -u origin`
-- `.env.local`(gitignore済み)と`supabase/storage/`空ディレクトリ(git管理外)は含めない。PRは指示があるまで作らない
+1. `feat(nav): モバイルに下部タブバーを追加しヘッダーを整理`(BottomNav新規、Header/HeaderNav/layout調整、E2E selector追随)
+2. `fix(feed): カードの操作性改善`(いいねタップ領域、モバイル猫チップ、共存バッジのリンク化)
+3. `fix(ux): 検索0件と投稿フォームの行き止まりを解消`(EmptyState action、投稿ボタンの不足項目ヒント)

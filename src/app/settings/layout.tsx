@@ -18,40 +18,25 @@ export default function SettingsLayout({
         <div className="max-w-4xl mx-auto space-y-8 mt-4 mb-4">
           <div className="bg-white rounded-xl shadow-lg p-6">
             <h1 className="text-2xl font-bold mb-6">各種設定</h1>
-            <div className="flex items-center gap-2 mb-4 border-b">
-              <Link href="/settings/account">
-                <button
-                  className={`px-4 py-2 ${
-                    isActive("/settings/account")
+            {/* ラベルが語中で折り返さないよう nowrap にし、入り切らない幅では横スクロールさせる */}
+            <div className="flex items-center gap-2 mb-4 border-b overflow-x-auto">
+              {[
+                { href: "/settings/account", label: "アカウント" },
+                { href: "/settings/profile", label: "プロフィール" },
+                { href: "/settings/cats", label: "猫プロフィール" },
+              ].map((tab) => (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm ${
+                    isActive(tab.href)
                       ? "text-black border-b-2 border-green-500"
                       : "text-black hover:text-gray-600"
                   }`}
                 >
-                  アカウント
-                </button>
-              </Link>
-              <Link href="/settings/profile">
-                <button
-                  className={`px-4 py-2 ${
-                    isActive("/settings/profile")
-                      ? "text-black border-b-2 border-green-500"
-                      : "text-black hover:text-gray-600"
-                  }`}
-                >
-                  プロフィール
-                </button>
-              </Link>
-              <Link href="/settings/cats">
-                <button
-                  className={`px-4 py-2 ${
-                    isActive("/settings/cats")
-                      ? "text-black border-b-2 border-green-500"
-                      : "text-black hover:text-gray-600"
-                  }`}
-                >
-                  猫プロフィール
-                </button>
-              </Link>
+                  {tab.label}
+                </Link>
+              ))}
             </div>
 
             {children}

@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Images } from "lucide-react";
 import { Post } from "@/types/post";
-import { formatRelativeTime } from "@/lib/utils";
+import { cn, formatRelativeTime } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import LikeButton from "./LikeButton";
 import PlantTag from "./PlantTag";
@@ -14,6 +14,20 @@ type Props = {
   /** ファーストビューに入るカード (LCP候補) のみ true にする */
   priority?: boolean;
 };
+
+/** 猫チップの列 (2匹まで + 「+N」)。ヘッダー(PC)と本文(モバイル)で共用 */
+function PetChips({ pets, className }: { pets: Post["pets"]; className?: string }) {
+  return (
+    <div className={cn("flex gap-1.5", className)}>
+      {pets.slice(0, 2).map((pet) => (
+        <CatChip key={pet.id} name={pet.name} />
+      ))}
+      {pets.length > 2 && (
+        <span className="text-xs text-gray-500 self-center">+{pets.length - 2}</span>
+      )}
+    </div>
+  );
+}
 
 /** フィード用の投稿カード */
 export default function PostCard({ post, priority = false }: Props) {
@@ -50,14 +64,7 @@ export default function PostCard({ post, priority = false }: Props) {
             <span className="text-xs text-gray-500">{formatRelativeTime(post.createdAt)}</span>
           </div>
           {post.pets.length > 0 && (
-            <div className="flex gap-1.5 max-sm:hidden ml-auto shrink-0">
-              {post.pets.slice(0, 2).map((pet) => (
-                <CatChip key={pet.id} name={pet.name} />
-              ))}
-              {post.pets.length > 2 && (
-                <span className="text-xs text-gray-500 self-center">+{post.pets.length - 2}</span>
-              )}
-            </div>
+            <PetChips pets={post.pets} className="max-sm:hidden ml-auto shrink-0" />
           )}
         </div>
 
@@ -92,12 +99,23 @@ export default function PostCard({ post, priority = false }: Props) {
           {post.comment && (
             <p className="text-sm text-gray-700 leading-normal whitespace-pre-wrap">{post.comment}</p>
           )}
+          {/* モバイルはヘッダー右に余白がないため、猫チップを本文側に出す (猫×植物が中核情報) */}
+          {post.pets.length > 0 && (
+            <PetChips pets={post.pets} className="sm:hidden flex-wrap" />
+          )}
           {post.plants.length > 0 && (
             <div className="flex flex-wrap items-center gap-2">
               {post.plants.map((plant) => (
                 <span key={plant.id} className="inline-flex flex-wrap items-center gap-2">
                   <PlantTag plant={plant} className="pointer-events-auto relative z-10" />
-                  <CoexistBadge catCount={plant.catCount} />
+                  {/* バッジ=共存実績なので、タップは投稿詳細ではなく植物ページへ */}
+                  <Link
+                    href={`/plants/${plant.id}`}
+                    className="pointer-events-auto relative z-10"
+                    aria-label={`${plant.name}の共存実績を見る`}
+                  >
+                    <CoexistBadge catCount={plant.catCount} />
+                  </Link>
                 </span>
               ))}
             </div>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Metadata } from "next";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { BookHeart, ChevronLeft, ChevronRight } from "lucide-react";
 import { searchPlants, PlantFilter, PlantSortBy } from "@/actions/plant-action";
 import { searchPosts } from "@/actions/post-action";
 import { getNekoSpecies } from "@/actions/neko-action";
@@ -126,7 +126,22 @@ export default async function PlantsSearchPage({
             ))}
           </div>
         ) : (
-          <EmptyState text="植物が見つかりませんでした" />
+          <EmptyState
+            text="植物が見つかりませんでした"
+            action={
+              <>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/zukan">
+                    <BookHeart className="w-4 h-4" />
+                    共存図鑑で全植物を見る
+                  </Link>
+                </Button>
+                <p className="text-xs text-gray-400">
+                  投稿するときに、新しい植物名を登録できます
+                </p>
+              </>
+            }
+          />
         )
       ) : postsResult.posts.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -135,7 +150,17 @@ export default async function PlantsSearchPage({
           ))}
         </div>
       ) : (
-        <EmptyState icon="image" text="条件に合う投稿がありません" />
+        <EmptyState
+          icon="image"
+          text="条件に合う投稿がありません"
+          action={
+            (query || params.neko) && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/plants?tab=posts">絞り込みを解除する</Link>
+              </Button>
+            )
+          }
+        />
       )}
 
       {/* ページネーション */}

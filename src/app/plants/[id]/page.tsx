@@ -204,20 +204,20 @@ export default async function PlantPage({
       <div className="bg-white rounded-xl border border-border shadow-sm p-5 flex flex-col gap-3">
         <h2 className="text-base font-semibold text-gray-900">カタログ情報</h2>
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-          <dt className="text-gray-500">学名</dt>
+          <dt className="text-gray-500 whitespace-nowrap">学名</dt>
           <dd className="text-gray-800 italic">{plant.scientific_name ?? "—"}</dd>
-          <dt className="text-gray-500">科名</dt>
+          <dt className="text-gray-500 whitespace-nowrap">科名</dt>
           <dd className="text-gray-800">{plant.family ?? "—"}</dd>
-          <dt className="text-gray-500">観測された投稿</dt>
+          <dt className="text-gray-500 whitespace-nowrap">観測された投稿</dt>
           <dd className="text-gray-800">{plant.postCount} 件</dd>
-          <dt className="text-gray-500">ユニークな猫</dt>
+          <dt className="text-gray-500 whitespace-nowrap">ユニークな猫</dt>
           <dd className="text-gray-800">
             {plant.catCount} 匹
             <span className="ml-2 text-xs text-gray-400">同一ユーザーの重複投稿では水増しされません</span>
           </dd>
-          <dt className="text-gray-500">外部データ照合</dt>
+          <dt className="text-gray-500 whitespace-nowrap">外部データ照合</dt>
           <dd className="text-gray-800">—（今後対応予定）</dd>
-          <dt className="text-gray-500">共存実績</dt>
+          <dt className="text-gray-500 whitespace-nowrap">共存実績</dt>
           <dd>
             <CoexistBadge catCount={plant.catCount} />
           </dd>

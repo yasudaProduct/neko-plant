@@ -80,7 +80,8 @@ export default function LikeButton({ postId, initialLiked, initialCount, size = 
         onClick={onToggle}
         aria-label={liked ? "いいねを取り消す" : "いいねする"}
         className={cn(
-          "transition-colors",
+          // p-2 -m-2: 見た目を変えずにタップ領域を44px相当まで広げる
+          "p-2 -m-2 transition-colors",
           liked ? "text-red-600" : "text-gray-500 hover:text-red-600",
         )}
       >

@@ -37,7 +37,7 @@ erDiagram
 | `pets` | 飼い猫のプロフィール | 名前・猫種・写真・年齢・誕生日・性別 |
 | `neko` | 猫種マスタ | `name` に一意制約。マイグレーションで投入（49種）。書き込みAPIを持たない運用マスタ |
 
-`users.alias_id` は URL に使う短い識別子（`/[aliasId]`）。`users.role` は `'user'`（既定）または `'admin'`。
+`users.alias_id` は URL に使う短い識別子（`/[aliasId]`）。`users.role` は `'user'`（既定）または `'admin'`。`users.bio` は自己紹介（任意。上限 `MAX_USER_BIO_LENGTH` = 300文字はアプリ側で検証し、公開プロフィールに表示される）。
 
 ### 投稿
 

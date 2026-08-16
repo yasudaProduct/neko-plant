@@ -385,6 +385,7 @@ model public_users {
   image                     String?                     @db.VarChar
   created_at                DateTime                    @default(now()) @db.Timestamptz(6)
   role                      String?                     @default("user") @db.VarChar(50)
+  bio                       String?                     @db.VarChar
   pets                      pets[]
   plant_identification_logs plant_identification_logs[]
   post_likes                post_likes[]

@@ -207,6 +207,44 @@ describe('User Actions', () => {
                 data: { name: '新しい名前', alias_id: 'newalias' },
             });
         });
+
+        it('自己紹介が301文字以上の場合はエラー', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst).mockResolvedValue(mockPublicUser as any);
+
+            await expect(updateUser('テスト', 'testuser', 'あ'.repeat(301))).rejects.toThrow(
+                '自己紹介は300文字以内で入力してください'
+            );
+            expect(prisma.public_users.update).not.toHaveBeenCalled();
+        });
+
+        it('正常系: 自己紹介つきで更新する', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst)
+                .mockResolvedValueOnce(mockPublicUser as any)
+                .mockResolvedValueOnce(null);
+
+            await updateUser('新しい名前', 'newalias', 'こんにちは');
+
+            expect(prisma.public_users.update).toHaveBeenCalledWith({
+                where: { id: 1 },
+                data: { name: '新しい名前', alias_id: 'newalias', bio: 'こんにちは' },
+            });
+        });
+
+        it('自己紹介が空白のみの場合はnullとして保存する', async () => {
+            mockSupabase(mockUser);
+            vi.mocked(prisma.public_users.findFirst)
+                .mockResolvedValueOnce(mockPublicUser as any)
+                .mockResolvedValueOnce(null);
+
+            await updateUser('新しい名前', 'newalias', '   ');
+
+            expect(prisma.public_users.update).toHaveBeenCalledWith({
+                where: { id: 1 },
+                data: { name: '新しい名前', alias_id: 'newalias', bio: null },
+            });
+        });
     });
 
     describe('updateUserImage', () => {

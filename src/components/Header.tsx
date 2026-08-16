@@ -3,6 +3,7 @@ import { Button } from "./ui/button";
 import { Camera, Leaf, PawPrint } from "lucide-react";
 import { DropdownMenu } from "./HeaderDropMenu";
 import HeaderNav from "./HeaderNav";
+import BottomNav from "./BottomNav";
 import { createClient } from "@/lib/supabase/server";
 import { getUserProfileByAuthId } from "@/actions/user-action";
 
@@ -16,6 +17,7 @@ export default async function Header() {
   const user = await getUserProfileByAuthId();
 
   return (
+    <>
     <header className="bg-[#2d5a27] text-primary-foreground p-3 px-4">
       <div className="max-w-6xl mx-auto flex items-center gap-1 sm:gap-3">
         <div className="flex items-center gap-1 sm:gap-2 min-w-0">
@@ -43,11 +45,7 @@ export default async function Header() {
             </Button>
           ) : (
             <>
-              <Button variant="outline" className="w-10 h-10 sm:hidden" asChild>
-                <Link href="/posts/new" className="text-accent-foreground">
-                  <Camera className="w-6 h-6 text-green-500" />
-                </Link>
-              </Button>
+              {/* モバイルの投稿導線は下部タブバー (BottomNav) 中央に集約 */}
               <Button variant="outline" className="hidden sm:flex" asChild>
                 <Link href="/posts/new" className="text-accent-foreground">
                   <span className="flex items-center gap-2">
@@ -66,5 +64,8 @@ export default async function Header() {
         </div>
       </div>
     </header>
+    {/* fixed配置なのでDOM上はここでよい (プロフィール取得を重複させないためHeaderから渡す) */}
+    <BottomNav aliasId={session && user ? user.aliasId || undefined : undefined} />
+    </>
   );
 }

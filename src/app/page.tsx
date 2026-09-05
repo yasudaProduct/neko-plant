@@ -141,7 +141,7 @@ export default async function Home({
                   className="flex items-center gap-2.5 px-2 py-2 -mx-2 rounded-md hover:bg-gray-100 transition-colors"
                 >
                   <span
-                    className={`w-5 text-sm font-bold ${i < 3 ? "text-green-600" : "text-gray-400"}`}
+                    className={`w-5 text-sm font-bold ${i < 3 ? "text-green-600" : "text-gray-500"}`}
                   >
                     {i + 1}
                   </span>

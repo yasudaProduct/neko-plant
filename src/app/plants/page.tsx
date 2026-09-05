@@ -136,7 +136,7 @@ export default async function PlantsSearchPage({
                     共存図鑑で全植物を見る
                   </Link>
                 </Button>
-                <p className="text-xs text-gray-400">
+                <p className="text-xs text-gray-500">
                   投稿するときに、新しい植物名を登録できます
                 </p>
               </>

@@ -107,7 +107,7 @@ export default async function ProfilePage({
             <h1 className="text-2xl font-bold text-gray-900" data-testid="profile-name">
               {userProfile.name}
             </h1>
-            <span className="text-sm text-gray-400">@{userProfile.aliasId}</span>
+            <span className="text-sm text-gray-500">@{userProfile.aliasId}</span>
           </div>
           <div className="flex gap-5 pt-1 text-sm text-gray-600">
             <span>

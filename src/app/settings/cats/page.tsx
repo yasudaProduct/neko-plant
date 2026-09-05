@@ -1,6 +1,9 @@
 import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Pencil, Plus } from "lucide-react";
+import { format } from "date-fns";
+import { ja } from "date-fns/locale";
+import { getDisplayPetAge, SEX_LABEL } from "@/lib/pet";
 import { createClient } from "@/lib/supabase/server";
 import { getUserPets, getUserProfileByAuthId } from "@/actions/user-action";
 import { getNekoSpecies } from "@/actions/neko-action";
@@ -41,35 +44,50 @@ export default async function CatsSettingsPage() {
       </div>
 
       <div className="flex flex-col gap-3">
-        {(pets ?? []).map((pet) => (
-          <div
-            key={pet.id}
-            className="bg-white rounded-xl border border-border shadow-sm p-5 flex items-center gap-3.5"
-            data-testid="pet-card"
-          >
-            <Avatar className="w-14 h-14">
-              <AvatarImage src={pet.imageSrc} alt={pet.name} />
-              <AvatarFallback>{pet.name.charAt(0)}</AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col gap-0.5 flex-1 min-w-0">
-              <span className="text-base font-bold text-gray-900">{pet.name}</span>
-              <span className="text-xs text-gray-500">
-                {pet.neko.name}
-                {pet.age != null && ` ・ ${pet.age}歳`}
-              </span>
+        {(pets ?? []).map((pet) => {
+          // 誕生日があれば、登録時の値ではなく現在の年齢を出す
+          const age = getDisplayPetAge(pet);
+
+          return (
+            <div
+              key={pet.id}
+              className="bg-white rounded-xl border border-border shadow-sm p-5 flex items-center gap-3.5"
+              data-testid="pet-card"
+            >
+              <Avatar className="w-14 h-14">
+                <AvatarImage src={pet.imageSrc} alt={pet.name} />
+                <AvatarFallback>{pet.name.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                <span className="text-base font-bold text-gray-900">{pet.name}</span>
+                <span className="text-xs text-gray-500">
+                  {[
+                    pet.neko.name,
+                    pet.sex ? SEX_LABEL[pet.sex] : null,
+                    age != null ? `${age}歳` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" ・ ")}
+                </span>
+                {pet.birthday && (
+                  <span className="text-xs text-gray-500">
+                    誕生日 {format(pet.birthday, "yyyy年M月d日", { locale: ja })}
+                  </span>
+                )}
+              </div>
+              <PetFormDialog
+                pet={pet}
+                nekoSpecies={nekoSpecies}
+                trigger={
+                  <Button variant="outline" size="sm">
+                    <Pencil className="w-3.5 h-3.5" />
+                    編集
+                  </Button>
+                }
+              />
             </div>
-            <PetFormDialog
-              pet={pet}
-              nekoSpecies={nekoSpecies}
-              trigger={
-                <Button variant="outline" size="sm">
-                  <Pencil className="w-3.5 h-3.5" />
-                  編集
-                </Button>
-              }
-            />
-          </div>
-        ))}
+          );
+        })}
 
         <PetFormDialog
           nekoSpecies={nekoSpecies}

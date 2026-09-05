@@ -88,6 +88,40 @@ export default async function Home({
       <div className="max-w-6xl mx-auto px-4 pt-6 pb-12 grid grid-cols-1 lg:grid-cols-[minmax(0,600px)_300px] lg:justify-center gap-8 items-start">
         {/* フィード */}
         <div className="min-w-0 w-full max-w-[600px] mx-auto lg:mx-0">
+          {/* モバイルではサイドパネルがフィードの下に回り、眺めに来た人 (M1) の目に入らない。
+              実績ランキングだけ横スクロールのチップ列にしてフィード上部へ出す */}
+          {topPlants.plants.length > 0 && (
+            <div className="lg:hidden mb-5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sprout className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-semibold text-gray-900">共存実績の多い植物</span>
+                <Link
+                  href="/zukan"
+                  className="ml-auto inline-flex items-center gap-0.5 text-xs font-medium text-green-700 hover:underline"
+                >
+                  共存図鑑
+                  <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
+              {/* 画面端まで流れて見えるよう、親の左右パディング分を打ち消す */}
+              <div className="-mx-4 px-4 flex gap-2 overflow-x-auto pb-1">
+                {topPlants.plants.map((plant) => (
+                  <Link
+                    key={plant.id}
+                    href={`/plants/${plant.id}`}
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-white px-3 py-1.5 shadow-sm"
+                  >
+                    <span className="max-w-[8rem] truncate text-sm text-gray-800">{plant.name}</span>
+                    <span className="inline-flex items-center gap-0.5 text-xs text-gray-500">
+                      <PawPrint className="w-3 h-3" />
+                      {plant.catCount}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-baseline gap-3 mb-4">
             <h2 className="text-xl font-semibold text-gray-900">新着の投稿</h2>
             <span className="text-sm text-gray-500">全{totalCount}件</span>
@@ -131,7 +165,7 @@ export default async function Home({
 
         {/* サイドパネル */}
         <aside className="w-full max-w-[600px] mx-auto lg:mx-0 flex flex-col gap-4">
-          <div className="bg-white rounded-xl border border-border shadow-sm p-5 flex flex-col gap-3">
+          <div className="max-lg:hidden bg-white rounded-xl border border-border shadow-sm p-5 flex flex-col gap-3">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <Sprout className="w-[18px] h-[18px] text-green-600" />
               共存実績の多い植物

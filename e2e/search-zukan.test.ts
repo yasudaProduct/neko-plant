@@ -51,6 +51,18 @@ test.describe('検索・探索 @public', () => {
     await expect(page.getByTestId('plant-card').first()).toBeVisible();
   });
 
+  test('「もっと見る」で検索結果を追加読み込みできる', async ({ page }) => {
+    // シード植物は13種あり、1ページ12件では収まらない
+    const initial = await page.getByTestId('plant-card').count();
+    expect(initial).toBe(12);
+
+    await page.getByTestId('load-more').click();
+
+    await expect.poll(() => page.getByTestId('plant-card').count()).toBeGreaterThan(initial);
+
+    await page.screenshot({ path: screenshotDir + 'load-more.png', fullPage: true });
+  });
+
   test('投稿タブに切り替えられる', async ({ page }) => {
     await page.getByRole('link', { name: /^投稿 \d+件$/ }).click();
     await expect(page).toHaveURL(/tab=posts/);

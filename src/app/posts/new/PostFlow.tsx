@@ -415,7 +415,7 @@ export default function PostFlow({
                 <Camera className="w-5 h-5" />
                 写真を追加する
                 {photos.length > 0 && (
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-500">
                     （残り{MAX_POST_IMAGES - photos.length}枚）
                   </span>
                 )}
@@ -533,7 +533,7 @@ export default function PostFlow({
                         >
                           {pet.name}
                         </span>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-500">
                           {pet.neko.name}
                         </span>
                       </span>

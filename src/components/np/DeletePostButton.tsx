@@ -48,7 +48,7 @@ export default function DeletePostButton({ postId }: { postId: number }) {
       <DialogTrigger asChild>
         <button
           type="button"
-          className="inline-flex items-center gap-1 text-sm text-gray-400 hover:text-red-600 transition-colors"
+          className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-red-600 transition-colors"
           data-testid="delete-post-button"
         >
           <Trash2 className="w-4 h-4" />

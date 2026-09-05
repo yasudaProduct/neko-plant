@@ -14,6 +14,7 @@ import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
+import LegalConsentNote from "@/components/np/LegalConsentNote";
 interface LoginDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -57,8 +58,8 @@ export default function LoginDialog({
             height={64}
             className="w-16 h-16 rounded-full"
           />
-          <p className="text-center text-sm text-muted-foreground mt-4 mb-4">
-            ログインすると、植物の評価や飼育情報の共有など、より多くの機能を利用できます。
+          <p className="text-center text-sm text-gray-600 mt-4 mb-4 leading-normal">
+            ログインすると、猫と植物の写真を投稿したり、気に入った投稿にいいねを送れます。
           </p>
         </div>
         <DialogFooter className="flex flex-col items-center justify-center">
@@ -75,6 +76,7 @@ export default function LoginDialog({
             キャンセル
           </Button>
         </DialogFooter>
+        <LegalConsentNote />
       </DialogContent>
     </Dialog>
   );

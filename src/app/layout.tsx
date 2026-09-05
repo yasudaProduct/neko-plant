@@ -22,12 +22,14 @@ const RampartOneFont = M_PLUS_Rounded_1c({
 export const metadata: Metadata = {
   // 各ページは title にページ名のみを設定する (「 | 猫と植物」は template が付与)
   title: {
-    default: `${SITE_NAME} | 猫にとって安全な植物を探す`,
+    default: `${SITE_NAME} | 猫と植物の共存を、みんなの写真から`,
     template: `%s | ${SITE_NAME}`,
   },
+  // 安全の断定はポジティブリスト方針に反するため、
+  // 「共存の実績が見える」という事実ベースの説明にする
   description:
-    "猫にとって安全な植物を探すためのサイトです。猫と暮らす方々が安心して植物を育てられるように、猫に安全な植物の情報を集めています。",
-  keywords: "猫,植物,安全,ペット,観葉植物,猫と暮らす,猫のいる暮らし",
+    "猫と植物が一緒に写った写真を共有するフォトSNSです。みんなの投稿から、植物ごとに何匹の猫と暮らしているか（共存実績）が見えてきます。危険は断定せず、投稿がない植物は「情報がない」状態として扱います。",
+  keywords: "猫,植物,共存,ペット,観葉植物,猫と暮らす,猫のいる暮らし,フォトSNS",
   authors: [{ name: SITE_NAME }],
   creator: SITE_NAME,
   publisher: SITE_NAME,

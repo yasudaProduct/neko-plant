@@ -26,7 +26,9 @@ export default async function ZukanPage({
 }) {
   const params = await searchParams;
   const sort = VALID_SORTS.includes(params.sort as PlantSortBy) ? (params.sort as PlantSortBy) : "cats";
-  const filter = VALID_FILTERS.includes(params.filter as PlantFilter) ? (params.filter as PlantFilter) : "all";
+  // 投稿が少ない時期は「情報なし」の行が大半を占め、図鑑がオレンジの壁になる。
+  // ポジティブリスト方式の趣旨どおり、既定では実績のある植物を見せる
+  const filter = VALID_FILTERS.includes(params.filter as PlantFilter) ? (params.filter as PlantFilter) : "proven";
 
   const [{ plants }, stats] = await Promise.all([
     searchPlants("", sort, 1, 200, filter),
@@ -44,6 +46,12 @@ export default async function ZukanPage({
         </h1>
         <p className="text-sm text-gray-600">
           みんなの投稿から集計した、植物ごとの「猫との共存実績」の記録です。
+          {filter === "proven" && (
+            <>
+              <br />
+              実績のある植物を表示しています。投稿がまだない植物も見るには「全て」を選んでください。
+            </>
+          )}
         </p>
       </div>
 

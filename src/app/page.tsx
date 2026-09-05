@@ -1,12 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Metadata } from "next";
-import { ChevronLeft, ChevronRight, PawPrint, Search, Sprout } from "lucide-react";
+import { ChevronRight, PawPrint, Search, Sprout } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getFeedPosts, getSiteStats } from "@/actions/post-action";
 import { getPlants } from "@/actions/plant-action";
 import { Button } from "@/components/ui/button";
-import PostCard from "@/components/np/PostCard";
+import PostFeedList from "./PostFeedList";
 import EmptyState from "@/components/np/EmptyState";
 
 export const metadata: Metadata = {
@@ -15,25 +15,16 @@ export const metadata: Metadata = {
 
 const PAGE_SIZE = 12;
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string }>;
-}) {
-  const params = await searchParams;
-  const page = Math.max(1, Number(params.page) || 1);
-
+export default async function Home() {
   const supabase = await createClient();
 
   const [{ data: { user } }, { posts, totalCount }, stats, topPlants] = await Promise.all([
     supabase.auth.getUser(),
-    getFeedPosts(page, PAGE_SIZE),
+    getFeedPosts(1, PAGE_SIZE),
     getSiteStats(),
     // 「実績の多い植物」枠なので、実績のない植物 (catCount: 0) は混ぜない
     getPlants("cats", 1, 5, "proven"),
   ]);
-
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
     <div>
@@ -128,38 +119,9 @@ export default async function Home({
           </div>
 
           {posts.length > 0 ? (
-            <div className="flex flex-col gap-5">
-              {posts.map((post, i) => (
-                <PostCard key={post.id} post={post} priority={i === 0} />
-              ))}
-            </div>
+            <PostFeedList initialPosts={posts} totalCount={totalCount} pageSize={PAGE_SIZE} />
           ) : (
             <EmptyState icon="image" text="投稿がまだありません" />
-          )}
-
-          {/* ページネーション */}
-          {totalPages > 1 && (
-            <div className="flex items-center gap-4 mt-8 justify-center">
-              {page > 1 && (
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/?page=${page - 1}`}>
-                    <ChevronLeft className="w-4 h-4" />
-                    前へ
-                  </Link>
-                </Button>
-              )}
-              <span className="text-sm text-gray-500">
-                {page} / {totalPages}
-              </span>
-              {page < totalPages && (
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/?page=${page + 1}`}>
-                    次へ
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
-                </Button>
-              )}
-            </div>
           )}
         </div>
 

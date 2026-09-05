@@ -3,6 +3,7 @@
 import { signInWithGoogle } from "@/lib/supabase/auth-google";
 import { FcGoogle } from "react-icons/fc";
 import Image from "next/image";
+import LegalConsentNote from "@/components/np/LegalConsentNote";
 
 export default function LoginPage() {
   const handleLogin = async () => {
@@ -10,7 +11,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center">
+    <div className="min-h-[80vh] flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-green-100 mb-4">
@@ -28,7 +29,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-lg p-8">
+        <div className="bg-white rounded-xl border border-border shadow-sm p-8 flex flex-col gap-4">
           <button
             type="button"
             onClick={handleLogin}
@@ -37,6 +38,7 @@ export default function LoginPage() {
             <FcGoogle className="w-4 h-4" />
             <span className="ml-2">Googleでログイン</span>
           </button>
+          <LegalConsentNote />
         </div>
       </div>
     </div>

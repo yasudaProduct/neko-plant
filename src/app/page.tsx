@@ -82,16 +82,18 @@ export default async function Home({
         </section>
       )}
 
-      <div className="max-w-6xl mx-auto px-4 pt-6 pb-12 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-8 items-start">
+      {/* 1440px 幅でもフィードとサイドパネルが離れないよう、列幅をコンテンツの実寸
+          (600px + 300px) に合わせ、グリッドごと中央に置く */}
+      <div className="max-w-6xl mx-auto px-4 pt-6 pb-12 grid grid-cols-1 lg:grid-cols-[minmax(0,600px)_300px] lg:justify-center gap-8 items-start">
         {/* フィード */}
-        <div className="min-w-0">
+        <div className="min-w-0 w-full max-w-[600px] mx-auto lg:mx-0">
           <div className="flex items-baseline gap-3 mb-4">
             <h2 className="text-xl font-semibold text-gray-900">新着の投稿</h2>
             <span className="text-sm text-gray-500">全{totalCount}件</span>
           </div>
 
           {posts.length > 0 ? (
-            <div className="flex flex-col gap-5 max-w-[600px]">
+            <div className="flex flex-col gap-5">
               {posts.map((post, i) => (
                 <PostCard key={post.id} post={post} priority={i === 0} />
               ))}
@@ -102,7 +104,7 @@ export default async function Home({
 
           {/* ページネーション */}
           {totalPages > 1 && (
-            <div className="flex items-center gap-4 mt-8 max-w-[600px] justify-center">
+            <div className="flex items-center gap-4 mt-8 justify-center">
               {page > 1 && (
                 <Button variant="outline" size="sm" asChild>
                   <Link href={`/?page=${page - 1}`}>
@@ -127,7 +129,7 @@ export default async function Home({
         </div>
 
         {/* サイドパネル */}
-        <aside className="flex flex-col gap-4">
+        <aside className="w-full max-w-[600px] mx-auto lg:mx-0 flex flex-col gap-4">
           <div className="bg-white rounded-xl border border-border shadow-sm p-5 flex flex-col gap-3">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <Sprout className="w-[18px] h-[18px] text-green-600" />

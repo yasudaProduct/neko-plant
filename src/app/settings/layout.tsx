@@ -13,36 +13,33 @@ export default function SettingsLayout({
   const isActive = (path: string) => pathname === path;
 
   return (
-    <div>
-      <div className="container mx-auto py-6 px-4 max-w-3xl">
-        <div className="max-w-4xl mx-auto space-y-8 mt-4 mb-4">
-          <div className="bg-white rounded-xl shadow-lg p-6">
-            <h1 className="text-2xl font-bold mb-6">各種設定</h1>
-            {/* ラベルが語中で折り返さないよう nowrap にし、入り切らない幅では横スクロールさせる */}
-            <div className="flex items-center gap-2 mb-4 border-b overflow-x-auto">
-              {[
-                { href: "/settings/account", label: "アカウント" },
-                { href: "/settings/profile", label: "プロフィール" },
-                { href: "/settings/cats", label: "猫プロフィール" },
-              ].map((tab) => (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm ${
-                    isActive(tab.href)
-                      ? "text-black border-b-2 border-green-500"
-                      : "text-black hover:text-gray-600"
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              ))}
-            </div>
+    // 各設定ページが自前でカードを持っているため、レイアウト側は
+    // 見出しとタブだけを担当する (白カードの二重掛けを避ける)
+    <div className="max-w-3xl mx-auto px-4 pt-8 pb-12 flex flex-col gap-5">
+      <h1 className="text-2xl font-bold text-gray-900">各種設定</h1>
 
-            {children}
-          </div>
-        </div>
+      {/* ラベルが語中で折り返さないよう nowrap にし、入り切らない幅では横スクロールさせる */}
+      <div className="flex items-center border-b border-border overflow-x-auto">
+        {[
+          { href: "/settings/account", label: "アカウント" },
+          { href: "/settings/profile", label: "プロフィール" },
+          { href: "/settings/cats", label: "猫プロフィール" },
+        ].map((tab) => (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            className={`shrink-0 whitespace-nowrap px-4 py-2 text-sm transition-colors ${
+              isActive(tab.href)
+                ? "text-gray-900 font-semibold border-b-2 border-green-500"
+                : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {tab.label}
+          </Link>
+        ))}
       </div>
+
+      {children}
     </div>
   );
 }

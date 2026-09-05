@@ -43,7 +43,7 @@ export default async function NewsDetailPage({
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="max-w-3xl mx-auto px-4 pt-8 pb-12">
       <JsonLd data={newsJsonLd} />
       <Breadcrumbs
         className="mb-4"
@@ -53,8 +53,10 @@ export default async function NewsDetailPage({
           { name: news.title },
         ]}
       />
-      <h1 className="text-2xl font-bold mb-8">{news.title}</h1>
-      <div className="prose">{news.content}</div>
+      <h1 className="text-2xl font-bold text-gray-900 mb-5">{news.title}</h1>
+      <div className="bg-white rounded-xl border border-border shadow-sm p-5">
+        <p className="text-sm text-gray-700 leading-normal whitespace-pre-wrap">{news.content}</p>
+      </div>
     </div>
   );
 }

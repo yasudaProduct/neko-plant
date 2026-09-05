@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Metadata } from "next";
-import { BookHeart, ChevronLeft, ChevronRight } from "lucide-react";
+import { BookHeart, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { searchPlants, PlantFilter, PlantSortBy } from "@/actions/plant-action";
 import { searchPosts } from "@/actions/post-action";
 import { getNekoSpecies } from "@/actions/neko-action";
@@ -130,14 +130,25 @@ export default async function PlantsSearchPage({
             text="植物が見つかりませんでした"
             action={
               <>
-                <Button variant="outline" size="sm" asChild>
-                  <Link href="/zukan">
-                    <BookHeart className="w-4 h-4" />
-                    共存図鑑で全植物を見る
-                  </Link>
-                </Button>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {/* 検索した名前をそのまま渡し、0件を登録の入口にする */}
+                  {query && (
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700" asChild>
+                      <Link href={`/plants/new?name=${encodeURIComponent(query)}`}>
+                        <Plus className="w-4 h-4" />
+                        <span className="max-w-[12rem] truncate">「{query}」を登録する</span>
+                      </Link>
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/zukan">
+                      <BookHeart className="w-4 h-4" />
+                      共存図鑑で全植物を見る
+                    </Link>
+                  </Button>
+                </div>
                 <p className="text-xs text-gray-500">
-                  投稿するときに、新しい植物名を登録できます
+                  写真と一緒に登録したいときは、投稿するときにも追加できます
                 </p>
               </>
             }

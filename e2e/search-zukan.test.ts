@@ -63,20 +63,28 @@ test.describe('検索・探索 @public', () => {
 });
 
 test.describe('共存図鑑 @public', () => {
-  test('全植物が共存実績順で並び、ポジティブリスト方式が説明される', async ({ page }) => {
+  test('既定は実績のある植物のみが並び、「全て」で全植物を見られる', async ({ page }) => {
     await page.goto('/zukan');
     await page.waitForLoadState('networkidle');
 
     await expect(page.getByRole('heading', { name: '共存図鑑' })).toBeVisible();
     await expect(page.locator('text=ポジティブリスト方式')).toBeVisible();
 
-    // シード植物13種
-    expect(await page.getByTestId('zukan-row').count()).toBeGreaterThanOrEqual(13);
-
     // 共存実績が最多のモンステラ（3匹）が先頭
     await expect(page.getByTestId('zukan-row').first()).toContainText('モンステラ');
 
+    // 既定は「実績あり」。シードで実績があるのはパキラとモンステラのみ
+    const provenCount = await page.getByTestId('zukan-row').count();
+
     await page.screenshot({ path: screenshotDir + 'zukan.png', fullPage: true });
+
+    // 「全て」に切り替えるとシード植物13種が並ぶ
+    await page.getByTestId('filter-all').click();
+    await expect(page).toHaveURL(/filter=all/);
+    const allCount = await page.getByTestId('zukan-row').count();
+
+    expect(allCount).toBeGreaterThanOrEqual(13);
+    expect(provenCount).toBeLessThan(allCount);
   });
 
   test('図鑑の行から植物ページへ遷移できる', async ({ page }) => {

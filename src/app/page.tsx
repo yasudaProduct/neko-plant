@@ -29,7 +29,8 @@ export default async function Home({
     supabase.auth.getUser(),
     getFeedPosts(page, PAGE_SIZE),
     getSiteStats(),
-    getPlants("cats", 1, 5),
+    // 「実績の多い植物」枠なので、実績のない植物 (catCount: 0) は混ぜない
+    getPlants("cats", 1, 5, "proven"),
   ]);
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
@@ -154,6 +155,11 @@ export default async function Home({
                   </span>
                 </Link>
               ))}
+              {topPlants.plants.length === 0 && (
+                <p className="px-2 py-2 text-sm text-gray-500 leading-normal">
+                  まだ共存実績のある植物がありません。最初の投稿から実績が集まります。
+                </p>
+              )}
             </div>
             <Link
               href="/zukan"

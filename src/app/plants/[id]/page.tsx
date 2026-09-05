@@ -161,7 +161,7 @@ export default async function PlantPage({
                 {plant.name}
               </h1>
               {(plant.scientific_name || plant.family) && (
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-gray-500">
                   {plant.scientific_name && <span className="italic">{plant.scientific_name}</span>}
                   {plant.scientific_name && plant.family && <span className="mx-1.5">·</span>}
                   {plant.family}
@@ -224,7 +224,7 @@ export default async function PlantPage({
           <dt className="text-gray-500 whitespace-nowrap">ユニークな猫</dt>
           <dd className="text-gray-800">
             {plant.catCount} 匹
-            <span className="ml-2 text-xs text-gray-400">同一ユーザーの重複投稿では水増しされません</span>
+            <span className="ml-2 text-xs text-gray-500">同一ユーザーの重複投稿では水増しされません</span>
           </dd>
           <dt className="text-gray-500 whitespace-nowrap">外部データ照合</dt>
           <dd className="text-gray-800">—（今後対応予定）</dd>
@@ -239,7 +239,7 @@ export default async function PlantPage({
       <div className="bg-white rounded-xl border border-border shadow-sm p-5 flex flex-col gap-3.5">
         <div className="flex items-baseline gap-2.5">
           <h2 className="text-base font-semibold text-gray-900">共存実績の分布</h2>
-          <span className="text-xs text-gray-400">実績の多い植物とのくらべ</span>
+          <span className="text-xs text-gray-500">実績の多い植物とのくらべ</span>
         </div>
         <div className="flex flex-col gap-2">
           {distributionRows.map((row) => {

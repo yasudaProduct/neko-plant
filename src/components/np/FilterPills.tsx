@@ -4,13 +4,16 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { PawPrint, Sprout, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// 配色は CoexistBadge と意味を揃える。
+// 緑=共存実績あり / オレンジ=情報なし / グレー=中立 (どちらでもない「全て」)。
+// 「全て」にオレンジを使うと警告色と意味が衝突するため使わない。
 const PILLS = [
   {
     value: "all",
     label: "全て",
     icon: PawPrint,
-    active: "bg-orange-100 border-orange-200 text-orange-700 shadow-inner",
-    inactive: "bg-white border-orange-200 text-gray-500 hover:bg-orange-50",
+    active: "bg-gray-200 border-gray-300 text-gray-800 shadow-inner",
+    inactive: "bg-white border-gray-300 text-gray-500 hover:bg-gray-100",
   },
   {
     value: "proven",
@@ -23,13 +26,19 @@ const PILLS = [
     value: "noinfo",
     label: "情報なし",
     icon: TriangleAlert,
-    active: "bg-rose-100 border-rose-200 text-rose-700 shadow-inner",
-    inactive: "bg-white border-rose-200 text-gray-500 hover:bg-rose-50",
+    active: "bg-orange-100 border-orange-200 text-orange-700 shadow-inner",
+    inactive: "bg-white border-orange-200 text-gray-500 hover:bg-orange-50",
   },
 ] as const;
 
 /** 共存実績の絞り込みピル (URLの filter パラメータを切り替える) */
-export default function FilterPills({ value }: { value: string }) {
+export default function FilterPills({
+  value,
+  className,
+}: {
+  value: string;
+  className?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -42,7 +51,7 @@ export default function FilterPills({ value }: { value: string }) {
   };
 
   return (
-    <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
+    <div className={cn("flex flex-wrap justify-center gap-3 sm:gap-4", className)}>
       {PILLS.map((pill) => {
         const isActive = value === pill.value;
         return (
@@ -52,7 +61,8 @@ export default function FilterPills({ value }: { value: string }) {
             onClick={() => onChange(pill.value)}
             data-testid={`filter-${pill.value}`}
             className={cn(
-              "flex items-center gap-2 rounded-full border px-5 sm:px-6 py-2 text-sm font-medium",
+              // 高さは SortSelect (h-9) に合わせ、横並びにしたときの段差をなくす
+              "flex h-9 items-center gap-2 rounded-full border px-5 sm:px-6 text-sm font-medium",
               "transition-all hover:scale-105 shadow-sm",
               isActive ? pill.active : pill.inactive,
             )}

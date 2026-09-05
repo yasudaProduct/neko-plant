@@ -8,6 +8,7 @@ import LikeButton from "./LikeButton";
 import PlantTag from "./PlantTag";
 import CatChip from "./CatChip";
 import CoexistBadge from "./CoexistBadge";
+import PhotoPlaceholder from "./PhotoPlaceholder";
 
 type Props = {
   post: Post;
@@ -70,7 +71,7 @@ export default function PostCard({ post, priority = false }: Props) {
 
         {/* 写真 */}
         <div className="relative aspect-[4/3] bg-gray-100">
-          {post.imageUrls[0] && (
+          {post.imageUrls[0] ? (
             <Image
               src={post.imageUrls[0]}
               alt={`${post.user.name}さんの投稿`}
@@ -79,6 +80,8 @@ export default function PostCard({ post, priority = false }: Props) {
               className="object-cover"
               priority={priority}
             />
+          ) : (
+            <PhotoPlaceholder icon="paw" />
           )}
           {post.imageUrls.length > 1 && (
             <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/50 text-white px-2.5 py-0.5 text-xs">

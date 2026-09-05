@@ -80,9 +80,9 @@ export default async function ZukanPage({
         ))}
       </div>
 
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <FilterPills value={filter} />
-        <div className="flex-1"></div>
+      {/* 絞り込みと並び替え。高さを h-9 で揃え、横並びにしたときの段差をなくしている */}
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <FilterPills value={filter} className="justify-start max-sm:w-full max-sm:justify-center" />
         <SortSelect value={sort} />
       </div>
 
@@ -98,13 +98,13 @@ export default async function ZukanPage({
               }`}
               data-testid="zukan-row"
             >
-              <span className="w-10 shrink-0 text-xs text-gray-400 font-medium">
+              <span className="w-10 shrink-0 text-xs text-gray-500 font-medium">
                 No.{String(i + 1).padStart(2, "0")}
               </span>
               <span className="flex-1 min-w-0 flex flex-col gap-0.5 sm:flex-none sm:w-36">
                 <span className="text-sm font-bold text-gray-900 truncate">{plant.name}</span>
                 {plant.scientific_name && (
-                  <span className="text-xs text-gray-400 italic truncate">{plant.scientific_name}</span>
+                  <span className="text-xs text-gray-500 italic truncate">{plant.scientific_name}</span>
                 )}
               </span>
               {/* モバイルは「No+名前+匹数 / バー全幅」の2行 (右端の匹数が見切れるのを防ぐ) */}

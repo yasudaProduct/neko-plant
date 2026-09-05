@@ -152,7 +152,7 @@ export default function AccountPageContent({ userProfile }: UserProfileProps) {
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="bg-green-500 hover:bg-green-600"
+              className="bg-green-600 hover:bg-green-700"
             >
               {isSubmitting ? "保存中..." : "保存"}
             </Button>

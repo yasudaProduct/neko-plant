@@ -33,6 +33,26 @@ test.describe('植物登録機能 @user', () => {
     await page.screenshot({ path: screenshotDir + 'plant-registration-success.png', fullPage: true });
   });
 
+  test('検索0件から名前を引き継いで登録できる', async ({ page }) => {
+    const testPlantName = `導線テスト植物_${Date.now()}`;
+
+    // 見つからない名前で検索すると、その名前で登録する導線が出る
+    await page.goto(`/plants?q=${encodeURIComponent(testPlantName)}`);
+    await page.waitForLoadState('networkidle');
+
+    await page.getByRole('link', { name: `「${testPlantName}」を登録する` }).click();
+    await page.waitForURL(/\/plants\/new/);
+
+    // 検索した名前がフォームの初期値に入っている
+    await expect(page.locator('input[name="name"]')).toHaveValue(testPlantName);
+
+    await page.click('button[type="submit"]');
+    await page.waitForURL(/\/plants\/\d+/);
+    await expect(page.getByTestId('plant-name')).toContainText(testPlantName);
+
+    await page.screenshot({ path: screenshotDir + 'plant-registration-from-search.png', fullPage: true });
+  });
+
   test('必須フィールドが空の場合はエラーが表示される', async ({ page }) => {
     // 植物登録ページに移動
     await page.goto('/plants/new');

@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { NekoSpecies, Pet, SexType } from "@/types/neko";
+import { calculatePetAge, SEX_LABEL } from "@/lib/pet";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -115,6 +116,10 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger, onCreated }: 
     },
   });
 
+  // 誕生日を入れたら年齢は自動計算する (同じ情報を二度入力させない)
+  const birthdayValue = form.watch("birthday");
+  const ageFromBirthday = birthdayValue ? calculatePetAge(new Date(birthdayValue)) : undefined;
+
   const handleDelete = async () => {
     if (!pet) return;
 
@@ -144,6 +149,7 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger, onCreated }: 
 
   const onSubmit = async (data: z.infer<typeof formSchema>) => {
     setIsSubmitting(true);
+    const ageToSave = ageFromBirthday ?? data.age;
     let imagePath: string | undefined;
     try {
       // 画像があれば縮小 + JPEG再エンコード (Exif除去) してブラウザから直接アップロードする
@@ -168,7 +174,7 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger, onCreated }: 
           imagePath,
           data.sex,
           data.birthday || undefined,
-          data.age
+          ageToSave
         );
         if (!result.success) {
           await removeUploadedImagesBestEffort("user_pets", imagePath ? [imagePath] : []);
@@ -186,7 +192,7 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger, onCreated }: 
           imagePath,
           data.sex,
           data.birthday || undefined,
-          data.age
+          ageToSave
         );
         if (!result.success) {
           await removeUploadedImagesBestEffort("user_pets", imagePath ? [imagePath] : []);
@@ -203,7 +209,7 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger, onCreated }: 
             name: data.name,
             neko: species,
             sex: data.sex,
-            age: data.age,
+            age: ageToSave,
             birthday: data.birthday ? new Date(data.birthday) : undefined,
             imageSrc: preview || undefined,
           });
@@ -298,6 +304,18 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger, onCreated }: 
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="birthday"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>誕生日（任意）</FormLabel>
+                    <DatePicker field={field} />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="grid grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
@@ -313,8 +331,8 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger, onCreated }: 
                           <SelectValue placeholder="性別を選択" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={SexType.MALE}>おとこのこ</SelectItem>
-                          <SelectItem value={SexType.FEMALE}>おんなのこ</SelectItem>
+                          <SelectItem value={SexType.MALE}>{SEX_LABEL[SexType.MALE]}</SelectItem>
+                          <SelectItem value={SexType.FEMALE}>{SEX_LABEL[SexType.FEMALE]}</SelectItem>
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -330,28 +348,23 @@ export default function PetFormDialog({ pet, nekoSpecies, trigger, onCreated }: 
                       <Input
                         type="number"
                         placeholder="例: 3"
-                        value={field.value ?? ""}
+                        value={ageFromBirthday ?? field.value ?? ""}
+                        readOnly={ageFromBirthday != null}
+                        className={ageFromBirthday != null ? "bg-gray-50" : undefined}
                         onChange={(e) =>
                           field.onChange(e.target.value ? Number(e.target.value) : undefined)
                         }
                       />
+                      <p className="text-xs text-gray-500">
+                        {ageFromBirthday != null
+                          ? "誕生日から自動計算しています"
+                          : "誕生日を入れると自動で計算されます"}
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
-
-              <FormField
-                control={form.control}
-                name="birthday"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>誕生日（任意）</FormLabel>
-                    <DatePicker field={field} />
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
 
             <DialogFooter className="flex justify-end mt-5 gap-2">

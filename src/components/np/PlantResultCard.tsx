@@ -16,8 +16,9 @@ export default function PlantResultCard({ plant }: Props) {
       className="block bg-white rounded-xl border border-border shadow-sm overflow-hidden hover:shadow-lg transition-shadow"
       data-testid="plant-card"
     >
-      <div className="relative aspect-video bg-gray-100">
-        {plant.mainImageUrl ? (
+      {/* 写真がない植物は帯だけにする (同じ大きさのグレー枠が並ぶと一覧がグレーの壁になる) */}
+      {plant.mainImageUrl ? (
+        <div className="relative aspect-video bg-gray-100">
           <Image
             src={plant.mainImageUrl}
             alt={plant.name}
@@ -25,15 +26,15 @@ export default function PlantResultCard({ plant }: Props) {
             sizes="(max-width: 640px) 100vw, 430px"
             className="object-cover"
           />
-        ) : (
-          <PhotoPlaceholder />
-        )}
-      </div>
+        </div>
+      ) : (
+        <PhotoPlaceholder compact label="写真はまだありません" />
+      )}
       <div className="flex flex-col gap-2 p-4">
         <div className="flex items-baseline gap-2 min-w-0">
           <h3 className="text-lg font-semibold text-gray-900">{plant.name}</h3>
           {plant.scientific_name && (
-            <span className="text-xs text-gray-400 italic truncate">{plant.scientific_name}</span>
+            <span className="text-xs text-gray-500 italic truncate">{plant.scientific_name}</span>
           )}
         </div>
         <CoexistBadge catCount={plant.catCount} className="self-start" />

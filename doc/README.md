@@ -12,6 +12,7 @@
 | **DBを変更する** | [04-operations/database.md](./04-operations/database.md) |
 | **テストを書く・動かす** | [02-development/testing.md](./02-development/testing.md) |
 | **用語がわからない** | [01-product/glossary.md](./01-product/glossary.md) |
+| **UIの改善候補を確認したい** | [05-backlog/ui-improvement-backlog.md](./05-backlog/ui-improvement-backlog.md) |
 
 > **初めて触る場合は [03-architecture/overview.md](./03-architecture/overview.md) の
 > 「DBへの2つの経路」を先に読んでください。** Prisma は RLS をバイパスし、Supabase クライアントは
@@ -53,6 +54,12 @@
 | [database.md](./04-operations/database.md) | マイグレーション運用ルール |
 | [deployment.md](./04-operations/deployment.md) | Vercel + GitHub Actions |
 | [admin.md](./04-operations/admin.md) | 管理者機能・モデレーション |
+
+### 05-backlog — 次に何をやるか
+
+| ファイル | 内容 |
+| --- | --- |
+| [ui-improvement-backlog.md](./05-backlog/ui-improvement-backlog.md) | UIレビューで洗い出した、未対応の改善候補 |
 
 ### 99-archive — 過去の記録
 

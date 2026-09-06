@@ -11,12 +11,12 @@ const NAV_ITEMS = [
   { href: "/plants", label: "さがす", icon: Search, isActive: (path: string) => path.startsWith("/plants") },
 ];
 
-/** ヘッダーのナビゲーション (フィード / 図鑑 / さがす) */
+/** ヘッダーのナビゲーション (フィード / 図鑑 / さがす)。モバイルは BottomNav に移管 */
 export default function HeaderNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-0.5 sm:gap-1 ml-1 sm:ml-2">
+    <nav className="max-sm:hidden flex gap-1 ml-2">
       {NAV_ITEMS.map((item) => (
         <Link
           key={item.href}
@@ -27,7 +27,7 @@ export default function HeaderNav() {
           )}
         >
           <item.icon className="w-4 h-4" />
-          <span className="max-sm:hidden">{item.label}</span>
+          <span>{item.label}</span>
         </Link>
       ))}
     </nav>

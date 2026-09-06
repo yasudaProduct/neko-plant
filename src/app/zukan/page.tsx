@@ -26,7 +26,9 @@ export default async function ZukanPage({
 }) {
   const params = await searchParams;
   const sort = VALID_SORTS.includes(params.sort as PlantSortBy) ? (params.sort as PlantSortBy) : "cats";
-  const filter = VALID_FILTERS.includes(params.filter as PlantFilter) ? (params.filter as PlantFilter) : "all";
+  // 投稿が少ない時期は「情報なし」の行が大半を占め、図鑑がオレンジの壁になる。
+  // ポジティブリスト方式の趣旨どおり、既定では実績のある植物を見せる
+  const filter = VALID_FILTERS.includes(params.filter as PlantFilter) ? (params.filter as PlantFilter) : "proven";
 
   const [{ plants }, stats] = await Promise.all([
     searchPlants("", sort, 1, 200, filter),
@@ -44,6 +46,12 @@ export default async function ZukanPage({
         </h1>
         <p className="text-sm text-gray-600">
           みんなの投稿から集計した、植物ごとの「猫との共存実績」の記録です。
+          {filter === "proven" && (
+            <>
+              <br />
+              実績のある植物を表示しています。投稿がまだない植物も見るには「全て」を選んでください。
+            </>
+          )}
         </p>
       </div>
 
@@ -72,9 +80,9 @@ export default async function ZukanPage({
         ))}
       </div>
 
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <FilterPills value={filter} />
-        <div className="flex-1"></div>
+      {/* 絞り込みと並び替え。高さを h-9 で揃え、横並びにしたときの段差をなくしている */}
+      <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+        <FilterPills value={filter} className="justify-start max-sm:w-full max-sm:justify-center" />
         <SortSelect value={sort} />
       </div>
 
@@ -85,21 +93,22 @@ export default async function ZukanPage({
             <Link
               key={plant.id}
               href={`/plants/${plant.id}`}
-              className={`flex items-center gap-4 px-5 py-3.5 hover:bg-gray-50 transition-colors ${
+              className={`flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 sm:flex-nowrap sm:gap-4 sm:px-5 sm:py-3.5 hover:bg-gray-50 transition-colors ${
                 i < plants.length - 1 ? "border-b border-border" : ""
               }`}
               data-testid="zukan-row"
             >
-              <span className="w-10 shrink-0 text-xs text-gray-400 font-medium">
+              <span className="w-10 shrink-0 text-xs text-gray-500 font-medium">
                 No.{String(i + 1).padStart(2, "0")}
               </span>
-              <span className="w-36 shrink-0 flex flex-col gap-0.5 min-w-0">
+              <span className="flex-1 min-w-0 flex flex-col gap-0.5 sm:flex-none sm:w-36">
                 <span className="text-sm font-bold text-gray-900 truncate">{plant.name}</span>
                 {plant.scientific_name && (
-                  <span className="text-xs text-gray-400 italic truncate">{plant.scientific_name}</span>
+                  <span className="text-xs text-gray-500 italic truncate">{plant.scientific_name}</span>
                 )}
               </span>
-              <span className="flex-1 min-w-[60px]">
+              {/* モバイルは「No+名前+匹数 / バー全幅」の2行 (右端の匹数が見切れるのを防ぐ) */}
+              <span className="order-last w-full sm:order-none sm:w-auto sm:flex-1 sm:min-w-[60px]">
                 <CoexistBar value={plant.catCount} max={maxCats} />
               </span>
               <span

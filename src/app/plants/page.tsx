@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Metadata } from "next";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { BookHeart, Plus } from "lucide-react";
 import { searchPlants, PlantFilter, PlantSortBy } from "@/actions/plant-action";
 import { searchPosts } from "@/actions/post-action";
 import { getNekoSpecies } from "@/actions/neko-action";
@@ -9,8 +9,8 @@ import SearchBox from "@/components/np/SearchBox";
 import FilterPills from "@/components/np/FilterPills";
 import SortSelect from "@/components/np/SortSelect";
 import BreedSelect from "@/components/np/BreedSelect";
-import PlantResultCard from "@/components/np/PlantResultCard";
-import PostTile from "@/components/np/PostTile";
+import PlantResultList from "./PlantResultList";
+import PostResultList from "./PostResultList";
 import EmptyState from "@/components/np/EmptyState";
 
 export const metadata: Metadata = {
@@ -30,7 +30,6 @@ type SearchPageParams = {
   sort?: string;
   filter?: string;
   neko?: string;
-  page?: string;
 };
 
 export default async function PlantsSearchPage({
@@ -44,16 +43,13 @@ export default async function PlantsSearchPage({
   const sort = VALID_SORTS.includes(params.sort as PlantSortBy) ? (params.sort as PlantSortBy) : "cats";
   const filter = VALID_FILTERS.includes(params.filter as PlantFilter) ? (params.filter as PlantFilter) : "all";
   const nekoId = Number(params.neko) || undefined;
-  const page = Math.max(1, Number(params.page) || 1);
 
+  // 初期ページのみサーバーで取得し、続きは各リストがクライアントから追記する
   const [plantsResult, postsResult, species] = await Promise.all([
-    searchPlants(query, sort, tab === "plants" ? page : 1, PAGE_SIZE, filter),
-    searchPosts(query, nekoId, tab === "posts" ? page : 1, PAGE_SIZE),
+    searchPlants(query, sort, 1, PAGE_SIZE, filter),
+    searchPosts(query, nekoId, 1, PAGE_SIZE),
     getNekoSpecies(),
   ]);
-
-  const activeTotal = tab === "plants" ? plantsResult.totalCount : postsResult.totalCount;
-  const totalPages = Math.max(1, Math.ceil(activeTotal / PAGE_SIZE));
 
   const buildUrl = (overrides: Partial<SearchPageParams>) => {
     const next = new URLSearchParams();
@@ -63,7 +59,6 @@ export default async function PlantsSearchPage({
     if (merged.sort && merged.sort !== "cats") next.set("sort", merged.sort);
     if (merged.filter && merged.filter !== "all") next.set("filter", merged.filter);
     if (merged.neko) next.set("neko", merged.neko);
-    if (merged.page && Number(merged.page) > 1) next.set("page", String(merged.page));
     const qs = next.toString();
     return `/plants${qs ? `?${qs}` : ""}`;
   };
@@ -89,7 +84,7 @@ export default async function PlantsSearchPage({
         {/* タブ */}
         <div className="flex items-center border-b border-border">
           <Link
-            href={buildUrl({ tab: "plants", page: undefined })}
+            href={buildUrl({ tab: "plants" })}
             className={`px-4 py-2 text-sm ${
               tab === "plants"
                 ? "text-gray-900 font-semibold border-b-2 border-green-500"
@@ -99,7 +94,7 @@ export default async function PlantsSearchPage({
             植物 {plantsResult.totalCount}件
           </Link>
           <Link
-            href={buildUrl({ tab: "posts", page: undefined })}
+            href={buildUrl({ tab: "posts" })}
             className={`px-4 py-2 text-sm ${
               tab === "posts"
                 ? "text-gray-900 font-semibold border-b-2 border-green-500"
@@ -120,48 +115,68 @@ export default async function PlantsSearchPage({
       {/* 結果 */}
       {tab === "plants" ? (
         plantsResult.plants.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {plantsResult.plants.map((plant) => (
-              <PlantResultCard key={plant.id} plant={plant} />
-            ))}
-          </div>
+          // 絞り込み条件が変わったら追記済みの結果を捨てる (key で作り直す)
+          <PlantResultList
+            key={`${query}|${sort}|${filter}`}
+            initialPlants={plantsResult.plants}
+            totalCount={plantsResult.totalCount}
+            query={query}
+            sort={sort}
+            filter={filter}
+            pageSize={PAGE_SIZE}
+          />
         ) : (
-          <EmptyState text="植物が見つかりませんでした" />
+          <EmptyState
+            text="植物が見つかりませんでした"
+            action={
+              <>
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {/* 検索した名前をそのまま渡し、0件を登録の入口にする */}
+                  {query && (
+                    <Button size="sm" className="bg-green-600 hover:bg-green-700" asChild>
+                      <Link href={`/plants/new?name=${encodeURIComponent(query)}`}>
+                        <Plus className="w-4 h-4" />
+                        <span className="max-w-[12rem] truncate">「{query}」を登録する</span>
+                      </Link>
+                    </Button>
+                  )}
+                  <Button variant="outline" size="sm" asChild>
+                    <Link href="/zukan">
+                      <BookHeart className="w-4 h-4" />
+                      共存図鑑で全植物を見る
+                    </Link>
+                  </Button>
+                </div>
+                <p className="text-xs text-gray-500">
+                  写真と一緒に登録したいときは、投稿するときにも追加できます
+                </p>
+              </>
+            }
+          />
         )
       ) : postsResult.posts.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {postsResult.posts.map((post) => (
-            <PostTile key={post.id} post={post} />
-          ))}
-        </div>
+        <PostResultList
+          key={`${query}|${params.neko ?? ""}`}
+          initialPosts={postsResult.posts}
+          totalCount={postsResult.totalCount}
+          query={query}
+          nekoId={nekoId}
+          pageSize={PAGE_SIZE}
+        />
       ) : (
-        <EmptyState icon="image" text="条件に合う投稿がありません" />
+        <EmptyState
+          icon="image"
+          text="条件に合う投稿がありません"
+          action={
+            (query || params.neko) && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/plants?tab=posts">絞り込みを解除する</Link>
+              </Button>
+            )
+          }
+        />
       )}
 
-      {/* ページネーション */}
-      {totalPages > 1 && (
-        <div className="flex items-center gap-4 mt-8 justify-center">
-          {page > 1 && (
-            <Button variant="outline" size="sm" asChild>
-              <Link href={buildUrl({ page: String(page - 1) })}>
-                <ChevronLeft className="w-4 h-4" />
-                前へ
-              </Link>
-            </Button>
-          )}
-          <span className="text-sm text-gray-500">
-            {page} / {totalPages}
-          </span>
-          {page < totalPages && (
-            <Button variant="outline" size="sm" asChild>
-              <Link href={buildUrl({ page: String(page + 1) })}>
-                次へ
-                <ChevronRight className="w-4 h-4" />
-              </Link>
-            </Button>
-          )}
-        </div>
-      )}
     </div>
   );
 }

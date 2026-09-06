@@ -1,12 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Metadata } from "next";
-import { ChevronLeft, ChevronRight, PawPrint, Search, Sprout } from "lucide-react";
+import { ChevronRight, PawPrint, Search, Sprout } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getFeedPosts, getSiteStats } from "@/actions/post-action";
 import { getPlants } from "@/actions/plant-action";
 import { Button } from "@/components/ui/button";
-import PostCard from "@/components/np/PostCard";
+import PostFeedList from "./PostFeedList";
 import EmptyState from "@/components/np/EmptyState";
 
 export const metadata: Metadata = {
@@ -15,24 +15,16 @@ export const metadata: Metadata = {
 
 const PAGE_SIZE = 12;
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string }>;
-}) {
-  const params = await searchParams;
-  const page = Math.max(1, Number(params.page) || 1);
-
+export default async function Home() {
   const supabase = await createClient();
 
   const [{ data: { user } }, { posts, totalCount }, stats, topPlants] = await Promise.all([
     supabase.auth.getUser(),
-    getFeedPosts(page, PAGE_SIZE),
+    getFeedPosts(1, PAGE_SIZE),
     getSiteStats(),
-    getPlants("cats", 1, 5),
+    // 「実績の多い植物」枠なので、実績のない植物 (catCount: 0) は混ぜない
+    getPlants("cats", 1, 5, "proven"),
   ]);
-
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
   return (
     <div>
@@ -82,53 +74,60 @@ export default async function Home({
         </section>
       )}
 
-      <div className="max-w-6xl mx-auto px-4 pt-6 pb-12 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_300px] gap-8 items-start">
+      {/* 1440px 幅でもフィードとサイドパネルが離れないよう、列幅をコンテンツの実寸
+          (600px + 300px) に合わせ、グリッドごと中央に置く */}
+      <div className="max-w-6xl mx-auto px-4 pt-6 pb-12 grid grid-cols-1 lg:grid-cols-[minmax(0,600px)_300px] lg:justify-center gap-8 items-start">
         {/* フィード */}
-        <div className="min-w-0">
+        <div className="min-w-0 w-full max-w-[600px] mx-auto lg:mx-0">
+          {/* モバイルではサイドパネルがフィードの下に回り、眺めに来た人 (M1) の目に入らない。
+              実績ランキングだけ横スクロールのチップ列にしてフィード上部へ出す */}
+          {topPlants.plants.length > 0 && (
+            <div className="lg:hidden mb-5">
+              <div className="flex items-center gap-1.5 mb-2">
+                <Sprout className="w-4 h-4 text-green-600" />
+                <span className="text-sm font-semibold text-gray-900">共存実績の多い植物</span>
+                <Link
+                  href="/zukan"
+                  className="ml-auto inline-flex items-center gap-0.5 text-xs font-medium text-green-700 hover:underline"
+                >
+                  共存図鑑
+                  <ChevronRight className="w-3 h-3" />
+                </Link>
+              </div>
+              {/* 画面端まで流れて見えるよう、親の左右パディング分を打ち消す */}
+              <div className="-mx-4 px-4 flex gap-2 overflow-x-auto pb-1">
+                {topPlants.plants.map((plant) => (
+                  <Link
+                    key={plant.id}
+                    href={`/plants/${plant.id}`}
+                    className="shrink-0 inline-flex items-center gap-1.5 rounded-full border border-green-200 bg-white px-3 py-1.5 shadow-sm"
+                  >
+                    <span className="max-w-[8rem] truncate text-sm text-gray-800">{plant.name}</span>
+                    <span className="inline-flex items-center gap-0.5 text-xs text-gray-500">
+                      <PawPrint className="w-3 h-3" />
+                      {plant.catCount}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="flex items-baseline gap-3 mb-4">
             <h2 className="text-xl font-semibold text-gray-900">新着の投稿</h2>
             <span className="text-sm text-gray-500">全{totalCount}件</span>
           </div>
 
           {posts.length > 0 ? (
-            <div className="flex flex-col gap-5 max-w-[600px]">
-              {posts.map((post, i) => (
-                <PostCard key={post.id} post={post} priority={i === 0} />
-              ))}
-            </div>
+            <PostFeedList initialPosts={posts} totalCount={totalCount} pageSize={PAGE_SIZE} />
           ) : (
             <EmptyState icon="image" text="投稿がまだありません" />
-          )}
-
-          {/* ページネーション */}
-          {totalPages > 1 && (
-            <div className="flex items-center gap-4 mt-8 max-w-[600px] justify-center">
-              {page > 1 && (
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/?page=${page - 1}`}>
-                    <ChevronLeft className="w-4 h-4" />
-                    前へ
-                  </Link>
-                </Button>
-              )}
-              <span className="text-sm text-gray-500">
-                {page} / {totalPages}
-              </span>
-              {page < totalPages && (
-                <Button variant="outline" size="sm" asChild>
-                  <Link href={`/?page=${page + 1}`}>
-                    次へ
-                    <ChevronRight className="w-4 h-4" />
-                  </Link>
-                </Button>
-              )}
-            </div>
           )}
         </div>
 
         {/* サイドパネル */}
-        <aside className="flex flex-col gap-4">
-          <div className="bg-white rounded-xl border border-border shadow-sm p-5 flex flex-col gap-3">
+        <aside className="w-full max-w-[600px] mx-auto lg:mx-0 flex flex-col gap-4">
+          <div className="max-lg:hidden bg-white rounded-xl border border-border shadow-sm p-5 flex flex-col gap-3">
             <h3 className="text-base font-semibold text-gray-900 flex items-center gap-2">
               <Sprout className="w-[18px] h-[18px] text-green-600" />
               共存実績の多い植物
@@ -141,7 +140,7 @@ export default async function Home({
                   className="flex items-center gap-2.5 px-2 py-2 -mx-2 rounded-md hover:bg-gray-100 transition-colors"
                 >
                   <span
-                    className={`w-5 text-sm font-bold ${i < 3 ? "text-green-600" : "text-gray-400"}`}
+                    className={`w-5 text-sm font-bold ${i < 3 ? "text-green-600" : "text-gray-500"}`}
                   >
                     {i + 1}
                   </span>
@@ -152,6 +151,11 @@ export default async function Home({
                   </span>
                 </Link>
               ))}
+              {topPlants.plants.length === 0 && (
+                <p className="px-2 py-2 text-sm text-gray-500 leading-normal">
+                  まだ共存実績のある植物がありません。最初の投稿から実績が集まります。
+                </p>
+              )}
             </div>
             <Link
               href="/zukan"

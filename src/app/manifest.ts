@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     return {
         name: SITE_NAME,
         short_name: SITE_NAME,
-        description: '猫にとって安全な植物を探すためのサイトです。',
+        description: '猫と植物が一緒に写った写真を共有するフォトSNSです。みんなの投稿から、植物ごとの猫との共存実績が見えてきます。',
         start_url: '/',
         display: 'standalone',
         background_color: '#ffffff',

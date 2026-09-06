@@ -41,6 +41,9 @@ export const MAX_POST_PETS = 10;
 /** 猫の名前の文字数上限 */
 export const MAX_PET_NAME_LENGTH = 50;
 
+/** ユーザーの自己紹介の最大文字数 */
+export const MAX_USER_BIO_LENGTH = 300;
+
 /** 植物名の文字数上限 */
 export const MAX_PLANT_NAME_LENGTH = 50;
 

@@ -3,7 +3,7 @@
 import { Pet, SexType } from "@/types/neko";
 import { UserProfile } from "@/types/user";
 import { UserPlantCollectionItem, UserStats } from "@/types/post";
-import { MAX_PET_NAME_LENGTH, STORAGE_PATH } from "@/lib/const";
+import { MAX_PET_NAME_LENGTH, MAX_USER_BIO_LENGTH, STORAGE_PATH } from "@/lib/const";
 import { isValidOwnedImagePath } from "@/lib/storage-path";
 import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
@@ -26,6 +26,7 @@ export async function getUserProfile(aliasId: string): Promise<UserProfile | und
             auth_id: true,
             name: true,
             image: true,
+            bio: true,
         },
         where: {
             alias_id: aliasId,
@@ -45,6 +46,7 @@ export async function getUserProfile(aliasId: string): Promise<UserProfile | und
         aliasId: userData.alias_id,
         name: userData.name,
         imageSrc: userData.image ? STORAGE_PATH.USER_PROFILE + userData.image : undefined,
+        bio: userData.bio ?? undefined,
         isSelf: user != null && user.id === userData.auth_id,
     };
 }
@@ -75,6 +77,7 @@ export async function getUserProfileByAuthId(): Promise<UserProfile | undefined>
         aliasId: userData.alias_id,
         name: userData.name,
         imageSrc: userData.image ? STORAGE_PATH.USER_PROFILE + userData.image : undefined,
+        bio: userData.bio ?? undefined,
         isSelf: true,
     };
 }
@@ -147,7 +150,7 @@ export async function getPublicUserPets(userId: number): Promise<Pet[] | undefin
     }));
 }
 
-export async function updateUser(name: string, aliasId: string) {
+export async function updateUser(name: string, aliasId: string, bio?: string) {
     const supabase = await createClient();
 
     const {
@@ -186,6 +189,11 @@ export async function updateUser(name: string, aliasId: string) {
         throw new Error("このユーザーIDは使用できません");
     }
 
+    const trimmedBio = bio?.trim();
+    if (trimmedBio && trimmedBio.length > MAX_USER_BIO_LENGTH) {
+        throw new Error(`自己紹介は${MAX_USER_BIO_LENGTH}文字以内で入力してください`);
+    }
+
     // 大文字小文字違いも含めて重複を拒否 (DB側にも lower(alias_id) の一意制約あり)
     const duplicated = await prisma.public_users.findFirst({
         where: {
@@ -198,7 +206,7 @@ export async function updateUser(name: string, aliasId: string) {
         throw new Error("このユーザーIDは既に使用されています");
     }
 
-    // ユーザー情報を更新
+    // ユーザー情報を更新 (bio は引数で渡されたときだけ更新し、省略時は既存値を保持する)
     await prisma.public_users.update({
         where: {
             id: userData.id,
@@ -206,10 +214,13 @@ export async function updateUser(name: string, aliasId: string) {
         data: {
             name: name,
             alias_id: aliasId,
+            ...(bio !== undefined ? { bio: trimmedBio || null } : {}),
         },
     });
 
     revalidatePath(`/settings/profile`);
+    // 公開プロフィールにも名前・自己紹介が表示されるためキャッシュを破棄する
+    revalidatePath(`/${aliasId}`);
 }
 
 /** クライアントが user_profiles バケットへ直接アップロード済みのパスを受け取る */

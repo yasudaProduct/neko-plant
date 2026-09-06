@@ -48,5 +48,6 @@
       "WebFetch(domain:supabase.com)"
     ],
     "deny": []
-  }
+  },
+  "plansDirectory": ".claude/plans"
 }

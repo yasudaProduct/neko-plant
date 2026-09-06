@@ -259,6 +259,13 @@ export default function PostFlow({
   const canSubmit =
     photoDone && plantDone && petDone && !isProcessingImages && !isSubmitting;
 
+  // 投稿ボタンが押せない理由を明示するための不足項目リスト
+  const missingSteps = [
+    !photoDone && "写真の選択",
+    !plantDone && "植物の選択",
+    !petDone && "猫の選択",
+  ].filter((step): step is string => Boolean(step));
+
   const onSubmit = async () => {
     setIsSubmitting(true);
     let uploadedPaths: string[] = [];
@@ -408,7 +415,7 @@ export default function PostFlow({
                 <Camera className="w-5 h-5" />
                 写真を追加する
                 {photos.length > 0 && (
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-500">
                     （残り{MAX_POST_IMAGES - photos.length}枚）
                   </span>
                 )}
@@ -526,7 +533,7 @@ export default function PostFlow({
                         >
                           {pet.name}
                         </span>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-500">
                           {pet.neko.name}
                         </span>
                       </span>
@@ -578,6 +585,13 @@ export default function PostFlow({
         <p className="p-3 rounded-md bg-gray-50 text-xs text-gray-500 leading-normal">
           投稿すると、植物の共存実績にすぐ反映されます。
         </p>
+
+        {/* 投稿ボタンが無効な理由 (不足項目) を明示する */}
+        {missingSteps.length > 0 && (
+          <p className="text-xs text-gray-500 text-right" data-testid="submit-hint">
+            あと <span className="font-semibold">{missingSteps.join(" / ")}</span> をすると投稿できます
+          </p>
+        )}
 
         {/* フッターナビ */}
         <div className="flex justify-between pt-2 border-t border-border">

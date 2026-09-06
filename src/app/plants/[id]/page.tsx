@@ -2,13 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { BookHeart, ChevronRight, Pencil, PawPrint, TriangleAlert } from "lucide-react";
+import { BookHeart, Camera, ChevronRight, Pencil, PawPrint, TriangleAlert } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getPlant, getPlants } from "@/actions/plant-action";
 import { getPostsByPlant } from "@/actions/post-action";
 import { getUserData } from "@/lib/user-data";
 import { getCoexistenceMessage, getCoexistenceRank } from "@/lib/coexistence";
 import { SITE_NAME, SITE_URL } from "@/lib/site";
+import { Button } from "@/components/ui/button";
 import JsonLd from "@/components/JsonLd";
 import Breadcrumbs from "@/components/np/Breadcrumbs";
 import CoexistBadge from "@/components/np/CoexistBadge";
@@ -63,7 +64,8 @@ export default async function PlantPage({
   const [plant, { posts, totalCount }, topPlants, { data: { user } }] = await Promise.all([
     getPlant(plantId),
     getPostsByPlant(plantId, 1, 12),
-    getPlants("cats", 1, 5),
+    // 「実績の多い植物とのくらべ」なので、実績のない植物 (catCount: 0) は混ぜない
+    getPlants("cats", 1, 5, "proven"),
     supabase.auth.getUser(),
   ]);
 
@@ -159,7 +161,7 @@ export default async function PlantPage({
                 {plant.name}
               </h1>
               {(plant.scientific_name || plant.family) && (
-                <p className="text-sm text-gray-400">
+                <p className="text-sm text-gray-500">
                   {plant.scientific_name && <span className="italic">{plant.scientific_name}</span>}
                   {plant.scientific_name && plant.family && <span className="mx-1.5">·</span>}
                   {plant.family}
@@ -190,13 +192,22 @@ export default async function PlantPage({
         </div>
       </div>
 
-      {/* 情報なしの注意喚起 (断定しない表現) */}
+      {/* 情報なしの注意喚起 (断定しない表現)。
+          「情報がない」で行き止まりにせず、実績を作る側へ回れる導線を添える */}
       {rank === "none" && (
-        <div className="flex gap-2.5 p-4 rounded-lg bg-orange-100 border border-orange-200 text-orange-700">
-          <TriangleAlert className="w-[18px] h-[18px] shrink-0 mt-0.5" />
-          <p className="text-sm leading-normal">
-            猫との共存について、コミュニティからの情報がまだありません。お迎えや置き場所を検討する際は、慎重にご判断ください。
-          </p>
+        <div className="flex flex-col gap-3 p-4 rounded-lg bg-orange-100 border border-orange-200 text-orange-700">
+          <div className="flex gap-2.5">
+            <TriangleAlert className="w-[18px] h-[18px] shrink-0 mt-0.5" />
+            <p className="text-sm leading-normal">
+              猫との共存について、コミュニティからの情報がまだありません。お迎えや置き場所を検討する際は、慎重にご判断ください。
+            </p>
+          </div>
+          <Button size="sm" className="self-start bg-green-600 hover:bg-green-700" asChild>
+            <Link href="/posts/new">
+              <Camera className="w-4 h-4" />
+              この植物と暮らす写真を投稿する
+            </Link>
+          </Button>
         </div>
       )}
 
@@ -204,20 +215,20 @@ export default async function PlantPage({
       <div className="bg-white rounded-xl border border-border shadow-sm p-5 flex flex-col gap-3">
         <h2 className="text-base font-semibold text-gray-900">カタログ情報</h2>
         <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2 text-sm">
-          <dt className="text-gray-500">学名</dt>
+          <dt className="text-gray-500 whitespace-nowrap">学名</dt>
           <dd className="text-gray-800 italic">{plant.scientific_name ?? "—"}</dd>
-          <dt className="text-gray-500">科名</dt>
+          <dt className="text-gray-500 whitespace-nowrap">科名</dt>
           <dd className="text-gray-800">{plant.family ?? "—"}</dd>
-          <dt className="text-gray-500">観測された投稿</dt>
+          <dt className="text-gray-500 whitespace-nowrap">観測された投稿</dt>
           <dd className="text-gray-800">{plant.postCount} 件</dd>
-          <dt className="text-gray-500">ユニークな猫</dt>
+          <dt className="text-gray-500 whitespace-nowrap">ユニークな猫</dt>
           <dd className="text-gray-800">
             {plant.catCount} 匹
-            <span className="ml-2 text-xs text-gray-400">同一ユーザーの重複投稿では水増しされません</span>
+            <span className="ml-2 text-xs text-gray-500">同一ユーザーの重複投稿では水増しされません</span>
           </dd>
-          <dt className="text-gray-500">外部データ照合</dt>
+          <dt className="text-gray-500 whitespace-nowrap">外部データ照合</dt>
           <dd className="text-gray-800">—（今後対応予定）</dd>
-          <dt className="text-gray-500">共存実績</dt>
+          <dt className="text-gray-500 whitespace-nowrap">共存実績</dt>
           <dd>
             <CoexistBadge catCount={plant.catCount} />
           </dd>
@@ -228,7 +239,7 @@ export default async function PlantPage({
       <div className="bg-white rounded-xl border border-border shadow-sm p-5 flex flex-col gap-3.5">
         <div className="flex items-baseline gap-2.5">
           <h2 className="text-base font-semibold text-gray-900">共存実績の分布</h2>
-          <span className="text-xs text-gray-400">実績の多い植物とのくらべ</span>
+          <span className="text-xs text-gray-500">実績の多い植物とのくらべ</span>
         </div>
         <div className="flex flex-col gap-2">
           {distributionRows.map((row) => {
@@ -286,6 +297,15 @@ export default async function PlantPage({
         <div className="flex items-baseline gap-2">
           <h2 className="text-base font-semibold text-gray-900">みんなの投稿</h2>
           <span className="text-sm text-gray-500">全{totalCount}件</span>
+          {posts.length > 0 && (
+            <Link
+              href="/posts/new"
+              className="ml-auto shrink-0 inline-flex items-center gap-1 text-sm font-medium text-green-700 hover:underline"
+            >
+              <Camera className="w-4 h-4" />
+              写真を投稿する
+            </Link>
+          )}
         </div>
         {posts.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -294,7 +314,17 @@ export default async function PlantPage({
             ))}
           </div>
         ) : (
-          <EmptyState text="投稿がまだありません" />
+          <EmptyState
+            text="投稿がまだありません"
+            action={
+              <Button size="sm" className="bg-green-600 hover:bg-green-700" asChild>
+                <Link href="/posts/new">
+                  <Camera className="w-4 h-4" />
+                  最初の1件を投稿する
+                </Link>
+              </Button>
+            }
+          />
         )}
       </div>
     </div>

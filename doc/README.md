@@ -13,6 +13,8 @@
 | **テストを書く・動かす** | [02-development/testing.md](./02-development/testing.md) |
 | **用語がわからない** | [01-product/glossary.md](./01-product/glossary.md) |
 | **UIの改善候補を確認したい** | [05-backlog/ui-improvement-backlog.md](./05-backlog/ui-improvement-backlog.md) |
+| **指標を見て改善を回す** | [04-operations/analytics.md](./04-operations/analytics.md) |
+| **本番の異常に気づけるようにする** | [04-operations/monitoring.md](./04-operations/monitoring.md) |
 
 > **初めて触る場合は [03-architecture/overview.md](./03-architecture/overview.md) の
 > 「DBへの2つの経路」を先に読んでください。** Prisma は RLS をバイパスし、Supabase クライアントは
@@ -54,12 +56,15 @@
 | [database.md](./04-operations/database.md) | マイグレーション運用ルール |
 | [deployment.md](./04-operations/deployment.md) | Vercel + GitHub Actions |
 | [admin.md](./04-operations/admin.md) | 管理者機能・モデレーション |
+| [analytics.md](./04-operations/analytics.md) | 指標の定義（North Star・転換率）と週次の改善ループ |
+| [monitoring.md](./04-operations/monitoring.md) | 死活監視・エラー通知・DBバックアップ・Search Console |
 
 ### 05-backlog — 次に何をやるか
 
 | ファイル | 内容 |
 | --- | --- |
 | [ui-improvement-backlog.md](./05-backlog/ui-improvement-backlog.md) | UIレビューで洗い出した、未対応の改善候補 |
+| [growth-backlog.md](./05-backlog/growth-backlog.md) | 本番運用とユーザー獲得の作業リスト（優先順つき） |
 
 ### 99-archive — 過去の記録
 
@@ -86,3 +91,6 @@
 | npm script の追加 | [commands.md](./02-development/commands.md) |
 | CI ワークフローの変更 | [deployment.md](./04-operations/deployment.md) |
 | 認証・権限まわりの変更 | [auth.md](./03-architecture/auth.md), [admin.md](./04-operations/admin.md) |
+| 計測イベント・指標の追加/変更 | [analytics.md](./04-operations/analytics.md) |
+| 監視・バックアップ・外部通知の変更 | [monitoring.md](./04-operations/monitoring.md) + [setup.md](./02-development/setup.md) |
+| CSP・外部スクリプトの追加 | [security.md](./03-architecture/security.md), [analytics.md](./04-operations/analytics.md) + `src/app/privacy/page.tsx` |

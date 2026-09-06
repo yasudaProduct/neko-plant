@@ -16,6 +16,7 @@ import { isValidOwnedImagePath } from "@/lib/storage-path";
 import { clampPage, clampPageSize, clampSearchQuery } from "@/lib/pagination";
 import { ActionErrorCode, ActionResult } from "@/types/common";
 import { PlantCoexistence, Post, SiteStats } from "@/types/post";
+import { reportError } from "@/lib/report-error";
 
 /** ログイン中ユーザーの public.users レコードを取得する (未ログインなら null) */
 async function getCurrentPublicUser() {
@@ -408,7 +409,7 @@ export async function createPost(input: CreatePostInput): Promise<ActionResult<{
 
         return { success: true, message: "投稿しました。", data: { postId: newPostId } };
     } catch (error) {
-        console.error("Error creating post:", error);
+        reportError(error, { scope: "createPost", imageCount: input.images?.length ?? 0 });
         return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "投稿に失敗しました。" };
     }
 }
@@ -466,7 +467,7 @@ export async function deletePost(postId: number): Promise<ActionResult> {
                 .remove(post.post_images.map((image) => image.image_url));
 
             if (error) {
-                console.error("Error deleting post images from storage:", error);
+                reportError(error, { scope: "deletePost.storage", postId, imageCount: post.post_images.length });
             }
         }
 
@@ -478,7 +479,7 @@ export async function deletePost(postId: number): Promise<ActionResult> {
 
         return { success: true, message: "投稿を削除しました。" };
     } catch (error) {
-        console.error("Error deleting post:", error);
+        reportError(error, { scope: "deletePost", postId });
         return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "投稿の削除に失敗しました。" };
     }
 }
@@ -541,7 +542,7 @@ export async function togglePostLike(postId: number): Promise<ActionResult<{ lik
 
         return { success: true, data: { liked, likeCount } };
     } catch (error) {
-        console.error("Error toggling post like:", error);
+        reportError(error, { scope: "togglePostLike", postId });
         return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "いいねに失敗しました。" };
     }
 }

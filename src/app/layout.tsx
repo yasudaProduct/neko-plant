@@ -69,6 +69,11 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
+  // Google Search Console の所有権確認。設定した後も消さないこと (消すと確認が外れる)
+  // → doc/04-operations/monitoring.md
+  verification: process.env.GOOGLE_SITE_VERIFICATION
+    ? { google: process.env.GOOGLE_SITE_VERIFICATION }
+    : undefined,
 };
 
 // 運営主体とサイト内検索 (/plants?q=) を機械可読化する

@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 import { getNotionClient, getNewsDatabaseId, NewsItem } from "@/lib/notion";
 import { BlockObjectResponse, GetPageResponse, PageObjectResponse } from "@notionhq/client/build/src/api-endpoints";
 import { notFound } from "next/navigation";
+import { reportError } from "@/lib/report-error";
 
 // Notion API は毎リクエスト叩くには遅い外部依存のため、
 // 取得結果を1時間キャッシュする (一覧・詳細・sitemap が共有)
@@ -43,7 +44,7 @@ export async function getNews(): Promise<NewsItem[]> {
     } catch (error) {
         // Notion 側の障害や未設定で /news 全体が落ちないよう、一覧は空として扱う
         // (ページ側は「お知らせはありません」を表示する。sitemap も同様に空でよい)
-        console.error("Failed to fetch news:", error);
+        reportError(error, { scope: "getNews" });
         return [];
     }
 }
@@ -101,7 +102,7 @@ export async function getNewsById(id: string): Promise<NewsItem> {
     try {
         news = await fetchNewsItem(id);
     } catch (error) {
-        console.error("Failed to fetch news:", error);
+        reportError(error, { scope: "getNewsItem", newsId: id });
         throw new Error("Failed to fetch news");
     }
 

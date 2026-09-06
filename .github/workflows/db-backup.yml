@@ -1,0 +1,103 @@
+name: Backup Database
+
+# 本番DBの論理バックアップを日次で取得し、暗号化してアーティファクトに保存する。
+# 運用手順・復元手順・既知の制約は doc/04-operations/monitoring.md を参照。
+#
+# 重要: このリポジトリは公開されており、公開リポジトリのアーティファクトは
+# 誰でもダウンロードできる。ダンプには auth スキーマのユーザー情報が含まれうるため、
+# 平文のまま置いてはならない。必ず GPG で暗号化してからアップロードする。
+
+on:
+  schedule:
+    # UTC 18:00 = JST 03:00
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+
+# 同一DBへのダンプが重ならないようにする
+concurrency:
+  group: supabase-backup
+  cancel-in-progress: false
+
+jobs:
+  dump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+      BACKUP_GPG_PASSPHRASE: ${{ secrets.BACKUP_GPG_PASSPHRASE }}
+
+    steps:
+      # バックアップが取れていないのに緑になるほうが危険なので、
+      # シークレット未設定は「スキップ」ではなく「失敗」にする
+      - name: Verify required secrets
+        run: |
+          set -euo pipefail
+          missing=()
+          for key in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_ID BACKUP_GPG_PASSPHRASE; do
+            if [ -z "${!key:-}" ]; then
+              missing+=("$key")
+            fi
+          done
+          if [ "${#missing[@]}" -gt 0 ]; then
+            echo "::error::Missing secrets: ${missing[*]} — see doc/04-operations/monitoring.md"
+            exit 1
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.109.1
+
+      - name: Link to production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      - name: Dump roles, schema and data
+        run: |
+          set -euo pipefail
+          mkdir -p backup
+          supabase db dump --linked -f backup/roles.sql --role-only
+          supabase db dump --linked -f backup/schema.sql
+          supabase db dump --linked -f backup/data.sql --data-only --use-copy
+
+          # 空ファイルを「成功したバックアップ」として保存しない
+          for f in backup/roles.sql backup/schema.sql backup/data.sql; do
+            if [ ! -s "$f" ]; then
+              echo "::error::$f is empty — the dump did not produce usable output"
+              exit 1
+            fi
+            echo "$f: $(wc -c < "$f") bytes"
+          done
+
+      - name: Encrypt dump
+        run: |
+          set -euo pipefail
+          stamp="$(date -u +%Y%m%dT%H%M%SZ)"
+          echo "STAMP=$stamp" >> "$GITHUB_ENV"
+
+          tar czf plain.tar.gz -C backup .
+          # GnuPG 2.1+ は --passphrase 系の指定に loopback pinentry を要求する
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+              --pinentry-mode loopback --passphrase-fd 0 \
+              --output "neko-plant-db-${stamp}.tar.gz.gpg" plain.tar.gz <<< "$BACKUP_GPG_PASSPHRASE"
+
+          # 平文をアップロード対象のディレクトリから確実に消す
+          rm -f plain.tar.gz
+          rm -rf backup
+
+          ls -l "neko-plant-db-${stamp}.tar.gz.gpg"
+
+      - name: Upload encrypted backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ env.STAMP }}
+          # 暗号化済みファイルだけを対象にする (平文が残っても巻き込まない)
+          path: neko-plant-db-*.tar.gz.gpg
+          retention-days: 14
+          if-no-files-found: error

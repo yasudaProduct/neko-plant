@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createClientAdmin } from "@supabase/supabase-js";
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { reportError } from "@/lib/report-error";
 
 export async function deleteUser() {
     console.log("ユーザー削除処理を開始します");
@@ -49,7 +50,7 @@ export async function deleteUser() {
         const { error: userError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
 
         if (userError) {
-            console.error("ユーザーアカウントの削除に失敗しました", userError);
+            reportError(userError, { scope: "deleteAccount.authUser" });
             throw new Error("ユーザーアカウントの削除に失敗しました");
         }
 
@@ -63,7 +64,7 @@ export async function deleteUser() {
             if (paths.length === 0) continue;
             const { error } = await supabaseAdmin.storage.from(bucket).remove(paths);
             if (error) {
-                console.error(`退会時のストレージ削除に失敗しました (${bucket})`, error);
+                reportError(error, { scope: "deleteAccount.storage", bucket, pathCount: paths.length });
             }
         }
 
@@ -71,7 +72,7 @@ export async function deleteUser() {
         revalidatePath("/");
         return { success: true };
     } catch (error) {
-        console.error("ユーザー削除処理でエラーが発生しました", error);
+        reportError(error, { scope: "deleteAccount" });
         throw error;
     }
 }

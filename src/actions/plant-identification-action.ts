@@ -14,6 +14,7 @@ import {
 import { normalizePlantName, plantNameKey } from "@/lib/plant-name";
 import { findPlantsByNameKeys } from "@/lib/plant-name-query";
 import { ActionErrorCode, ActionResult } from "@/types/common";
+import { reportError } from "@/lib/report-error";
 
 export type PlantIdentificationCandidate = {
   name: string;
@@ -214,7 +215,7 @@ export async function identifyPlantFromImage(
         temperature: 0.2,
       });
     } catch (error) {
-      console.error("AI API request failed:", error);
+      reportError(error, { scope: "identifyPlantFromImage.ai", provider: aiConfig.provider });
       return {
         success: false,
         code: ActionErrorCode.INTERNAL_SERVER_ERROR,
@@ -268,7 +269,7 @@ export async function identifyPlantFromImage(
       data: { candidates },
     };
   } catch (error) {
-    console.error("identifyPlantFromImage error:", error);
+    reportError(error, { scope: "identifyPlantFromImage" });
     return {
       success: false,
       code: ActionErrorCode.INTERNAL_SERVER_ERROR,

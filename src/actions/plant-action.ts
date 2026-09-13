@@ -9,6 +9,7 @@ import { clampPage, clampPageSize, clampSearchQuery, MAX_PLANT_PAGE_SIZE } from 
 import { normalizePlantName } from "@/lib/plant-name";
 import { findPlantByNameKey } from "@/lib/plant-name-query";
 import { ActionErrorCode, ActionResult } from "@/types/common";
+import { reportError } from "@/lib/report-error";
 
 /** 並び順: 共存実績(ユニーク猫数) / 投稿数 / 名前 */
 export type PlantSortBy = "cats" | "posts" | "name";
@@ -226,7 +227,7 @@ export async function addPlant(name: string): Promise<ActionResult<{ plantId: nu
             return duplicated;
         }
 
-        console.error("error", error);
+        reportError(error, { scope: "addPlant" });
         return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "植物の追加に失敗しました。" };
     }
 }
@@ -321,7 +322,7 @@ export async function updatePlant(id: number, plant: { name: string, scientific_
             return duplicated;
         }
 
-        console.error("error", error);
+        reportError(error, { scope: "updatePlant", plantId: id });
         return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "植物の更新に失敗しました。" };
     }
 }
@@ -347,7 +348,7 @@ export async function deletePlant(id: number): Promise<ActionResult> {
 
         return { success: true, title: "削除しました。" };
     } catch (error) {
-        console.error("error", error);
+        reportError(error, { scope: "deletePlant", plantId: id });
         return { success: false, code: ActionErrorCode.INTERNAL_SERVER_ERROR, message: "植物の削除に失敗しました。" };
     }
 }

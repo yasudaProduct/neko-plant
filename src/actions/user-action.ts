@@ -11,6 +11,7 @@ import { createClient } from "@/lib/supabase/server";
 import { pets } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { ActionErrorCode, ActionResult } from "@/types/common";
+import { reportError } from "@/lib/report-error";
 
 /** プロフィールURL /{aliasId} と衝突するため予約する ID (すべて小文字で保持) */
 const RESERVED_ALIAS_IDS = new Set([
@@ -324,7 +325,7 @@ export async function addPet(name: string, speciesId: number, imagePath?: string
         revalidatePath(`/${userData.alias_id}`);
         return { success: true, data: { petId: pet.id } };
     } catch (error) {
-        console.error(error);
+        reportError(error, { scope: "addPet" });
         return {
             success: false,
             code: ActionErrorCode.INTERNAL_SERVER_ERROR,
@@ -417,7 +418,7 @@ export async function updatePet(petId: number, name: string, speciesId: number, 
         };
 
     } catch (error) {
-        console.error(error);
+        reportError(error, { scope: "updatePet", petId });
         return {
             success: false,
             code: ActionErrorCode.INTERNAL_SERVER_ERROR,

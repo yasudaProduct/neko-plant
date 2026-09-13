@@ -118,6 +118,8 @@ SUPABASE_SERVICE_ROLE_KEY=       # supabase status の SERVICE_ROLE_KEY
 | `AI_IDENTIFY_RATE_LIMIT_PER_MINUTE` | 10 | AI判定のレート制限（分） |
 | `AI_IDENTIFY_RATE_LIMIT_PER_DAY` | 50 | AI判定のレート制限（日） |
 | `NEXT_PUBLIC_GOOGLE_ANALYTICS_ID` | — | GA計測ID |
+| `GOOGLE_SITE_VERIFICATION` | — | Search Console の所有権確認トークン（本番のみ） |
+| `ERROR_WEBHOOK_URL` | — | サーバーエラーの通知先（Slack / Discord の Webhook） |
 | `NOTION_API_KEY` | — | お知らせ機能（`/news`） |
 | `NOTION_DATABASE_ID` | — | お知らせ機能（`/news`） |
 | `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` | — | ローカルで Google OAuth を試す場合 |
@@ -125,6 +127,9 @@ SUPABASE_SERVICE_ROLE_KEY=       # supabase status の SERVICE_ROLE_KEY
 
 APIキーを設定しなければ AI 判定は無効化されるだけで、投稿フローは動きます
 （[../03-architecture/ai-plant-identification.md](../03-architecture/ai-plant-identification.md) 参照）。
+
+`GOOGLE_SITE_VERIFICATION` と `ERROR_WEBHOOK_URL` は本番でのみ設定します。
+用途と設定手順は [../04-operations/monitoring.md](../04-operations/monitoring.md) にあります。
 
 ### E2Eテスト用
 

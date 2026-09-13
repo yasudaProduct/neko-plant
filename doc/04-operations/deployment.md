@@ -84,8 +84,26 @@ PR は `develop` 向けに作成します。`main` へのマージが本番反�
 2. マイグレーションを含む場合、`supabase db push --dry-run` の内容を確認した
 3. 破壊的なスキーマ変更の場合、アプリの新旧どちらのバージョンでも動くか検討した
 4. 新規テーブルがある場合、RLS と `supabase/tests/01_rls_structure.sql` を更新した
+5. 環境変数を追加した場合、**Vercel 側にも設定した**（`.env.example` だけでは本番に効きません）
+
+## 本番の環境変数
+
+Vercel のプロジェクト設定に持ちます。`.env.example` は雛形であって反映経路ではありません。
+
+| 変数 | 用途 |
+| --- | --- |
+| `NEXT_PUBLIC_APP_BASE_URL` | canonical / OGP / sitemap の基準URL |
+| `DATABASE_URL` / `DIRECT_URL` | Prisma の接続先 |
+| `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase クライアント |
+| `SUPABASE_SERVICE_ROLE_KEY` | サーバー専用。退会時のストレージ削除等 |
+| `AI_PROVIDER` / `GEMINI_API_KEY` | AI植物判定 |
+| `NOTION_API_KEY` / `NOTION_DATABASE_ID` | お知らせ |
+| `NEXT_PUBLIC_GOOGLE_ANALYTICS_ID` | GA4 |
+| `GOOGLE_SITE_VERIFICATION` | Search Console の所有権確認 |
+| `ERROR_WEBHOOK_URL` | サーバーエラーの通知先 |
 
 ## 関連ドキュメント
 
+- [monitoring.md](./monitoring.md) — 死活監視・エラー通知・バックアップの運用
 - [database.md](./database.md) — マイグレーションの運用ルール
 - [../02-development/testing.md](../02-development/testing.md) — 各テストの詳細

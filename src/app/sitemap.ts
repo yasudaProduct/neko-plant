@@ -2,6 +2,7 @@ import type { MetadataRoute } from 'next'
 import prisma from '@/lib/prisma'
 import { getNews } from '@/actions/news-action'
 import { SITE_URL } from '@/lib/site'
+import { reportError } from '@/lib/report-error'
 
 const BASE_URL = SITE_URL
 
@@ -71,7 +72,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             priority: 0.9,
         }))
     } catch (error) {
-        console.error('sitemap: failed to fetch plants', error)
+        reportError(error, { scope: 'sitemap.plants' })
     }
 
     // 投稿詳細ページ（中核UGC。updated_at 列が無いため lastModified は created_at）
@@ -89,7 +90,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             priority: 0.8,
         }))
     } catch (error) {
-        console.error('sitemap: failed to fetch posts', error)
+        reportError(error, { scope: 'sitemap.posts' })
     }
 
     // プロフィールページ（投稿が1件以上あるユーザーのみ。0件は noindex 扱い）
@@ -114,7 +115,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             priority: 0.6,
         }))
     } catch (error) {
-        console.error('sitemap: failed to fetch users', error)
+        reportError(error, { scope: 'sitemap.users' })
     }
 
     // ニュース詳細ページ（Notionから取得）
@@ -128,7 +129,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             priority: 0.7,
         }))
     } catch (error) {
-        console.error('sitemap: failed to fetch news', error)
+        reportError(error, { scope: 'sitemap.news' })
     }
 
     return [...staticPages, ...plantPages, ...postPages, ...profilePages, ...newsPages]

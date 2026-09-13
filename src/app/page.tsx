@@ -8,6 +8,7 @@ import { getPlants } from "@/actions/plant-action";
 import { Button } from "@/components/ui/button";
 import PostFeedList from "./PostFeedList";
 import EmptyState from "@/components/np/EmptyState";
+import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -34,7 +35,7 @@ export default async function Home() {
           <div className="max-w-2xl mx-auto flex flex-col items-center gap-4">
             <Image
               src="/images/logo.png"
-              alt="猫と植物"
+              alt={SITE_NAME}
               width={72}
               height={72}
               className="rounded-full bg-green-100"

@@ -1,4 +1,4 @@
-# neko-plant ドキュメント
+# ネコトハ ドキュメント
 
 「猫と植物の暮らし」を共有するフォトSNS。Next.js 15 + Supabase。
 

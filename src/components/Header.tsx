@@ -6,6 +6,7 @@ import HeaderNav from "./HeaderNav";
 import BottomNav from "./BottomNav";
 import { createClient } from "@/lib/supabase/server";
 import { getUserProfileByAuthId } from "@/actions/user-action";
+import { SITE_NAME } from "@/lib/site";
 
 export default async function Header() {
   const supabase = await createClient();
@@ -26,7 +27,7 @@ export default async function Header() {
             className="flex items-center gap-1 sm:gap-2 text-xl max-sm:text-base font-medium whitespace-nowrap"
           >
             <PawPrint className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
-            猫と植物
+            {SITE_NAME}
             <Leaf className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
           </Link>
           <span className="text-xs text-green-200 max-sm:hidden">Beta Version</span>

@@ -1,8 +1,9 @@
 import { Metadata } from "next";
+import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "お問い合わせ",
-  description: "猫と植物へのお問い合わせフォームです。ご意見・ご要望をお寄せください。",
+  description: `${SITE_NAME}へのお問い合わせフォームです。ご意見・ご要望をお寄せください。`,
   alternates: { canonical: "/contact" },
 };
 

@@ -42,7 +42,7 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "lucide-react": "^0.454.0",
-    "next": "^15.5.12",
+    "next": "^15.5.25",
     "next-nprogress-bar": "^2.4.4",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
@@ -76,7 +76,7 @@
     "vitest": "^3.0.9"
   },
   "overrides": {
-    "sharp": "^0.35.0",
+    "sharp": "^0.35.4",
     "next": {
       "postcss": "^8.5.18"
     },

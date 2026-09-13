@@ -65,23 +65,6 @@ supabase db push                   # 適用
 
 必要なシークレット: `SUPABASE_ACCESS_TOKEN` / `SUPABASE_DB_PASSWORD` / `SUPABASE_PROJECT_ID`
 
-### `db-backup.yml`（Backup Database）
-
-**トリガー**: 毎日 UTC 18:00（JST 03:00）／手動実行
-
-本番DBの論理バックアップ（roles / schema / data）を取得し、
-**GPG で暗号化してから**アーティファクトに14日保存します。
-
-**このリポジトリは公開されており、公開リポジトリのアーティファクトは誰でも
-ダウンロードできます。** ダンプには `auth.users`（全ユーザーのメールアドレス）が
-含まれるため、暗号化は省略できません。シークレットが未設定のときジョブは失敗します
-（バックアップが取れていないのに緑になるほうが危険なため）。
-
-必要なシークレット: `supabase-deploy.yml` と同じ3つ + `BACKUP_GPG_PASSPHRASE`
-
-復元手順と既知の制約（Storage は対象外、など）は
-[monitoring.md](./monitoring.md#dbバックアップ) を参照してください。
-
 ## ブランチ運用
 
 ```

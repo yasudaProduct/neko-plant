@@ -9,7 +9,7 @@
 | --- | --- | --- |
 | 死活監視 | `/api/health` を外形監視サービスから叩く | 監視サービス側の登録 |
 | サーバーエラー通知 | `reportError()` → Webhook | `ERROR_WEBHOOK_URL` |
-| DBバックアップ | GitHub Actions の日次ダンプ（暗号化） | `BACKUP_GPG_PASSPHRASE` |
+| DBバックアップ | Supabase の自動バックアップ（有料プラン） | Supabase 側のプラン契約 |
 | 検索流入 | Google Search Console | `GOOGLE_SITE_VERIFICATION` |
 
 ## 死活監視
@@ -103,83 +103,51 @@ Slack と Discord の Incoming Webhook に対応します。URL のホスト名�
 
 ## DBバックアップ
 
-### 前提の確認
+**方針: Supabase の有料プランに課金し、プラットフォーム側の自動バックアップに任せます。**
 
-**まず Supabase のプランを確認してください。** Free プランには自動バックアップがありません。
-Pro 以上なら日次バックアップと Point-in-Time Recovery が使えるため、そちらが第一の防衛線です。
+自前でダンプを取る仕組み（GitHub Actions の定期実行など）は持ちません。
+公開リポジトリに個人情報を含むダンプを置く運用は、暗号化しても鍵の管理という
+新しい事故要因を増やすためです。運用の手数も、1人運用では割に合いません。
 
-このリポジトリの `.github/workflows/db-backup.yml` は、**プランに関わらず持っておく二次的な
-論理バックアップ**です。Supabase 側の障害やプロジェクト削除のような、
-プラットフォームごと失うケースに備えます。
+### 設定時に確認すること
 
-### 仕組み
+Supabase ダッシュボードの Database → Backups で、次の4点を確認してください。
+プランの内容は変わるため、ドキュメントの記憶ではなく**画面の表示で確認**します。
 
-毎日 UTC 18:00（JST 03:00）と手動実行で走ります。
+| 確認項目 | なぜ見るか |
+| --- | --- |
+| バックアップの取得間隔 | 「日次」なら、最悪24時間分の投稿を失いうる |
+| 保持期間 | 壊れたことに何日後まで気づけば間に合うか |
+| Point-in-Time Recovery の有無 | 誤った DELETE や壊れたマイグレーションからの復旧に効く。Pro でも別料金の場合がある |
+| **Storage（投稿画像）が含まれるか** | DBのバックアップとStorageは別扱いのことがある。含まれないなら画像の消失には別の備えが要る |
 
-```
+Storage が対象外だった場合、画像はユーザーの投稿そのものなので、
+失うとDBのレコードだけ残って中身が見えない状態になります。
+対策が必要かどうかはユーザー数と投稿数を見て判断してください。
+
+### 復元を一度試す
+
+**試していないバックアップは、あるかどうか分かりません。** 課金したら、
+実際に復元できるところまで一度通してください。確認するのは次の2点です。
+
+1. ダッシュボードから復元操作が実行できるか（どの画面の、どのボタンか）
+2. 復元にかかる時間（障害時に「あと何分で戻るか」を言えるか）
+
+### 危険な変更の前に手元でダンプを取る
+
+自動化はしませんが、**破壊的なマイグレーションを本番へ流す前**には
+手元で1回ダンプを取っておくと安全です。
+
+```bash
+supabase link --project-ref <project-ref>
 supabase db dump --linked -f roles.sql --role-only
 supabase db dump --linked -f schema.sql
 supabase db dump --linked -f data.sql --data-only --use-copy
-→ tar でまとめる
-→ gpg --symmetric --cipher-algo AES256 で暗号化
-→ GitHub Actions のアーティファクトとして14日保持
 ```
 
-ダンプが空のときはジョブを失敗させます。0バイトのファイルを
-「成功したバックアップ」として保存するのが一番危ないためです。
-
-再利用するシークレットは `supabase-deploy.yml` と同じ
-（`SUPABASE_ACCESS_TOKEN` / `SUPABASE_DB_PASSWORD` / `SUPABASE_PROJECT_ID`）。
-加えて `BACKUP_GPG_PASSPHRASE` が必要です。
-
-### 暗号化が必須である理由
-
-**このリポジトリは公開されています。** 公開リポジトリの Actions アーティファクトは、
-リンクを知っていれば誰でもダウンロードできます。
-
-そして `--data-only` のダンプには **`auth.users` が実際に含まれます**（ローカルDBで確認済み。
-`public` / `auth` / `storage` / `supabase_functions` の4スキーマが出力されます）。
-つまりダンプは全ユーザーのメールアドレスを含む個人情報の塊です。
-**平文で置くことは事故と同じ**です。
-
-`BACKUP_GPG_PASSPHRASE` は十分に長いランダム文字列にし、GitHub Secrets 以外の場所
-（コミット、Issue、チャット）に置かないでください。**この鍵を失うと復号できません。**
-パスワードマネージャに控えを取ってください。
-
-シークレットが未設定のとき、ジョブは**成功せず失敗します**。
-バックアップが取れていないのに緑になるほうが危険だからです。
-
-### 復元
-
-アーティファクトを展開すると `neko-plant-db-<日時>.tar.gz.gpg` が入っています。
-
-```bash
-export BACKUP_GPG_PASSPHRASE='...'   # GitHub Secrets と同じ値
-
-# 復号して展開（--pinentry-mode loopback が無いと GnuPG 2.1+ は失敗する）
-gpg --decrypt --batch --yes --pinentry-mode loopback \
-    --passphrase "$BACKUP_GPG_PASSPHRASE" \
-    neko-plant-db-20260906T180000Z.tar.gz.gpg > backup.tar.gz
-mkdir -p restored && tar xzf backup.tar.gz -C restored
-
-# 復元先（ローカル or 新規プロジェクト）に流す。順序を入れ替えないこと
-psql "$TARGET_DB_URL" -f restored/roles.sql
-psql "$TARGET_DB_URL" -f restored/schema.sql
-psql "$TARGET_DB_URL" -f restored/data.sql
-```
-
-**復元は一度実際に試してください。** 試していないバックアップは、あるかどうか分かりません。
-ローカルの `supabase start` した空DBに流すのが安全な練習相手です。
-
-### 既知の制約
-
-| 制約 | 内容 |
-| --- | --- |
-| 画像ファイルは対象外 | `storage.objects` の**行**は入りますが、画像の実体は入りません。画像の消失には別の対策が要ります |
-| `auth` の復元は非自明 | 行としては戻せますが、新規プロジェクトへ流すと既存の認証設定と衝突しえます。復元先を空のプロジェクトにしてください |
-| アーティファクトは14日で消える | 長期保管には R2 / S3 などへの転送に切り替えてください |
-| スケジュールは60日で止まる | GitHub は活動のないリポジトリの定期実行を停止します |
-| 整合性は保証されない | 稼働中DBの論理ダンプです。厳密な時点復旧が要るなら Supabase の PITR を使ってください |
+**出力したファイルはリポジトリに入れないでください。** `--data-only` のダンプには
+`auth.users`（全ユーザーのメールアドレス）が含まれます。
+使い終わったら消すか、ローカルの暗号化された場所に置いてください。
 
 ## Google Search Console
 

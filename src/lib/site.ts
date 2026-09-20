@@ -30,4 +30,4 @@ function resolveSiteUrl(): string {
  */
 export const SITE_URL = resolveSiteUrl();
 
-export const SITE_NAME = "猫と植物";
+export const SITE_NAME = "ネコトハ";

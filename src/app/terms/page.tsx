@@ -1,9 +1,10 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "利用規約",
-  description: "猫と植物の利用規約です。",
+  description: `${SITE_NAME}の利用規約です。`,
   alternates: { canonical: "/terms" },
 };
 
@@ -16,7 +17,7 @@ export default function TermsPage() {
         <section>
           <h2 className="text-xl font-semibold mb-4">1. はじめに</h2>
           <p className="mb-4">
-            本利用規約（以下「本規約」）は、猫と植物（以下「当サイト」）の利用条件を定めるものです。
+            本利用規約（以下「本規約」）は、{SITE_NAME}（以下「当サイト」）の利用条件を定めるものです。
             当サイトを利用する際は、本規約に同意していただく必要があります。
           </p>
         </section>

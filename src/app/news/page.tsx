@@ -5,10 +5,11 @@ import { format } from "date-fns";
 import { ja } from "date-fns/locale";
 import { getNews } from "@/actions/news-action";
 import EmptyState from "@/components/np/EmptyState";
+import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "お知らせ",
-  description: "猫と植物からのお知らせ・更新情報の一覧です。",
+  description: `${SITE_NAME}からのお知らせ・更新情報の一覧です。`,
   alternates: { canonical: "/news" },
 };
 

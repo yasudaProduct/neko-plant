@@ -1,9 +1,10 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { SITE_NAME } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "プライバシーポリシー",
-  description: "猫と植物のプライバシーポリシーです。",
+  description: `${SITE_NAME}のプライバシーポリシーです。`,
   alternates: { canonical: "/privacy" },
 };
 
@@ -16,7 +17,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="text-xl font-semibold mb-4">1. はじめに</h2>
           <p className="mb-4">
-            猫と植物（以下「当サイト」）は、ユーザーのプライバシーを尊重し、個人情報の保護に努めています。
+            {SITE_NAME}（以下「当サイト」）は、ユーザーのプライバシーを尊重し、個人情報の保護に努めています。
             本プライバシーポリシーでは、当サイトにおける個人情報の収集、利用、保護について説明します。
           </p>
         </section>

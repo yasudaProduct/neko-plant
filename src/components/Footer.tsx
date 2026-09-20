@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SITE_NAME } from "@/lib/site";
 
 export default function Footer() {
   return (
@@ -13,7 +14,7 @@ export default function Footer() {
           <Link href="/privacy" className="whitespace-nowrap">プライバシーポリシー</Link>
         </div>
         <p className="text-sm text-primary-foreground/60">
-          © {new Date().getFullYear()} 猫と植物 neko and plants
+          © {new Date().getFullYear()} {SITE_NAME}
         </p>
       </div>
     </footer>

@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import PetFormDialog from "./PetFormDialog";
 
 export const metadata: Metadata = {
-  title: "猫プロフィール | 猫と植物",
+  title: "猫プロフィール",
 };
 
 export default async function CatsSettingsPage() {

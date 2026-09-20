@@ -72,7 +72,7 @@ test.describe('静的ページのスモーク @public', () => {
     test(`${path} が正しく表示される`, async ({ page }) => {
       await page.goto(path, { waitUntil: 'domcontentloaded' });
       // ルートレイアウトのヘッダー（ブランド）が描画される＝クラッシュしていない
-      await expect(page.getByRole('link', { name: '猫と植物' })).toBeVisible();
+      await expect(page.getByRole('link', { name: 'ネコトハ' })).toBeVisible();
     });
   }
 });

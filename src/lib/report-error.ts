@@ -10,6 +10,8 @@
  * 3. 個人情報を送らない — 通知先はチャットであり、保存先を増やさない
  */
 
+import { SITE_NAME } from "@/lib/site";
+
 /** 通知に載せてよい補助情報。個人を特定できる値は入れないこと。 */
 export type ErrorContext = {
     /** 処理名。通知の見出しと間引きのキーに使う (例: "createPost") */
@@ -115,7 +117,7 @@ function formatText(detail: ErrorDetail, context: ErrorContext): string {
         .join(" ");
 
     return [
-        `🚨 [猫と植物] ${context.scope}`,
+        `🚨 [${SITE_NAME}] ${context.scope}`,
         `${detail.name}: ${detail.message}`,
         extras ? `context: ${extras}` : undefined,
         detail.stack ? "```\n" + detail.stack + "\n```" : undefined,

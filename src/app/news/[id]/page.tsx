@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import { getNewsById } from "@/actions/news-action";
-import { SITE_URL } from "@/lib/site";
+import { SITE_NAME, SITE_URL } from "@/lib/site";
 import JsonLd from "@/components/JsonLd";
 import Breadcrumbs from "@/components/np/Breadcrumbs";
 
@@ -16,7 +16,7 @@ export async function generateMetadata({
 
   return {
     title: news.title,
-    description: excerpt || `猫と植物からのお知らせ「${news.title}」です。`,
+    description: excerpt || `${SITE_NAME}からのお知らせ「${news.title}」です。`,
     alternates: { canonical: `/news/${news.id}` },
   };
 }

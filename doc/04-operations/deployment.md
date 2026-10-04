@@ -31,6 +31,21 @@ Vercel は `npm run vercel-build`（= `prisma generate && next build`）を使�
 `--omit=dev` にしているのは、devDependencies が本番ビルド成果物に含まれないためです。
 **本番に出荷される依存のみを high 以上でゲート**します。
 
+#### `security` ジョブが落ちたとき
+
+1. `npm audit --omit=dev --audit-level=high` をローカルで再現し、依存経路（`npm ls <pkg> --omit=dev`）を確認する
+2. パッチ版があれば更新する（`overrides` で押し込む場合は理由をコミットに書く）
+3. パッチ版がなく、実行時に使われないビルド専用パッケージ経由なら、**`devDependencies` に置き直す**
+   - Tailwind のプラグイン、ESLint/TypeScript 系などが該当する。`dependencies` に置くのは実行時に `import` / `require` されるものだけ
+   - 経路の根元（`npm ls` で最上位に出るパッケージ）が `dependencies` に入っていないかを見る
+   - 例: `tailwindcss-animate` は `tailwind.config.ts` から読み込むビルド時プラグインなのに `dependencies` にあったため、
+     `braces`（GHSA-vfj7-8cjw-p6xm、`<=3.0.3` が対象で最新の 3.0.3 にも修正なし）が本番スコープに入って落ちた。`devDependencies` へ移して解消した
+4. 実行時に使われるのにパッチ版がない場合は、ゲートを緩めずに代替パッケージへの置き換えを検討する
+
+devDependencies 側の high 以上は CI のゲート対象外のため、`npm audit`（`--omit=dev` なし）で時々確認する。
+2026-10 時点では、`--omit=dev` なしだと high が 17 件残るが、いずれも本番スコープ外のビルド・開発ツール経由
+（ESLint・typescript-eslint・Tailwind など）。
+
 ### `playwright.yml`（Playwright Tests）
 
 **トリガー**: main / master / develop への push・PR

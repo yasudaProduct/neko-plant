@@ -63,6 +63,22 @@ UPDATE public.users SET role = 'admin' WHERE alias_id = '<対象のalias_id>';
 > 旧仕様では `plant_images` に `is_approved` による承認フローがありましたが、
 > フォトSNS化改修でテーブルごと廃止されました。
 
+## 問い合わせ窓口
+
+窓口は2系統あります。
+
+| 窓口 | 受け口 | 画面での表示 |
+| --- | --- | --- |
+| フォーム | Notion のお問い合わせフォーム | `/contact`（iframe 埋め込み + 別窓リンク） |
+| メール | `support@neko-and-plant.com` | フッター（全ページ）、`/contact`、`/terms` 第10条、`/privacy` 第7条 |
+
+アドレスは `src/lib/site.ts` の `SUPPORT_EMAIL` に集約しています。
+変更するときはこの定数だけを書き換えてください（画面側はすべてここを参照します）。
+`e2e/navigation.test.ts` の「問い合わせメールアドレスの表示」はアドレスを直書きしているため、あわせて更新します。
+
+通報機能がない間、投稿の削除依頼や権利侵害の申告もこの窓口で受けることになります。
+受信箱を誰が確認するかは運用側で決めておいてください。
+
 ## E2E テスト
 
 `admin-protection.test.ts` が `/admin` へのアクセス制御を検証します

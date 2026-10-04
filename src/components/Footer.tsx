@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { SITE_NAME } from "@/lib/site";
+import { SITE_NAME, SUPPORT_EMAIL } from "@/lib/site";
 
 export default function Footer() {
   return (
@@ -13,6 +13,15 @@ export default function Footer() {
           <Link href="/terms" className="whitespace-nowrap">利用規約</Link>
           <Link href="/privacy" className="whitespace-nowrap">プライバシーポリシー</Link>
         </div>
+        <p className="text-sm text-primary-foreground/60 mb-1">
+          お問い合わせ：
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="hover:underline whitespace-nowrap"
+          >
+            {SUPPORT_EMAIL}
+          </a>
+        </p>
         <p className="text-sm text-primary-foreground/60">
           © {new Date().getFullYear()} {SITE_NAME}
         </p>

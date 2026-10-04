@@ -77,6 +77,18 @@ test.describe('静的ページのスモーク @public', () => {
   }
 });
 
+test.describe('問い合わせメールアドレスの表示 @public', () => {
+  const mailto = 'a[href="mailto:support@neko-and-plant.com"]';
+
+  for (const path of ['/terms', '/privacy', '/contact']) {
+    test(`${path} にフッターと本文の両方で表示される`, async ({ page }) => {
+      await page.goto(path, { waitUntil: 'domcontentloaded' });
+      await expect(page.locator('footer').locator(mailto)).toBeVisible();
+      await expect(page.locator('main').locator(mailto)).toBeVisible();
+    });
+  }
+});
+
 test.describe('ヘッダーナビゲーション（ログイン済み） @user', () => {
   test('アバターとドロップダウンメニューが表示される', async ({ page }) => {
     await page.goto('/');

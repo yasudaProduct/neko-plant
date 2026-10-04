@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { SITE_NAME } from "@/lib/site";
+import { SITE_NAME, SUPPORT_EMAIL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "お問い合わせ",
@@ -31,6 +31,16 @@ export default function ContactPage() {
             こちら
           </a>
           {" "}からお問い合わせください。
+        </p>
+        <p className="mt-2 text-sm text-gray-500 text-center">
+          メールでのお問い合わせは{" "}
+          <a
+            href={`mailto:${SUPPORT_EMAIL}`}
+            className="text-green-700 font-medium hover:underline whitespace-nowrap"
+          >
+            {SUPPORT_EMAIL}
+          </a>
+          {" "}までお願いします。
         </p>
       </div>
     </div>

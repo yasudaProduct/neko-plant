@@ -43,8 +43,22 @@ Vercel は `npm run vercel-build`（= `prisma generate && next build`）を使�
 4. 実行時に使われるのにパッチ版がない場合は、ゲートを緩めずに代替パッケージへの置き換えを検討する
 
 devDependencies 側の high 以上は CI のゲート対象外のため、`npm audit`（`--omit=dev` なし）で時々確認する。
-2026-10 時点では、`--omit=dev` なしだと high が 17 件残るが、いずれも本番スコープ外のビルド・開発ツール経由
-（ESLint・typescript-eslint・Tailwind など）。
+2026-10 時点では、`--omit=dev` なしだと high 8 件・critical 2 件が残るが、いずれも本番スコープ外のビルド・開発ツール経由
+（ESLint・Tailwind・Vitest など）。Vitest 経由の `tinypool`（critical）は vitest 5 へのメジャー更新でしか解消できない。
+
+#### `security` ジョブでは検出できないもの
+
+CVE が採番されていないアドバイザリは `npm audit` の参照データに載らないことがある。
+例えば Next.js の Server Actions の DoS（GHSA-p3m5-59mp-jv5r、2026-10-14 公開、15.5.28 で修正）は、
+このアプリが該当するにもかかわらず `npm audit` では検出されなかった。
+そのため、Next.js については [Next.js Blog](https://nextjs.org/blog) のセキュリティリリースと
+[vercel/next.js の Security Advisories](https://github.com/vercel/next.js/security/advisories) を直接確認し、
+15.5 系のバックポート（npm の `backport` タグ）に追従する。
+
+`package.json` の `overrides.sharp` は、Next.js 15.5 系が修正前の `sharp` も許容するため、
+画像最適化で使う `sharp` を修正版以上に固定する目的で置いている
+（`^0.35.5`: librsvg の脆弱性 CVE-2026-96889 / GHSA-wq5f-xc86-pv6w の修正版）。
+Next.js を更新するときは `npm ls sharp` で解決結果も確認する。
 
 ### `playwright.yml`（Playwright Tests）
 

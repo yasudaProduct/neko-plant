@@ -43,7 +43,7 @@ Vercel は `npm run vercel-build`（= `prisma generate && next build`）を使�
 4. 実行時に使われるのにパッチ版がない場合は、ゲートを緩めずに代替パッケージへの置き換えを検討する
 
 devDependencies 側の high 以上は CI のゲート対象外のため、`npm audit`（`--omit=dev` なし）で時々確認する。
-2026-10 時点では、`--omit=dev` なしだと high 8 件・critical 2 件が残るが、いずれも本番スコープ外のビルド・開発ツール経由
+2026-10 時点では、`--omit=dev` なしだと high 1 件・critical 2 件が残るが、いずれも本番スコープ外のビルド・開発ツール経由
 （ESLint・Tailwind・Vitest など）。Vitest 経由の `tinypool`（critical）は vitest 5 へのメジャー更新でしか解消できない。
 
 #### `security` ジョブでは検出できないもの

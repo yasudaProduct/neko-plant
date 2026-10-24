@@ -144,7 +144,7 @@ export default function ProfileImageUploadModal({}: ProfileImageUploadModalProps
               className="hover:cursor-pointer"
             />
             {errors.image && (
-              <p className="text-red-500 text-sm">{errors.image.message}</p>
+              <p className="text-red-500 text-sm">{errors.image.message as string}</p>
             )}
           </div>
           <div className="aspect-video max-w-[560px] flex justify-center items-center">

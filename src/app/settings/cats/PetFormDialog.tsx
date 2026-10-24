@@ -64,11 +64,9 @@ const formSchema = z.object({
     message: "猫種を選択してください。",
   }),
   sex: z.nativeEnum(SexType).optional(),
-  age: z
-    .preprocess(
-      (val) => (val === "" || val === undefined ? undefined : Number(val)),
-      z.number().min(0, { message: "年齢は0以上で入力してください。" }).optional()
-    ),
+  // 空欄→undefined / 文字列→number の変換は年齢入力欄の onChange で行う
+  // (z.preprocess は zod 4 で入力型が unknown になり useForm の型と合わなくなるため使わない)
+  age: z.number().min(0, { message: "年齢は0以上で入力してください。" }).optional(),
   birthday: z
     .string()
     .regex(/^\d{4}\/\d{2}\/\d{2}$/, {

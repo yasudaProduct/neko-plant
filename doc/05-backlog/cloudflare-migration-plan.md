@@ -1,6 +1,10 @@
 # Vercel → Cloudflare Workers 移行計画
 
-> **ステータス: 計画（未着手）**。現行のデプロイ構成は [../04-operations/deployment.md](../04-operations/deployment.md) です。
+> **ステータス: 保留（2026-10）**。当面は Vercel で運用します。現行のデプロイ構成は [../04-operations/deployment.md](../04-operations/deployment.md) です。
+> 次のどちらかに当たったら再検討します。
+> - **収益化する**（広告・アフィリエイト・有料機能など。Vercel の Hobby プランは非商用の個人利用に限られ、続けるなら Pro へのアップグレードが必要になる）
+> - **Vercel の無料枠の上限に近づく**（特に画像最適化の変換回数）
+>
 > 移行が完了したら、本書の「後片付け」に挙げたドキュメントを更新し、本書は `99-archive/` へ移します。
 
 ## 1. 方針

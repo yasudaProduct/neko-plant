@@ -6,7 +6,9 @@ on:
     branches: [main, master, develop]
 jobs:
   e2e:
-    runs-on: ubuntu-latest
+    # ubuntu-latest は 2026-10〜11 に Ubuntu 26.04 へ段階移行中。
+    # Supabase CLI など他の手順の前提が変わらないよう、OS は明示的に固定する。
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
 
@@ -86,8 +88,10 @@ jobs:
       # 自動適用される。実データ（ユーザー・猫・投稿）のシードは Playwright の
       # globalSetup（e2e/global-setup.ts → scripts/e2e-seed.ts）が実行する。
 
+      # playwright.config.ts のプロジェクトは Desktop Chrome / Pixel 5 のみ（どちらも chromium）。
+      # 使わない firefox / webkit は入れない
       - name: Install Playwright Browsers
-        run: npx playwright install --with-deps
+        run: npx playwright install --with-deps chromium
 
       # - name: Verify required env/config for Next/Supabase
       #   run: |

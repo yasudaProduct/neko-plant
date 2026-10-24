@@ -64,13 +64,17 @@ Next.js を更新するときは `npm ls sharp` で解決結果も確認する�
 
 **トリガー**: main / master / develop への push・PR
 
+**ランナー**: `ubuntu-24.04` に固定（`ubuntu-latest` は 2026-10〜11 に Ubuntu 26.04 へ段階移行しており、
+移行先で Playwright 1.58 のブラウザインストールが失敗したため）。OS を上げるときは Playwright と
+Supabase CLI がその OS に対応しているかを先に確認する。
+
 1. Supabase CLI（2.109.1）をインストール
 2. `supabase start`（studio, edge-runtime, imgproxy, mailpit を除外）
 3. API のヘルスチェック待ち
 4. **`supabase test db`（pgTAP）** ← ブラウザインストールより先に実行して早期失敗させる
 5. `supabase status` から接続情報を取得し `.env.local` を生成（`AI_PROVIDER=mock`）
 6. `prisma generate`
-7. Playwright ブラウザをインストール
+7. Playwright ブラウザをインストール（`playwright.config.ts` のプロジェクトは Desktop Chrome / Pixel 5 のみのため chromium だけ）
 8. `npm run e2e`
 9. レポートをアーティファクトとして保存（失敗時も）
 

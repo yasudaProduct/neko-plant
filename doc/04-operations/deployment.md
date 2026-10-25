@@ -15,6 +15,19 @@
 Vercel は `npm run vercel-build`（= `prisma generate && next build`）を使います。
 `prisma generate` を挟むのは、Prisma Client がビルド時に必要なためです。
 
+### Node.js のバージョン
+
+| 環境 | 指定場所 | 現在 |
+| --- | --- | --- |
+| CI | `pull_request.yml` / `playwright.yml` の `node-version` | 22.23.4 |
+| ローカル | [setup.md](../02-development/setup.md) の推奨値 | 22.23.4 |
+| Docker | `dockerfile` の `FROM` | `node:22.23.4-alpine` |
+| Vercel | プロジェクト設定の Node.js Version（`package.json` に `engines` はない） | メジャーのみ選べる。パッチは Vercel が自動で配布する |
+
+Node.js のセキュリティリリースが出たら、上の3か所（CI・setup.md・dockerfile）をまとめて上げる。
+Vercel はメジャーしか選べないので、デプロイのビルドログか `process.version` で実際のパッチ版を確認する。
+22.23.4 未満は Brotli デコーダの脆弱性（CVE-2026-111497）の対象。
+
 ## GitHub Actions
 
 ### `pull_request.yml`（Check）

@@ -12,6 +12,10 @@ export default defineConfig({
         coverage: {
             provider: 'v8',
             reporter: ['text', 'json', 'html', 'lcov'],
+            // Vitest 4 は include 未指定だとテストで読み込まれたファイルしか集計しないため、
+            // テストのないファイルも 0% として分母に含める
+            include: ['src/**/*.{ts,tsx}'],
+            exclude: ['src/__test__/**'],
         },
         // CI 上で .env.local が無い場合でも安定した値を使う
         // dotenv の結果をベースに、必要キーが未設定ならデフォルトを補完

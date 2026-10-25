@@ -15,6 +15,19 @@
 Vercel は `npm run vercel-build`（= `prisma generate && next build`）を使います。
 `prisma generate` を挟むのは、Prisma Client がビルド時に必要なためです。
 
+### Node.js のバージョン
+
+| 環境 | 指定場所 | 現在 |
+| --- | --- | --- |
+| CI | `pull_request.yml` / `playwright.yml` の `node-version` | 22.23.4 |
+| ローカル | [setup.md](../02-development/setup.md) の推奨値 | 22.23.4 |
+| Docker | `dockerfile` の `FROM` | `node:22.23.4-alpine` |
+| Vercel | プロジェクト設定の Node.js Version（`package.json` に `engines` はない） | メジャーのみ選べる。パッチは Vercel が自動で配布する |
+
+Node.js のセキュリティリリースが出たら、上の3か所（CI・setup.md・dockerfile）をまとめて上げる。
+Vercel はメジャーしか選べないので、デプロイのビルドログか `process.version` で実際のパッチ版を確認する。
+22.23.4 未満は Brotli デコーダの脆弱性（CVE-2026-111497）の対象。
+
 ## GitHub Actions
 
 ### `pull_request.yml`（Check）
@@ -43,8 +56,25 @@ Vercel は `npm run vercel-build`（= `prisma generate && next build`）を使�
 4. 実行時に使われるのにパッチ版がない場合は、ゲートを緩めずに代替パッケージへの置き換えを検討する
 
 devDependencies 側の high 以上は CI のゲート対象外のため、`npm audit`（`--omit=dev` なし）で時々確認する。
-2026-10 時点では、`--omit=dev` なしだと high 1 件・critical 2 件が残るが、いずれも本番スコープ外のビルド・開発ツール経由
-（ESLint・Tailwind・Vitest など）。Vitest 経由の `tinypool`（critical）は vitest 5 へのメジャー更新でしか解消できない。
+2026-10 に Vitest 4.1.12 へ更新し（`tinypool` への依存がなくなり、`@vitest/mocker` も修正版になる）、
+`brace-expansion` を `npm audit fix` で 1.1.21 に上げた。`--omit=dev` なしで残るのは次の moderate 4 件で、**既知の誤検知**として扱う。
+
+- `postcss-selector-parser`（GHSA-rj75-hqrm-r3gf）と、連鎖で出る `postcss-nested` / `tailwindcss` / `tailwindcss-animate`
+  - アドバイザリの対象範囲は `<7.1.6` のままだが、Tailwind 3 が使う 6.1.5（2026-10-19 公開）には修正がバックポート済み（CHANGELOG とコードで確認）
+  - `overrides` で 7.x に上げる必要はない。範囲が直ったら警告は消える
+
+#### devDependencies を更新するときの npm のバグ
+
+npm 10（Node 22 同梱の 10.9.9 まで）で Vitest 4 を入れようとすると、`npm install` が
+`Cannot read properties of null (reading 'edgesOut')` で落ちる（optional peer の解決で起きる arborist のバグ）。
+その場合は npm 11 で入れてから、npm 10 で lockfile を整え直す。
+
+```bash
+npx -y npm@11 install -D <pkg>@<version>
+npm install --package-lock-only   # npm 11 が外す @esbuild/* などの dev フラグを npm 10 の形式に戻す
+```
+
+できた lockfile は CI と同じ npm 10 の `npm ci` で入れられる。
 
 #### `security` ジョブでは検出できないもの
 

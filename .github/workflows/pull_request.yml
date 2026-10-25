@@ -42,8 +42,10 @@ jobs:
         run: npm ci
 
       - name: Security Audit
-        # devDependencies (eslint/ts-node系ツール) は本番ビルド成果物に含まれないため対象外にする。
+        # devDependencies (eslint/ts-node系ツール、Tailwindとそのプラグイン等のビルド専用物) は
+        # 本番ビルド成果物に含まれないため対象外にする。
         # 本番に出荷される dependencies のみを high 以上でゲートする。
+        # 落ちたときの手順: doc/04-operations/deployment.md
         run: npm audit --omit=dev --audit-level=high
 
   lint:

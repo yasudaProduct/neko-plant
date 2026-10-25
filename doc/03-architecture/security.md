@@ -124,7 +124,7 @@ CI では Playwright ジョブがブラウザインストールより先に `sup
 | パス偽装 | Server Action が受け取った画像パスを再検証（`{auth_id}/` 配下・`..` 禁止・文字種制限・255文字以内） | `src/lib/storage-path.ts` |
 | 認証情報の漏洩 | Prisma の `omit` で `auth_users` のパスワードハッシュ・各種トークンを全クエリから既定除外 | `src/lib/prisma.ts` |
 | 権限昇格 | `getUserData()`（`role` を返す）を `"use server"` にしない | `src/lib/user-data.ts` |
-| 依存脆弱性 | `npm audit --omit=dev --audit-level=high` を CI でゲート | `.github/workflows/pull_request.yml` |
+| 依存脆弱性 | `npm audit --omit=dev --audit-level=high` を CI でゲート。ビルド専用パッケージは `devDependencies` に置く（落ちたときの手順は [deployment.md](../04-operations/deployment.md#security-ジョブが落ちたとき)） | `.github/workflows/pull_request.yml` |
 
 ## 新しいテーブルを追加するときのチェックリスト
 

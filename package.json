@@ -21,7 +21,7 @@
     "db:pull": "dotenv -e .env.local -- prisma db pull && prisma generate"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.10.0",
+    "@hookform/resolvers": "^5.9.2",
     "@next/third-parties": "^16.0.3",
     "@notionhq/client": "^2.3.0",
     "@prisma/client": "^6.4.1",
@@ -42,19 +42,18 @@
     "date-fns": "^3.6.0",
     "embla-carousel-react": "^8.6.0",
     "lucide-react": "^0.454.0",
-    "next": "^15.5.25",
+    "next": "^15.5.28",
     "next-nprogress-bar": "^2.4.4",
     "react": "^18.3.1",
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
-    "react-hook-form": "^7.54.2",
+    "react-hook-form": "^7.90.0",
     "react-icons": "^5.5.0",
     "tailwind-merge": "^2.5.4",
-    "tailwindcss-animate": "^1.0.7",
-    "zod": "^3.24.1"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
-    "@playwright/test": "^1.55.1",
+    "@playwright/test": "^1.64.1",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
     "@types/node": "^20",
@@ -70,13 +69,14 @@
     "prisma": "^6.4.1",
     "supabase": "^2.15.8",
     "tailwindcss": "^3.4.1",
+    "tailwindcss-animate": "^1.0.7",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
     "typescript": "^5",
     "vitest": "^3.0.9"
   },
   "overrides": {
-    "sharp": "^0.35.4",
+    "sharp": "^0.35.5",
     "next": {
       "postcss": "^8.5.18"
     },

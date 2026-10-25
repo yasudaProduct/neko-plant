@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { SITE_NAME } from "@/lib/site";
+import { SITE_NAME, SUPPORT_EMAIL } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "利用規約",
@@ -194,6 +194,14 @@ export default function TermsPage() {
             <Link href="/contact" className="text-blue-600 hover:underline">
               お問い合わせ
             </Link>
+            <br />
+            メール：
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="text-blue-600 hover:underline"
+            >
+              {SUPPORT_EMAIL}
+            </a>
           </p>
         </section>
 

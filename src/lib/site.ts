@@ -31,3 +31,6 @@ function resolveSiteUrl(): string {
 export const SITE_URL = resolveSiteUrl();
 
 export const SITE_NAME = "ネコトハ";
+
+/** 問い合わせ窓口のメールアドレス。画面表示はすべてここを参照する */
+export const SUPPORT_EMAIL = "support@neko-and-plant.com";

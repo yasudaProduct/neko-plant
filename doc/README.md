@@ -65,6 +65,7 @@
 | --- | --- |
 | [ui-improvement-backlog.md](./05-backlog/ui-improvement-backlog.md) | UIレビューで洗い出した、未対応の改善候補 |
 | [growth-backlog.md](./05-backlog/growth-backlog.md) | 本番運用とユーザー獲得の作業リスト（優先順つき） |
+| [cloudflare-migration-plan.md](./05-backlog/cloudflare-migration-plan.md) | ホスティングを Vercel から Cloudflare Workers へ移す計画（保留中。再検討の条件つき） |
 
 ### 99-archive — 過去の記録
 

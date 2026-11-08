@@ -19,12 +19,12 @@ type Props = {
 /** 猫チップの列 (2匹まで + 「+N」)。ヘッダー(PC)と本文(モバイル)で共用 */
 function PetChips({ pets, className }: { pets: Post["pets"]; className?: string }) {
   return (
-    <div className={cn("flex gap-1.5", className)}>
+    <div className={cn("flex items-center gap-2", className)}>
       {pets.slice(0, 2).map((pet) => (
-        <CatChip key={pet.id} name={pet.name} />
+        <CatChip key={pet.id} name={pet.name} imageSrc={pet.imageSrc} />
       ))}
       {pets.length > 2 && (
-        <span className="text-xs text-gray-500 self-center">+{pets.length - 2}</span>
+        <span className="text-xs text-ink-muted tabular-nums">+{pets.length - 2}</span>
       )}
     </div>
   );
@@ -36,7 +36,7 @@ export default function PostCard({ post, priority = false }: Props) {
 
   return (
     <article
-      className="relative bg-white rounded-xl border border-border shadow-sm overflow-hidden cursor-pointer"
+      className="relative bg-card rounded-2xl border border-border overflow-hidden cursor-pointer"
       data-testid="post-card"
     >
       <Link
@@ -48,9 +48,9 @@ export default function PostCard({ post, priority = false }: Props) {
 
       <div className="relative z-10 pointer-events-none">
         {/* ヘッダー: 投稿者 + 猫 */}
-        <div className="flex items-center gap-2.5 p-4 pb-3">
-          <Link href={`/${post.user.aliasId}`} className="pointer-events-auto shrink-0">
-            <Avatar className="w-9 h-9">
+        <div className="flex items-center gap-3 px-4 py-3">
+          <Link href={`/${post.user.aliasId}`} className="pointer-events-auto shrink-0 rounded-full">
+            <Avatar className="size-9">
               <AvatarImage src={post.user.imageSrc} alt={post.user.name} />
               <AvatarFallback>{post.user.name.charAt(0) || "U"}</AvatarFallback>
             </Avatar>
@@ -58,11 +58,11 @@ export default function PostCard({ post, priority = false }: Props) {
           <div className="flex flex-col gap-0.5 min-w-0">
             <Link
               href={`/${post.user.aliasId}`}
-              className="pointer-events-auto w-fit max-w-full text-sm font-bold text-gray-900 truncate hover:underline"
+              className="pointer-events-auto w-fit max-w-full text-sm font-medium text-ink truncate hover:underline"
             >
               {post.user.name}
             </Link>
-            <span className="text-xs text-gray-500">{formatRelativeTime(post.createdAt)}</span>
+            <span className="text-xs text-ink-muted tabular-nums">{formatRelativeTime(post.createdAt)}</span>
           </div>
           {post.pets.length > 0 && (
             <PetChips pets={post.pets} className="max-sm:hidden ml-auto shrink-0" />
@@ -70,7 +70,7 @@ export default function PostCard({ post, priority = false }: Props) {
         </div>
 
         {/* 写真 */}
-        <div className="relative aspect-[4/3] bg-gray-100">
+        <div className="relative aspect-[4/3] bg-secondary">
           {post.imageUrls[0] ? (
             <Image
               src={post.imageUrls[0]}
@@ -84,15 +84,15 @@ export default function PostCard({ post, priority = false }: Props) {
             <PhotoPlaceholder icon="paw" />
           )}
           {post.imageUrls.length > 1 && (
-            <span className="absolute top-2 right-2 inline-flex items-center gap-1 rounded-full bg-black/50 text-white px-2.5 py-0.5 text-xs">
-              <Images className="w-3.5 h-3.5" />
+            <span className="absolute top-3 right-3 inline-flex h-6 items-center gap-1 rounded-md bg-[rgba(31,27,22,0.56)] px-2 text-xs text-white tabular-nums">
+              <Images className="size-4" strokeWidth={1.5} />
               {post.imageUrls.length}
             </span>
           )}
         </div>
 
         {/* 本文 */}
-        <div className="flex flex-col gap-2 p-4">
+        <div className="flex flex-col gap-3 p-4">
           <LikeButton
             postId={post.id}
             initialLiked={post.likedByMe}
@@ -100,28 +100,29 @@ export default function PostCard({ post, priority = false }: Props) {
             className="pointer-events-auto w-fit"
           />
           {post.comment && (
-            <p className="text-sm text-gray-700 leading-normal whitespace-pre-wrap">{post.comment}</p>
+            <p className="text-sm text-ink leading-[1.7] whitespace-pre-wrap">{post.comment}</p>
           )}
           {/* モバイルはヘッダー右に余白がないため、猫チップを本文側に出す (猫×植物が中核情報) */}
           {post.pets.length > 0 && (
             <PetChips pets={post.pets} className="sm:hidden flex-wrap" />
           )}
+          {/* 植物ごとに1行: 園芸ラベル (植物名) + その植物の共存実績 */}
           {post.plants.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
+            <ul className="flex flex-col gap-2">
               {post.plants.map((plant) => (
-                <span key={plant.id} className="inline-flex flex-wrap items-center gap-2">
+                <li key={plant.id} className="flex flex-wrap items-center gap-x-3 gap-y-1">
                   <PlantTag plant={plant} className="pointer-events-auto relative z-10" />
-                  {/* バッジ=共存実績なので、タップは投稿詳細ではなく植物ページへ */}
+                  {/* 実績のタップは投稿詳細ではなく植物ページへ */}
                   <Link
                     href={`/plants/${plant.id}`}
-                    className="pointer-events-auto relative z-10"
+                    className="pointer-events-auto relative z-10 rounded-sm hover:underline"
                     aria-label={`${plant.name}の共存実績を見る`}
                   >
-                    <CoexistBadge catCount={plant.catCount} />
+                    <CoexistBadge catCount={plant.catCount} variant="quiet" />
                   </Link>
-                </span>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       </div>

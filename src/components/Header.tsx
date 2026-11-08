@@ -1,6 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import { Button } from "./ui/button";
-import { Camera, Leaf, PawPrint } from "lucide-react";
+import { Camera } from "lucide-react";
 import { DropdownMenu } from "./HeaderDropMenu";
 import HeaderNav from "./HeaderNav";
 import BottomNav from "./BottomNav";
@@ -19,40 +20,38 @@ export default async function Header() {
 
   return (
     <>
-    <header className="bg-[#2d5a27] text-primary-foreground p-3 px-4">
-      <div className="max-w-6xl mx-auto flex items-center gap-1 sm:gap-3">
-        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
-          <Link
-            href="/"
-            className="flex items-center gap-1 sm:gap-2 text-xl max-sm:text-base font-medium whitespace-nowrap"
-          >
-            <PawPrint className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+    <header className="border-b border-border bg-background">
+      {/* 幅はホームのヒーロー・フィード (600px + 300px) と左右の端を揃える */}
+      <div className="max-w-[964px] mx-auto h-14 px-4 flex items-center gap-2 sm:gap-6">
+        {/* ロゴ: 猫と葉のシルエット + サービス名 (alt は空にしてリンク名を「ネコトハ」に保つ) */}
+        <Link href="/" className="flex shrink-0 items-center gap-2 rounded-md">
+          <Image
+            src="/images/logo.png"
+            alt=""
+            width={28}
+            height={28}
+            className="size-7 rounded-full"
+            priority
+          />
+          <span className="text-lg font-medium leading-none text-ink whitespace-nowrap">
             {SITE_NAME}
-            <Leaf className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
-          </Link>
-          <span className="text-xs text-green-200 max-sm:hidden">Beta Version</span>
-        </div>
+          </span>
+        </Link>
         <HeaderNav />
         <div className="flex-1"></div>
-        <div className="flex items-center gap-1 sm:gap-2 min-w-0">
+        <div className="flex items-center gap-2 min-w-0">
           {!session || !user ? (
-            <Button
-              className="bg-accent text-accent-foreground hover:bg-accent/90 max-sm:px-3 max-sm:h-8 max-sm:text-xs"
-              asChild
-            >
-              <Link href="/signin" className="text-accent-foreground">
-                ログイン
-              </Link>
+            // 主ボタンはページ側 (ヒーローの「投稿をはじめる」) に任せ、ヘッダーは控えめにする
+            <Button variant="outline" asChild>
+              <Link href="/signin">ログイン</Link>
             </Button>
           ) : (
             <>
               {/* モバイルの投稿導線は下部タブバー (BottomNav) 中央に集約 */}
-              <Button variant="outline" className="hidden sm:flex" asChild>
-                <Link href="/posts/new" className="text-accent-foreground">
-                  <span className="flex items-center gap-2">
-                    <Camera className="w-6 h-6 text-green-500" />
-                    <span className="text-sm">投稿</span>
-                  </span>
+              <Button className="hidden sm:inline-flex" asChild>
+                <Link href="/posts/new">
+                  <Camera strokeWidth={1.5} />
+                  投稿
                 </Link>
               </Button>
               <DropdownMenu

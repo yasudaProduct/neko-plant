@@ -7,12 +7,51 @@ type Props = {
   /** compact: 「N匹」だけの短い表示 */
   compact?: boolean;
   size?: "sm" | "lg";
+  /**
+   * quiet: ピルにせず、意味色の点 + 文字だけで示す (フィードの投稿カード用)。
+   * 植物名の園芸ラベルの横に並べ、植物と実績の関係を1行で読ませる
+   */
+  variant?: "pill" | "quiet";
   className?: string;
 };
 
 /** 共存実績バッジ (ポジティブリスト方式: 実績=緑 / 少数=グレー / 情報なし=オレンジ) */
-export default function CoexistBadge({ catCount, compact = false, size = "sm", className }: Props) {
+export default function CoexistBadge({
+  catCount,
+  compact = false,
+  size = "sm",
+  variant = "pill",
+  className,
+}: Props) {
   const rank = getCoexistenceRank(catCount);
+
+  const label = compact
+    ? catCount > 0
+      ? `${catCount}匹`
+      : "情報なし"
+    : getCoexistenceMessage(catCount);
+
+  if (variant === "quiet") {
+    const dot =
+      rank === "many" || rank === "some"
+        ? "bg-primary"
+        : rank === "few"
+          ? "bg-ink-muted"
+          : "bg-noinfo";
+
+    return (
+      <span
+        className={cn(
+          "inline-flex items-center gap-2 text-xs tabular-nums",
+          rank === "none" ? "text-noinfo" : "text-ink-secondary",
+          className,
+        )}
+      >
+        <span aria-hidden className={cn("size-1.5 shrink-0 rounded-full", dot)} />
+        {label}
+      </span>
+    );
+  }
 
   const style =
     rank === "many" || rank === "some"
@@ -22,12 +61,6 @@ export default function CoexistBadge({ catCount, compact = false, size = "sm", c
         : "bg-orange-100 border-orange-200 text-orange-700";
 
   const Icon = rank === "none" ? TriangleAlert : rank === "few" ? PawPrint : Sprout;
-
-  const label = compact
-    ? catCount > 0
-      ? `${catCount}匹`
-      : "情報なし"
-    : getCoexistenceMessage(catCount);
 
   return (
     <span

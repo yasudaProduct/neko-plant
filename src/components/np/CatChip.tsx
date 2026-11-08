@@ -1,22 +1,35 @@
+import Image from "next/image";
 import { PawPrint } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
   name: string;
+  /** 猫プロフィールの写真。あれば肉球アイコンの代わりに顔を出す */
+  imageSrc?: string;
   className?: string;
 };
 
-/** 猫チップ */
-export default function CatChip({ name, className }: Props) {
+/** 猫チップ (植物の園芸ラベルと区別するため、猫は丸いチップ) */
+export default function CatChip({ name, imageSrc, className }: Props) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs",
-        "bg-gray-100 border border-gray-200 text-gray-600",
+        "inline-flex h-7 items-center gap-1.5 rounded-full bg-secondary text-xs text-ink-secondary",
+        imageSrc ? "pl-1 pr-3" : "px-3",
         className,
       )}
     >
-      <PawPrint className="w-3.5 h-3.5" />
+      {imageSrc ? (
+        <Image
+          src={imageSrc}
+          alt=""
+          width={20}
+          height={20}
+          className="size-5 rounded-full object-cover"
+        />
+      ) : (
+        <PawPrint className="size-4 text-ink-muted" strokeWidth={1.5} />
+      )}
       {name}
     </span>
   );

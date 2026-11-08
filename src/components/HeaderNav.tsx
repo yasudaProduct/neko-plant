@@ -16,20 +16,26 @@ export default function HeaderNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="max-sm:hidden flex gap-1 ml-2">
-      {NAV_ITEMS.map((item) => (
-        <Link
-          key={item.href}
-          href={item.href}
-          className={cn(
-            "inline-flex items-center gap-1.5 rounded-md px-2 sm:px-2.5 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
-            item.isActive(pathname) ? "bg-white/15" : "hover:bg-white/10",
-          )}
-        >
-          <item.icon className="w-4 h-4" />
-          <span>{item.label}</span>
-        </Link>
-      ))}
+    <nav className="max-sm:hidden flex items-center gap-1">
+      {NAV_ITEMS.map((item) => {
+        const active = item.isActive(pathname);
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            aria-current={active ? "page" : undefined}
+            className={cn(
+              "inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap transition-colors",
+              active
+                ? "bg-secondary text-ink"
+                : "text-ink-secondary hover:bg-secondary hover:text-ink",
+            )}
+          >
+            <item.icon className="size-4" strokeWidth={1.5} />
+            <span>{item.label}</span>
+          </Link>
+        );
+      })}
     </nav>
   );
 }

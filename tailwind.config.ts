@@ -22,8 +22,17 @@ const config: Config = {
   			},
   			primary: {
   				DEFAULT: 'hsl(var(--primary))',
-  				foreground: 'hsl(var(--primary-foreground))'
+  				foreground: 'hsl(var(--primary-foreground))',
+  				hover: 'hsl(var(--primary-hover))'
   			},
+  			// 文字色の3役 (本文 / 補足 / メタ情報)。gray-* を直接使わずこれを使う
+  			ink: {
+  				DEFAULT: 'hsl(var(--foreground))',
+  				secondary: 'hsl(var(--ink-secondary))',
+  				muted: 'hsl(var(--ink-muted))'
+  			},
+  			// 共存実績「情報なし」の意味色 (危険の断定ではなく、情報がないことを示す)
+  			noinfo: 'hsl(var(--noinfo))',
   			secondary: {
   				DEFAULT: 'hsl(var(--secondary))',
   				foreground: 'hsl(var(--secondary-foreground))'
@@ -55,6 +64,10 @@ const config: Config = {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
+  		},
+  		// 動きは1種類のイージングに揃える (transition-colors などの既定値になる)
+  		transitionTimingFunction: {
+  			DEFAULT: 'cubic-bezier(0.22, 1, 0.36, 1)'
   		}
   	}
   },

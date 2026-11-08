@@ -13,7 +13,8 @@ import JsonLd from "@/components/JsonLd";
 
 const RampartOneFont = M_PLUS_Rounded_1c({
   subsets: ["latin"],
-  weight: ["400", "700"],
+  // 見出しは 500。700 は既存ページの強調用に残す
+  weight: ["400", "500", "700"],
   // 日本語グリフはCSSのunicode-range分割で遅延取得されるため、
   // フォント到着までテキストを隠さない (FOIT回避)
   display: "swap",
@@ -125,11 +126,11 @@ export default async function RootLayout({
         <JsonLd data={siteJsonLd} />
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-gray-900 focus:shadow-lg"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-card focus:px-4 focus:py-2 focus:text-ink focus:shadow-lg"
         >
           本文へスキップ
         </a>
-        <div className="flex flex-col min-h-screen bg-green-50">
+        <div className="flex flex-col min-h-screen bg-background">
           <ProgressBar>
             <AuthDialogProvider>
               <Header />

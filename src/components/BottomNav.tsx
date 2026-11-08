@@ -44,13 +44,14 @@ export default function BottomNav({ aliasId }: Props) {
         key={item.href}
         href={item.href}
         data-testid={item.testId}
+        aria-current={active ? "page" : undefined}
         className={cn(
-          "flex flex-col items-center justify-center gap-0.5 py-2 min-h-[52px]",
-          active ? "text-green-700" : "text-gray-500",
+          "flex flex-col items-center justify-center gap-1 py-2 min-h-[52px] transition-colors",
+          active ? "text-primary" : "text-ink-muted",
         )}
       >
-        <item.icon className="w-5 h-5" strokeWidth={active ? 2.5 : 2} />
-        <span className={cn("text-[10px] leading-none", active && "font-bold")}>
+        <item.icon className="size-5" strokeWidth={active ? 2 : 1.5} />
+        <span className={cn("text-[11px] leading-none", active && "font-medium")}>
           {item.label}
         </span>
       </Link>
@@ -61,7 +62,7 @@ export default function BottomNav({ aliasId }: Props) {
     <nav
       data-testid="bottom-nav"
       aria-label="メインナビゲーション"
-      className="fixed bottom-0 inset-x-0 z-40 sm:hidden bg-white border-t border-border pb-[env(safe-area-inset-bottom)]"
+      className="fixed bottom-0 inset-x-0 z-40 sm:hidden bg-card border-t border-border pb-[env(safe-area-inset-bottom)]"
     >
       <div className="grid grid-cols-5">
         {sideItems.left.map(renderItem)}
@@ -69,12 +70,12 @@ export default function BottomNav({ aliasId }: Props) {
         <Link
           href="/posts/new"
           data-testid="bottom-nav-post"
-          className="flex flex-col items-center justify-end gap-0.5 py-2 text-gray-500"
+          className="flex flex-col items-center justify-end gap-1 py-2 text-ink-muted"
         >
-          <span className="flex items-center justify-center w-12 h-12 -mt-6 rounded-full bg-green-600 text-white shadow-md border-4 border-green-50">
-            <Camera className="w-5 h-5" />
+          <span className="flex items-center justify-center size-12 -mt-6 rounded-full bg-primary text-primary-foreground shadow-sm border-4 border-background">
+            <Camera className="size-5" strokeWidth={1.5} />
           </span>
-          <span className="text-[10px] leading-none">投稿</span>
+          <span className="text-[11px] leading-none">投稿</span>
         </Link>
         {sideItems.right.map(renderItem)}
       </div>

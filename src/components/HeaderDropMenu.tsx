@@ -77,53 +77,51 @@ export const DropdownMenu: React.FC<DropdownMenuProps> = ({
         data-testid="user-avatar"
         onClick={toggleDropdown}
         onKeyDown={handleKeyDown}
-        className="focus:outline-none flex items-center gap-2"
+        className="flex items-center gap-2 rounded-full"
         aria-haspopup="true"
         aria-expanded={isOpen}
       >
-        <Avatar className="w-8 h-8">
+        <Avatar className="size-8">
           <AvatarImage src={userImage || undefined} alt={userName || "User"} />
           <AvatarFallback>{userName.charAt(0) || "U"}</AvatarFallback>
         </Avatar>
-        <span className="text-sm hidden md:inline-block truncate max-w-[8rem]">{userName}</span>
+        <span className="text-sm text-ink-secondary hidden md:inline-block truncate max-w-32">{userName}</span>
       </button>
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 text-gray-700">
-          <div className="flex items-center gap-2 space-x-2 px-4 py-2">
-            <span className="sm:hidden">{userName}</span>
-          </div>
-          <hr className="sm:hidden" />
+        <div className="absolute right-0 mt-2 w-48 rounded-xl border border-border bg-popover p-1 text-sm text-ink shadow-[0_8px_24px_rgba(31,27,22,0.08)]">
+          <p className="sm:hidden truncate px-3 py-2 text-ink-secondary">{userName}</p>
+          <hr className="sm:hidden my-1" />
           <Link
             href={`/${aliasId}`}
-            className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-100"
+            className="flex h-9 items-center gap-2 rounded-md px-3 transition-colors hover:bg-secondary"
             onClick={handleMenuItemClick}
           >
-            <SquareUserRound className="w-4 h-4" />
+            <SquareUserRound className="size-4 text-ink-muted" strokeWidth={1.5} />
             <span>マイページ</span>
           </Link>
           <Link
             href={`/settings/cats`}
-            className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-100"
+            className="flex h-9 items-center gap-2 rounded-md px-3 transition-colors hover:bg-secondary"
             onClick={handleMenuItemClick}
           >
-            <PawPrint className="w-4 h-4" />
+            <PawPrint className="size-4 text-ink-muted" strokeWidth={1.5} />
             <span>猫プロフィール</span>
           </Link>
           <Link
             href={`/settings/account`}
-            className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-100"
+            className="flex h-9 items-center gap-2 rounded-md px-3 transition-colors hover:bg-secondary"
             onClick={handleMenuItemClick}
           >
-            <Settings className="w-4 h-4" />
+            <Settings className="size-4 text-ink-muted" strokeWidth={1.5} />
             <span>設定</span>
           </Link>
           <button
             onClick={async () => {
               await handleSignOut();
             }}
-            className="flex items-center space-x-2 px-4 py-2 hover:bg-gray-100 w-full text-left text-red-600"
+            className="flex h-9 w-full items-center gap-2 rounded-md px-3 text-left text-destructive transition-colors hover:bg-secondary"
           >
-            <LogOut className="w-4 h-4" />
+            <LogOut className="size-4" strokeWidth={1.5} />
             <span>ログアウト</span>
           </button>
         </div>

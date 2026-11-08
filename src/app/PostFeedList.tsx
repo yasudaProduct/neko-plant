@@ -23,7 +23,7 @@ export default function PostFeedList({ initialPosts, totalCount, pageSize }: Pro
 
   return (
     <>
-      <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-6">
         {posts.map((post, i) => (
           <PostCard key={post.id} post={post} priority={i === 0} />
         ))}

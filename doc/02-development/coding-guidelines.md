@@ -69,6 +69,15 @@ if (!user) return { success: false, code: ActionErrorCode.AUTH_REQUIRED, ... };
 - 色は `tailwind.config.ts` の**セマンティックトークン**（`primary` / `secondary` / `muted` /
   `destructive` / `accent` など、CSS変数ベース）を使う。個別の色指定（`text-green-600` など）は
   トークンで表現できない場合に限る
+- 配色: ヘッダーはブランドの深緑（`#2d5a27`）に白文字、ページの地は `bg-green-50`、カードは白（`bg-white` + `border-border` + `shadow-sm`）。
+  主ボタンは `green-600`、リンクと強調する数値は `green-700`、文字は `gray-900`（本文・見出し）/ `gray-600`（補足）/ `gray-500`（メタ情報）。
+  共存実績の意味色は緑＝実績あり / グレー＝少数 / オレンジ＝情報なし（`CoexistBadge`）。
+  shadcn/ui のトークン（`src/app/globals.css` の `:root`）は既定値のまま（`primary` は濃紺でフッターに使用）で、サイトの緑はトークンにしていない
+
+- **植物名は園芸ラベル型（`.np-label`、左端がとがった札）で示す**。このサービスの目印なので植物名以外には使わない（猫は丸いチップ）。札の色は既定で `green-100`（文字は `green-700`）、変えるときは `[--np-label-bg:...]` を指定する
+- 文字のウェイトは 400 / 500 を使う（見出しも 500）。700 は既存ページの強調用に残しているだけ
+- アイコンは lucide を `strokeWidth={1.5}`、文中・ボタンは 16px（`size-4`）、いいね・下部タブなど指で押すものは 20px（`size-5`）
+- 動きは `transition-colors` などの名前付きプロパティだけにし、イージングは `cubic-bezier(0.22, 1, 0.36, 1)`（Tailwind の既定値に設定済み）
 - **レスポンシブ対応は必須**。モバイルは単一カラム、デスクトップは適宜マルチカラム
 - shadcn/ui のコンポーネントがある場合はそれを使う（`components.json` で管理）
 

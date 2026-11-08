@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Leaf } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -7,18 +6,16 @@ type Props = {
   className?: string;
 };
 
-/** 植物タグ (植物ページへのリンクピル) */
+/** 植物タグ (植物ページへのリンク)。鉢に挿す園芸ラベルの形 (.np-label) で植物名を示す */
 export default function PlantTag({ plant, className }: Props) {
   return (
     <Link
       href={`/plants/${plant.id}`}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium",
-        "bg-white border border-green-200 text-green-700 hover:bg-green-100 transition-colors",
+        "np-label inline-flex h-7 items-center pr-3 text-[13px] font-medium text-green-700",
         className,
       )}
     >
-      <Leaf className="w-3.5 h-3.5" />
       {plant.name}
     </Link>
   );

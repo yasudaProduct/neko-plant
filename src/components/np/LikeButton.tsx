@@ -74,25 +74,26 @@ export default function LikeButton({ postId, initialLiked, initialCount, size = 
   };
 
   return (
-    <div data-testid="like-button" className={cn("inline-flex items-center gap-1.5 text-sm text-gray-500", className)}>
+    <div data-testid="like-button" className={cn("inline-flex items-center gap-2 text-[13px] text-gray-500", className)}>
       <button
         type="button"
         onClick={onToggle}
         aria-label={liked ? "いいねを取り消す" : "いいねする"}
         className={cn(
-          // p-2 -m-2: 見た目を変えずにタップ領域を44px相当まで広げる
-          "p-2 -m-2 transition-colors",
+          // p-3 -m-3: 見た目を変えずにタップ領域を44px相当まで広げる
+          "p-3 -m-3 rounded-full transition-colors",
           liked ? "text-red-600" : "text-gray-500 hover:text-red-600",
         )}
       >
         <Heart
           className={cn(
-            size === "lg" ? "w-7 h-7" : "w-6 h-6",
+            size === "lg" ? "size-6" : "size-5",
             liked && "fill-red-600 np-like-pop",
           )}
+          strokeWidth={1.5}
         />
       </button>
-      <span>いいね {count}件</span>
+      <span className="tabular-nums">いいね {count.toLocaleString()}件</span>
     </div>
   );
 }

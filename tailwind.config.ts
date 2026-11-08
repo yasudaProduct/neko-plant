@@ -55,6 +55,10 @@ const config: Config = {
   			lg: 'var(--radius)',
   			md: 'calc(var(--radius) - 2px)',
   			sm: 'calc(var(--radius) - 4px)'
+  		},
+  		// 動きは1種類のイージングに揃える (transition-colors などの既定値になる)
+  		transitionTimingFunction: {
+  			DEFAULT: 'cubic-bezier(0.22, 1, 0.36, 1)'
   		}
   	}
   },

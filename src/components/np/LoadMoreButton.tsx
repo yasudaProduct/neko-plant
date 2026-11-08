@@ -19,7 +19,7 @@ export default function LoadMoreButton({ onClick, isLoading, remaining }: Props)
           "読み込み中..."
         ) : (
           <>
-            <ChevronDown className="w-4 h-4" />
+            <ChevronDown strokeWidth={1.5} />
             もっと見る（残り{remaining}件）
           </>
         )}

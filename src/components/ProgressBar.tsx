@@ -6,7 +6,8 @@ const ProgressBar = ({ children }: { children: React.ReactNode }) => {
       {children}
       <AppProgressBar
         height="2px"
-        // color="#fffd00"
+        // ヘッダーと同じ深緑
+        color="#2d5a27"
         options={{ showSpinner: false }}
         shallowRouting
       />

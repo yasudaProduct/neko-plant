@@ -26,9 +26,7 @@ export default function HeaderNav() {
             aria-current={active ? "page" : undefined}
             className={cn(
               "inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium whitespace-nowrap transition-colors",
-              active
-                ? "bg-secondary text-ink"
-                : "text-ink-secondary hover:bg-secondary hover:text-ink",
+              active ? "bg-white/15" : "hover:bg-white/10",
             )}
           >
             <item.icon className="size-4" strokeWidth={1.5} />

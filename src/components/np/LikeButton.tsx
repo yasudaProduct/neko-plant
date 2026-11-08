@@ -74,7 +74,7 @@ export default function LikeButton({ postId, initialLiked, initialCount, size = 
   };
 
   return (
-    <div data-testid="like-button" className={cn("inline-flex items-center gap-2 text-[13px] text-ink-secondary", className)}>
+    <div data-testid="like-button" className={cn("inline-flex items-center gap-2 text-[13px] text-gray-500", className)}>
       <button
         type="button"
         onClick={onToggle}
@@ -82,7 +82,7 @@ export default function LikeButton({ postId, initialLiked, initialCount, size = 
         className={cn(
           // p-3 -m-3: 見た目を変えずにタップ領域を44px相当まで広げる
           "p-3 -m-3 rounded-full transition-colors",
-          liked ? "text-red-600" : "text-ink-secondary hover:text-red-600",
+          liked ? "text-red-600" : "text-gray-500 hover:text-red-600",
         )}
       >
         <Heart

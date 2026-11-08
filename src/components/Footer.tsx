@@ -11,7 +11,7 @@ const FOOTER_LINKS = [
 export default function Footer() {
   return (
     // max-sm:pb-24: 下部タブバー (BottomNav) にコピーライトが隠れないための余白
-    <footer className="border-t border-border bg-background px-4 py-8 max-sm:pb-24">
+    <footer className="bg-primary text-primary-foreground px-4 py-8 max-sm:pb-24">
       <div className="max-w-6xl mx-auto flex flex-col items-center gap-4 text-center">
         {/* 語中で折り返さず、項目単位で折り返す */}
         <nav aria-label="サイト情報" className="flex flex-wrap justify-center gap-x-6 gap-y-2">
@@ -19,18 +19,18 @@ export default function Footer() {
             <Link
               key={link.href}
               href={link.href}
-              className="whitespace-nowrap text-sm text-ink-secondary transition-colors hover:text-ink"
+              className="whitespace-nowrap text-sm hover:underline"
             >
               {link.label}
             </Link>
           ))}
         </nav>
-        <div className="flex flex-col gap-1 text-xs text-ink-muted">
+        <div className="flex flex-col gap-1 text-xs text-primary-foreground/60">
           <p>
             お問い合わせ：
             <a
               href={`mailto:${SUPPORT_EMAIL}`}
-              className="whitespace-nowrap transition-colors hover:text-ink hover:underline"
+              className="whitespace-nowrap hover:underline"
             >
               {SUPPORT_EMAIL}
             </a>

@@ -14,7 +14,7 @@ export default function CatChip({ name, imageSrc, className }: Props) {
   return (
     <span
       className={cn(
-        "inline-flex h-7 items-center gap-1.5 rounded-full bg-secondary text-xs text-ink-secondary",
+        "inline-flex h-7 items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 text-xs text-gray-600",
         imageSrc ? "pl-1 pr-3" : "px-3",
         className,
       )}
@@ -28,7 +28,7 @@ export default function CatChip({ name, imageSrc, className }: Props) {
           className="size-5 rounded-full object-cover"
         />
       ) : (
-        <PawPrint className="size-4 text-ink-muted" strokeWidth={1.5} />
+        <PawPrint className="size-4" strokeWidth={1.5} />
       )}
       {name}
     </span>

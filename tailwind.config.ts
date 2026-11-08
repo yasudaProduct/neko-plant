@@ -22,17 +22,8 @@ const config: Config = {
   			},
   			primary: {
   				DEFAULT: 'hsl(var(--primary))',
-  				foreground: 'hsl(var(--primary-foreground))',
-  				hover: 'hsl(var(--primary-hover))'
+  				foreground: 'hsl(var(--primary-foreground))'
   			},
-  			// 文字色の3役 (本文 / 補足 / メタ情報)。gray-* を直接使わずこれを使う
-  			ink: {
-  				DEFAULT: 'hsl(var(--foreground))',
-  				secondary: 'hsl(var(--ink-secondary))',
-  				muted: 'hsl(var(--ink-muted))'
-  			},
-  			// 共存実績「情報なし」の意味色 (危険の断定ではなく、情報がないことを示す)
-  			noinfo: 'hsl(var(--noinfo))',
   			secondary: {
   				DEFAULT: 'hsl(var(--secondary))',
   				foreground: 'hsl(var(--secondary-foreground))'

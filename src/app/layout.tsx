@@ -126,11 +126,11 @@ export default async function RootLayout({
         <JsonLd data={siteJsonLd} />
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-card focus:px-4 focus:py-2 focus:text-ink focus:shadow-lg"
+          className="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-white focus:px-4 focus:py-2 focus:text-gray-900 focus:shadow-lg"
         >
           本文へスキップ
         </a>
-        <div className="flex flex-col min-h-screen bg-background">
+        <div className="flex flex-col min-h-screen bg-green-50">
           <ProgressBar>
             <AuthDialogProvider>
               <Header />

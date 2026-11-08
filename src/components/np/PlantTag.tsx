@@ -12,7 +12,7 @@ export default function PlantTag({ plant, className }: Props) {
     <Link
       href={`/plants/${plant.id}`}
       className={cn(
-        "np-label inline-flex h-7 items-center pr-3 text-[13px] font-medium text-ink",
+        "np-label inline-flex h-7 items-center pr-3 text-[13px] font-medium text-green-700",
         className,
       )}
     >

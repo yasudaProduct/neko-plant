@@ -34,16 +34,16 @@ export default function CoexistBadge({
   if (variant === "quiet") {
     const dot =
       rank === "many" || rank === "some"
-        ? "bg-primary"
+        ? "bg-green-600"
         : rank === "few"
-          ? "bg-ink-muted"
-          : "bg-noinfo";
+          ? "bg-gray-400"
+          : "bg-orange-500";
 
     return (
       <span
         className={cn(
           "inline-flex items-center gap-2 text-xs tabular-nums",
-          rank === "none" ? "text-noinfo" : "text-ink-secondary",
+          rank === "none" ? "text-orange-700" : "text-gray-600",
           className,
         )}
       >

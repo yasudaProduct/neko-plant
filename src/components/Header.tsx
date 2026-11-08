@@ -20,7 +20,7 @@ export default async function Header() {
 
   return (
     <>
-    <header className="border-b border-border bg-background">
+    <header className="bg-[#2d5a27] text-primary-foreground">
       {/* 幅はホームのヒーロー・フィード (600px + 300px) と左右の端を揃える */}
       <div className="max-w-[964px] mx-auto h-14 px-4 flex items-center gap-2 sm:gap-6">
         {/* ロゴ: 猫と葉のシルエット + サービス名 (alt は空にしてリンク名を「ネコトハ」に保つ) */}
@@ -30,10 +30,10 @@ export default async function Header() {
             alt=""
             width={28}
             height={28}
-            className="size-7 rounded-full"
+            className="size-7 rounded-full bg-green-100"
             priority
           />
-          <span className="text-lg font-medium leading-none text-ink whitespace-nowrap">
+          <span className="text-lg font-medium leading-none whitespace-nowrap">
             {SITE_NAME}
           </span>
         </Link>
@@ -42,15 +42,17 @@ export default async function Header() {
         <div className="flex items-center gap-2 min-w-0">
           {!session || !user ? (
             // 主ボタンはページ側 (ヒーローの「投稿をはじめる」) に任せ、ヘッダーは控えめにする
-            <Button variant="outline" asChild>
-              <Link href="/signin">ログイン</Link>
+            <Button className="bg-accent text-accent-foreground hover:bg-accent/90" asChild>
+              <Link href="/signin" className="text-accent-foreground">
+                ログイン
+              </Link>
             </Button>
           ) : (
             <>
               {/* モバイルの投稿導線は下部タブバー (BottomNav) 中央に集約 */}
-              <Button className="hidden sm:inline-flex" asChild>
-                <Link href="/posts/new">
-                  <Camera strokeWidth={1.5} />
+              <Button variant="outline" className="hidden sm:inline-flex" asChild>
+                <Link href="/posts/new" className="text-accent-foreground">
+                  <Camera className="text-green-500" strokeWidth={1.5} />
                   投稿
                 </Link>
               </Button>

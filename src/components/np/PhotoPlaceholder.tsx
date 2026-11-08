@@ -26,11 +26,11 @@ export default function PhotoPlaceholder({
     return (
       <div
         className={cn(
-          "w-full h-20 bg-secondary/60 border-b border-border flex items-center justify-center gap-2 text-ink-muted",
+          "w-full h-20 bg-gray-50 border-b border-border flex items-center justify-center gap-2 text-gray-500",
           className,
         )}
       >
-        <Icon className="size-5" strokeWidth={1.5} />
+        <Icon className="size-5 text-gray-400" strokeWidth={1.5} />
         {label && <span className="text-xs">{label}</span>}
       </div>
     );
@@ -39,7 +39,7 @@ export default function PhotoPlaceholder({
   return (
     <div
       className={cn(
-        "w-full h-full bg-secondary flex items-center justify-center text-ink-muted/60",
+        "w-full h-full bg-gray-100 flex items-center justify-center text-gray-300",
         className,
       )}
     >

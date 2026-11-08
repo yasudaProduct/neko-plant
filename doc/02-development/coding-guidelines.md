@@ -69,18 +69,12 @@ if (!user) return { success: false, code: ActionErrorCode.AUTH_REQUIRED, ... };
 - 色は `tailwind.config.ts` の**セマンティックトークン**（`primary` / `secondary` / `muted` /
   `destructive` / `accent` など、CSS変数ベース）を使う。個別の色指定（`text-green-600` など）は
   トークンで表現できない場合に限る
-- 配色は「窓辺の鉢植え」: 紙のような暖かい白の地に、ブランドの深緑（`#2d5a27`）を1色だけ置く。値は `src/app/globals.css` の `:root`
+- 配色: ヘッダーはブランドの深緑（`#2d5a27`）に白文字、ページの地は `bg-green-50`、カードは白（`bg-white` + `border-border` + `shadow-sm`）。
+  主ボタンは `green-600`、リンクと強調する数値は `green-700`、文字は `gray-900`（本文・見出し）/ `gray-600`（補足）/ `gray-500`（メタ情報）。
+  共存実績の意味色は緑＝実績あり / グレー＝少数 / オレンジ＝情報なし（`CoexistBadge`）。
+  shadcn/ui のトークン（`src/app/globals.css` の `:root`）は既定値のまま（`primary` は濃紺でフッターに使用）で、サイトの緑はトークンにしていない
 
-  | トークン | 用途 |
-  | --- | --- |
-  | `bg-background` / `bg-card` | ページの地 / カード |
-  | `bg-secondary` | 一段上げた面（選択中のナビ、チップ、ホバー） |
-  | `text-ink` / `text-ink-secondary` / `text-ink-muted` | 文字の3役（本文 / 補足 / メタ情報）。`gray-*` は使わない |
-  | `primary` | 主ボタン・選択中・リンク・グラフで強調する1本だけ。面の色には使わない |
-  | `noinfo` | 共存実績「情報なし」の意味色。危険の断定には使わない |
-  | `border-border` | 髪の毛線の境界線 |
-
-- **植物名は園芸ラベル型（`.np-label`、左端がとがった札）で示す**。このサービスの目印なので植物名以外には使わない（猫は丸いチップ）。札の色は `[--np-label-bg:...]` で変える
+- **植物名は園芸ラベル型（`.np-label`、左端がとがった札）で示す**。このサービスの目印なので植物名以外には使わない（猫は丸いチップ）。札の色は既定で `green-100`（文字は `green-700`）、変えるときは `[--np-label-bg:...]` を指定する
 - 文字のウェイトは 400 / 500 を使う（見出しも 500）。700 は既存ページの強調用に残しているだけ
 - アイコンは lucide を `strokeWidth={1.5}`、文中・ボタンは 16px（`size-4`）、いいね・下部タブなど指で押すものは 20px（`size-5`）
 - 動きは `transition-colors` などの名前付きプロパティだけにし、イージングは `cubic-bezier(0.22, 1, 0.36, 1)`（Tailwind の既定値に設定済み）

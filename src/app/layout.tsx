@@ -13,7 +13,8 @@ import JsonLd from "@/components/JsonLd";
 
 const RampartOneFont = M_PLUS_Rounded_1c({
   subsets: ["latin"],
-  weight: ["400", "700"],
+  // 見出しは 500。700 は既存ページの強調用に残す
+  weight: ["400", "500", "700"],
   // 日本語グリフはCSSのunicode-range分割で遅延取得されるため、
   // フォント到着までテキストを隠さない (FOIT回避)
   display: "swap",

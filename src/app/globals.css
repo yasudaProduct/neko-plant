@@ -2,22 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
-/* いいねのポップアニメーション */
+/* いいねのポップアニメーション (押したことを伝える一瞬の膨らみ。跳ねさせない) */
 @media (prefers-reduced-motion: no-preference) {
   .np-like-pop {
-    animation: np-pop 0.3s ease;
+    animation: np-pop 240ms cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   @keyframes np-pop {
     0% {
       transform: scale(1);
     }
-    45% {
-      transform: scale(1.35);
+    40% {
+      transform: scale(1.18);
     }
     100% {
       transform: scale(1);
@@ -51,7 +47,7 @@ body {
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
+    --radius: 0.625rem;
   }
   .dark {
     --background: 222.2 84% 4.9%;
@@ -87,5 +83,46 @@ body {
   }
   body {
     @apply bg-background text-foreground;
+  }
+  /* キーボード操作時のフォーカスを、どの要素でも同じ見え方にする */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /*
+   * 園芸ラベル型のタグ (鉢に挿す名札のように、左端がとがった札)。
+   * このサービスの目印なので、植物名にだけ使う。猫は丸いチップのまま
+   */
+  .np-label {
+    --np-label-tip: 10px;
+    --np-label-bg: theme('colors.green.100');
+    position: relative;
+    isolation: isolate;
+    padding-left: calc(var(--np-label-tip) + 6px);
+  }
+  /* 札の形は疑似要素で切り抜く (要素自体を clip-path で切るとフォーカス枠まで消えるため) */
+  .np-label::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-color: var(--np-label-bg);
+    border-radius: 0 4px 4px 0;
+    clip-path: polygon(var(--np-label-tip) 0, 100% 0, 100% 100%, var(--np-label-tip) 100%, 0 50%);
+    transition: background-color 150ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  a.np-label:hover {
+    --np-label-bg: theme('colors.green.200');
+  }
+
+  /* 大きな見出し: かなを詰め (palt)、句読点の位置でだけ改行させる */
+  .np-display {
+    font-feature-settings: "palt";
+    letter-spacing: 0.02em;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
   }
 }

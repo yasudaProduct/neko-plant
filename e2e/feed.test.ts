@@ -23,7 +23,7 @@ test.describe('フィード / ランディング @public', () => {
   test('未ログイン時はランディングヒーローとフィードが表示される', async ({ page }) => {
     // M7: 初見向けヒーロー
     await expect(page.getByRole('heading', { name: '猫と植物は、いっしょに暮らせる？' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'はじめる' })).toBeVisible();
+    await expect(page.getByRole('link', { name: '投稿をはじめる' })).toBeVisible();
     await expect(page.getByRole('link', { name: '植物をさがす' })).toBeVisible();
 
     // M1: フィード
